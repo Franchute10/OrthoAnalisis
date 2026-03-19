@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OrthoAnalysis · Cefalometría Digital</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600&family=Syne:wght@400;600;800&display=swap');
+
+  :root {
+    --bg: #0a0d12;
+    --panel: #0f1318;
+    --border: #1e2530;
+    --border-bright: #2a3445;
+    --accent: #00ff87;
+    --accent2: #00c8ff;
+    --warn: #ff6b35;
+    --text: #c8d6e5;
+    --text-dim: #556070;
+    --text-bright: #eef4ff;
+    --mono: 'JetBrains Mono', monospace;
+    --head: 'Syne', sans-serif;
+    --red: #ff4466;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    height: 100vh;
+    overflow: hidden;
+    display: grid;
+    grid-template-rows: 52px 1fr;
+    grid-template-columns: 280px 1fr 300px;
+    grid-template-areas:
+      "header header header"
+      "left   canvas right";
+  }
+
+  /* ── HEADER ── */
+  header {
+    grid-area: header;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 16px;
+  }
+  header h1 {
+    font-family: var(--head);
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--text-bright);
+    letter-spacing: -0.5px;
+  }
+  header h1 span { color: var(--accent); }
+  .header-badge {
+    font-size: 9px;
+    background: var(--accent);
+    color: var(--bg);
+    padding: 2px 7px;
+    border-radius: 2px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .header-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-dim);
+    font-size: 11px;
+  }
+
+  /* ── LEFT PANEL ── */
+  .left-panel {
+    grid-area: left;
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .panel-section {
+    padding: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-title {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+  }
+
+  /* Upload */
+  .upload-zone {
+    border: 1px dashed var(--border-bright);
+    border-radius: 4px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all .2s;
+    background: var(--bg);
+  }
+  .upload-zone:hover { border-color: var(--accent); color: var(--accent); }
+  .upload-zone input { display: none; }
+  .upload-icon { font-size: 24px; margin-bottom: 6px; }
+
+  /* Filters */
+  .filter-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .filter-label { width: 70px; color: var(--text-dim); font-size: 10px; }
+  input[type=range] {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 2px;
+    background: var(--border-bright);
+    border-radius: 2px;
+    outline: none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    background: var(--accent);
+    border-radius: 50%;
+    cursor: pointer;
+  }
+  .filter-val { width: 30px; text-align: right; color: var(--accent); font-size: 10px; }
+
+  /* Points list */
+  .points-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 6px 14px;
+  }
+  .points-list::-webkit-scrollbar { width: 3px; }
+  .points-list::-webkit-scrollbar-track { background: transparent; }
+  .points-list::-webkit-scrollbar-thumb { background: var(--border-bright); }
+
+  .point-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px;
+    border-radius: 4px;
+    margin-bottom: 3px;
+    cursor: pointer;
+    transition: background .15s;
+    border: 1px solid transparent;
+  }
+  .point-item:hover { background: rgba(255,255,255,.04); }
+  .point-item.active {
+    background: rgba(0, 255, 135, .08);
+    border-color: rgba(0, 255, 135, .2);
+  }
+  .point-item.done {
+    border-color: rgba(0, 255, 135, .15);
+  }
+  .point-num {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--border-bright);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    flex-shrink: 0;
+    font-weight: 600;
+  }
+  .point-item.done .point-num { background: var(--accent); color: var(--bg); }
+  .point-item.active .point-num { background: var(--accent2); color: var(--bg); }
+  .point-name { font-weight: 600; font-size: 11px; color: var(--text-bright); }
+  .point-desc { font-size: 9px; color: var(--text-dim); margin-top: 1px; }
+  .point-coords { margin-left: auto; font-size: 9px; color: var(--accent); white-space: nowrap; }
+
+  /* Bottom buttons */
+  .panel-bottom {
+    padding: 12px 14px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .btn {
+    padding: 9px 14px;
+    border-radius: 4px;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all .15s;
+    text-align: center;
+    letter-spacing: .5px;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: var(--bg);
+  }
+  .btn-primary:hover { background: #00e07a; }
+  .btn-primary:disabled { opacity: .3; cursor: not-allowed; }
+  .btn-secondary {
+    background: transparent;
+    color: var(--text-dim);
+    border-color: var(--border-bright);
+  }
+  .btn-secondary:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  /* ── CANVAS AREA ── */
+  .canvas-area {
+    grid-area: canvas;
+    position: relative;
+    overflow: hidden;
+    background: #060810;
+    background-image:
+      linear-gradient(rgba(30,37,48,.4) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(30,37,48,.4) 1px, transparent 1px);
+    background-size: 30px 30px;
+  }
+  #main-canvas {
+    position: absolute;
+    top: 0; left: 0;
+    cursor: crosshair;
+  }
+  .canvas-hint {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(10,13,18,.85);
+    border: 1px solid var(--border);
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-size: 10px;
+    color: var(--text-dim);
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .canvas-hint strong { color: var(--accent); }
+
+  /* Zoom indicator */
+  .zoom-indicator {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    background: rgba(10,13,18,.8);
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    border-radius: 3px;
+    font-size: 10px;
+    color: var(--text-dim);
+  }
+  .zoom-indicator span { color: var(--accent2); font-weight: 600; }
+
+  /* ── RIGHT PANEL ── */
+  .right-panel {
+    grid-area: right;
+    background: var(--panel);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .results-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px;
+  }
+  .results-area::-webkit-scrollbar { width: 3px; }
+  .results-area::-webkit-scrollbar-thumb { background: var(--border-bright); }
+
+  /* Empty state */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 10px;
+    color: var(--text-dim);
+    text-align: center;
+    padding: 20px;
+  }
+  .empty-icon { font-size: 36px; opacity: .4; }
+
+  /* Results */
+  .result-group {
+    margin-bottom: 16px;
+  }
+  .result-group-title {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border);
+  }
+  .result-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 0;
+    border-bottom: 1px solid rgba(30,37,48,.5);
+  }
+  .result-key { color: var(--text-dim); font-size: 10px; }
+  .result-val { color: var(--text-bright); font-size: 11px; font-weight: 600; }
+  .result-val.accent { color: var(--accent); }
+  .result-val.warn { color: var(--warn); }
+  .result-val.info { color: var(--accent2); }
+
+  /* Diagnosis card */
+  .diagnosis-card {
+    background: linear-gradient(135deg, rgba(0,255,135,.05), rgba(0,200,255,.05));
+    border: 1px solid rgba(0,255,135,.2);
+    border-radius: 6px;
+    padding: 16px;
+    margin-bottom: 16px;
+    text-align: center;
+  }
+  .diagnosis-group {
+    font-family: var(--head);
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--accent);
+    letter-spacing: 2px;
+    margin-bottom: 4px;
+  }
+  .diagnosis-cat {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+  }
+  .diagnosis-cat span {
+    background: var(--accent2);
+    color: var(--bg);
+    padding: 2px 8px;
+    border-radius: 2px;
+    font-weight: 600;
+    font-size: 10px;
+  }
+  .diagnosis-meta {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-top: 10px;
+  }
+  .meta-item {
+    background: rgba(255,255,255,.03);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 6px;
+    text-align: center;
+  }
+  .meta-label { font-size: 8px; color: var(--text-dim); margin-bottom: 2px; text-transform: uppercase; letter-spacing: 1px; }
+  .meta-val { font-size: 11px; color: var(--text-bright); font-weight: 600; }
+
+  /* Loading */
+  .loading {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    padding: 20px;
+    color: var(--text-dim);
+    font-size: 11px;
+  }
+  .spinner {
+    width: 16px; height: 16px;
+    border: 2px solid var(--border-bright);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Instructions overlay */
+  .no-image {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    flex-direction: column;
+    gap: 12px;
+    color: var(--text-dim);
+  }
+  .no-image-icon { font-size: 48px; opacity: .2; }
+
+  /* Progress bar */
+  .progress-bar {
+    height: 2px;
+    background: var(--border);
+    border-radius: 1px;
+    margin: 0 14px 8px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 1px;
+    transition: width .3s ease;
+  }
+
+  /* Tooltip */
+  .tooltip {
+    position: absolute;
+    background: rgba(10,13,18,.95);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-size: 10px;
+    padding: 4px 10px;
+    border-radius: 3px;
+    pointer-events: none;
+    transform: translate(-50%, -130%);
+    white-space: nowrap;
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <h1>Ortho<span>Analysis</span></h1>
+  <div class="header-badge">Beta</div>
+  <div class="header-right">
+    Bimler · Lavergne-Petrovic
+    <span style="color: var(--border-bright)">|</span>
+    Motor v2.0
+  </div>
+</header>
+
+<!-- LEFT PANEL -->
+<div class="left-panel">
+  <div class="panel-section">
+    <div class="section-title">Radiografía</div>
+    <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
+      <input type="file" id="fileInput" accept="image/*" onchange="cargarImagen(event)">
+      <div class="upload-icon">🩻</div>
+      <div>Cargar radiografía</div>
+      <div style="color: var(--text-dim); margin-top: 4px; font-size: 10px;">JPG · PNG · DICOM</div>
+    </div>
+  </div>
+
+  <div class="panel-section">
+    <div class="section-title">Ajustes de Imagen</div>
+    <div class="filter-row">
+      <div class="filter-label">Brillo</div>
+      <input type="range" id="brillo" min="0.2" max="2.5" step="0.05" value="1" oninput="aplicarFiltros()">
+      <div class="filter-val" id="brillo-val">1.0</div>
+    </div>
+    <div class="filter-row">
+      <div class="filter-label">Contraste</div>
+      <input type="range" id="contraste" min="0.2" max="4" step="0.1" value="1" oninput="aplicarFiltros()">
+      <div class="filter-val" id="contraste-val">1.0</div>
+    </div>
+    <div class="filter-row">
+      <div class="filter-label">Invertir</div>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;flex:1">
+        <input type="checkbox" id="invertir" onchange="aplicarFiltros()" style="accent-color:var(--accent)">
+        <span style="color:var(--text-dim);font-size:10px">Invertir colores</span>
+      </label>
+    </div>
+  </div>
+
+  <div style="padding: 8px 14px 4px;">
+    <div class="section-title">Puntos Anatómicos</div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+    </div>
+    <div style="text-align:right;font-size:9px;color:var(--text-dim);margin-bottom:4px">
+      <span id="pts-count">0</span>/11 puntos
+    </div>
+  </div>
+
+  <div class="points-list" id="points-list"></div>
+
+  <div class="panel-bottom">
+    <button class="btn btn-primary" id="btn-analizar" onclick="analizarPuntos()" disabled>
+      ⚡ Calcular Diagnóstico
+    </button>
+    <button class="btn btn-secondary" onclick="resetPuntos()">
+      ↺ Reiniciar puntos
+    </button>
+    <button class="btn btn-secondary" onclick="resetTodo()">
+      ✕ Nueva radiografía
+    </button>
+  </div>
+</div>
+
+<!-- CANVAS AREA -->
+<div class="canvas-area" id="canvas-area">
+  <div class="no-image" id="no-image">
+    <div class="no-image-icon">🦷</div>
+    <div>Carga una radiografía para comenzar</div>
+    <div style="font-size:10px;color:var(--text-dim)">Lateral de cráneo estandarizada</div>
+  </div>
+  <canvas id="main-canvas"></canvas>
+  <div class="zoom-indicator" id="zoom-indicator" style="display:none">
+    Zoom: <span id="zoom-val">100%</span>
+  </div>
+  <div class="canvas-hint" id="canvas-hint" style="display:none">
+    <strong>Rueda del mouse</strong> para zoom · <strong>Clic derecho + arrastre</strong> para mover · <strong>Clic izquierdo</strong> para marcar punto
+  </div>
+  <div class="tooltip" id="tooltip" style="display:none"></div>
+</div>
+
+<!-- RIGHT PANEL -->
+<div class="right-panel">
+  <div class="panel-section">
+    <div class="section-title">Diagnóstico Cefalométrico</div>
+  </div>
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    Procesando análisis...
+  </div>
+  <div class="results-area" id="results-area">
+    <div class="empty-state" id="empty-state">
+      <div class="empty-icon">📊</div>
+      <div>Marca los 11 puntos anatómicos</div>
+      <div style="font-size:10px">Los resultados aparecerán aquí</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// CONFIGURACIÓN DE PUNTOS ANATÓMICOS
+// ============================================================
+const PUNTOS_CONFIG = [
+  { key: "S",   nombre: "Sella",          desc: "Centro de la Silla Turca",           color: "#00ff87" },
+  { key: "N",   nombre: "Nasion",         desc: "Sutura frontonasal",                  color: "#00c8ff" },
+  { key: "A",   nombre: "Punto A",        desc: "Subspinale - Maxilar superior",       color: "#ffdd00" },
+  { key: "B",   nombre: "Punto B",        desc: "Supramentale - Mandíbula",            color: "#ff8c42" },
+  { key: "Me",  nombre: "Menton",         desc: "Inferior de la sínfisis mandibular",  color: "#ff6b6b" },
+  { key: "Go",  nombre: "Gonion",         desc: "Ángulo mandibular inf-posterior",     color: "#c77dff" },
+  { key: "ENA", nombre: "ENA",            desc: "Espina Nasal Anterior",              color: "#48cae4" },
+  { key: "ENP", nombre: "ENP",            desc: "Espina Nasal Posterior",             color: "#0096c7" },
+  { key: "Po",  nombre: "Porion",         desc: "Conducto auditivo externo",           color: "#f72585" },
+  { key: "Or",  nombre: "Orbitario",      desc: "Reborde orbitario inferior",          color: "#7209b7" },
+  { key: "Co",  nombre: "Condylion",      desc: "Polo superior del cóndilo",           color: "#3a0ca3" },
+];
+
+// ============================================================
+// ESTADO GLOBAL
+// ============================================================
+let state = {
+  imagen: null,          // Image object
+  puntos: {},            // { S: {x,y}, N: {x,y}, ... }
+  puntoActivo: 0,        // índice del punto a marcar
+  zoom: 1.0,
+  offsetX: 0,
+  offsetY: 0,
+  isDragging: false,
+  dragStartX: 0,
+  dragStartY: 0,
+  filtro: { brillo: 1, contraste: 1, invertir: false },
+};
+
+const canvas  = document.getElementById('main-canvas');
+const ctx     = canvas.getContext('2d');
+const area    = document.getElementById('canvas-area');
+
+// ============================================================
+// INICIALIZACIÓN
+// ============================================================
+function init() {
+  renderListaPuntos();
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+
+  // Zoom con rueda del mouse
+  canvas.addEventListener('wheel', onWheel, { passive: false });
+
+  // Pan con clic derecho + arrastre
+  canvas.addEventListener('mousedown', onMouseDown);
+  canvas.addEventListener('mousemove', onMouseMove);
+  canvas.addEventListener('mouseup',   onMouseUp);
+  canvas.addEventListener('mouseleave', () => state.isDragging = false);
+
+  // Marcar puntos con clic izquierdo
+  canvas.addEventListener('click', onCanvasClick);
+
+  // Prevenir menú contextual
+  canvas.addEventListener('contextmenu', e => e.preventDefault());
+}
+
+// ============================================================
+// CANVAS RESIZE
+// ============================================================
+function resizeCanvas() {
+  canvas.width  = area.clientWidth;
+  canvas.height = area.clientHeight;
+  redraw();
+}
+
+// ============================================================
+// CARGAR IMAGEN
+// ============================================================
+function cargarImagen(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const img = new Image();
+  img.onload = () => {
+    state.imagen = img;
+    document.getElementById('no-image').style.display = 'none';
+    document.getElementById('zoom-indicator').style.display = 'block';
+    document.getElementById('canvas-hint').style.display = 'block';
+
+    // Centrar y ajustar al canvas
+    const scaleX = canvas.width  / img.width;
+    const scaleY = canvas.height / img.height;
+    state.zoom   = Math.min(scaleX, scaleY) * 0.9;
+    state.offsetX = (canvas.width  - img.width  * state.zoom) / 2;
+    state.offsetY = (canvas.height - img.height * state.zoom) / 2;
+
+    redraw();
+    actualizarZoomIndicator();
+  };
+  img.src = URL.createObjectURL(file);
+}
+
+// ============================================================
+// APLICAR FILTROS CSS (sin afectar coordenadas)
+// ============================================================
+function aplicarFiltros() {
+  const brillo   = document.getElementById('brillo').value;
+  const contraste = document.getElementById('contraste').value;
+  const invertir  = document.getElementById('invertir').checked;
+
+  document.getElementById('brillo-val').textContent   = parseFloat(brillo).toFixed(1);
+  document.getElementById('contraste-val').textContent = parseFloat(contraste).toFixed(1);
+
+  state.filtro = { brillo, contraste, invertir };
+
+  // Aplicamos filtros al canvas mediante CSS - NO afecta las coordenadas de canvas
+  // Para mantener las coordenadas intactas, usamos un canvas overlay con filtro CSS
+  canvas.style.filter = `brightness(${brillo}) contrast(${contraste}) ${invertir ? 'invert(1)' : ''}`;
+}
+
+// ============================================================
+// REDIBUJADO PRINCIPAL
+// ============================================================
+function redraw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (!state.imagen) return;
+
+  // Guardar contexto y aplicar transformación
+  ctx.save();
+  ctx.translate(state.offsetX, state.offsetY);
+  ctx.scale(state.zoom, state.zoom);
+
+  // Dibujar imagen
+  ctx.drawImage(state.imagen, 0, 0);
+
+  // Restaurar para dibujar encima sin escala
+  ctx.restore();
+
+  // Dibujar líneas del cefalograma
+  dibujarLineas();
+
+  // Dibujar puntos marcados
+  Object.entries(state.puntos).forEach(([key, pos]) => {
+    const config = PUNTOS_CONFIG.find(p => p.key === key);
+    const screenX = pos.x * state.zoom + state.offsetX;
+    const screenY = pos.y * state.zoom + state.offsetY;
+    dibujarPunto(screenX, screenY, config);
+  });
+
+  // Dibujar marcador del punto activo
+  if (state.puntoActivo < PUNTOS_CONFIG.length && state.imagen) {
+    const config = PUNTOS_CONFIG[state.puntoActivo];
+    // Crosshair pulsante (simulado con opacity alternante)
+    ctx.save();
+    ctx.strokeStyle = config.color;
+    ctx.setLineDash([4, 4]);
+    ctx.lineWidth = 1;
+    ctx.globalAlpha = 0.4;
+    // Borde del canvas indicador
+    ctx.strokeRect(2, 2, canvas.width - 4, canvas.height - 4);
+    ctx.restore();
+  }
+}
+
+// ============================================================
+// DIBUJAR LÍNEAS DEL CEFALOGRAMA
+// ============================================================
+const LINEAS = [
+  // [punto1, punto2, color, etiqueta]
+  ["S",  "N",   "#00c8ff40", "NSL"],
+  ["N",  "A",   "#ffdd0040", "NA"],
+  ["N",  "B",   "#ff8c4240", "NB"],
+  ["Me", "Go",  "#c77dff40", "ML"],
+  ["ENA","ENP", "#48cae440", "NL"],
+  ["N",  "S",   "#00c8ff40", "NSL"],
+  ["Po", "Or",  "#f7258540", "FH"],
+];
+
+function dibujarLineas() {
+  LINEAS.forEach(([p1key, p2key, color]) => {
+    const p1 = state.puntos[p1key];
+    const p2 = state.puntos[p2key];
+    if (!p1 || !p2) return;
+
+    const sx1 = p1.x * state.zoom + state.offsetX;
+    const sy1 = p1.y * state.zoom + state.offsetY;
+    const sx2 = p2.x * state.zoom + state.offsetX;
+    const sy2 = p2.y * state.zoom + state.offsetY;
+
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([6, 3]);
+    ctx.beginPath();
+    ctx.moveTo(sx1, sy1);
+    ctx.lineTo(sx2, sy2);
+    ctx.stroke();
+    ctx.restore();
+  });
+}
+
+// ============================================================
+// DIBUJAR PUNTO ANATÓMICO
+// ============================================================
+function dibujarPunto(screenX, screenY, config) {
+  const r = 5;
+
+  // Halo exterior
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(screenX, screenY, r + 4, 0, Math.PI * 2);
+  ctx.fillStyle = config.color + '25';
+  ctx.fill();
+  ctx.restore();
+
+  // Círculo principal
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(screenX, screenY, r, 0, Math.PI * 2);
+  ctx.fillStyle = config.color;
+  ctx.fill();
+  ctx.strokeStyle = '#0a0d12';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.restore();
+
+  // Cruz
+  ctx.save();
+  ctx.strokeStyle = '#0a0d12';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(screenX - r + 1, screenY);
+  ctx.lineTo(screenX + r - 1, screenY);
+  ctx.moveTo(screenX, screenY - r + 1);
+  ctx.lineTo(screenX, screenY + r - 1);
+  ctx.stroke();
+  ctx.restore();
+
+  // Etiqueta
+  ctx.save();
+  ctx.font = 'bold 10px JetBrains Mono, monospace';
+  ctx.fillStyle = config.color;
+  ctx.strokeStyle = '#0a0d12';
+  ctx.lineWidth = 3;
+  ctx.strokeText(config.key, screenX + 8, screenY - 6);
+  ctx.fillText(config.key, screenX + 8, screenY - 6);
+  ctx.restore();
+}
+
+// ============================================================
+// EVENTOS DE MOUSE
+// ============================================================
+function onWheel(e) {
+  e.preventDefault();
+  if (!state.imagen) return;
+
+  const rect   = canvas.getBoundingClientRect();
+  const mouseX = e.clientX - rect.left;
+  const mouseY = e.clientY - rect.top;
+
+  const delta     = e.deltaY > 0 ? 0.88 : 1.14;
+  const newZoom   = Math.max(0.1, Math.min(20, state.zoom * delta));
+  const zoomRatio = newZoom / state.zoom;
+
+  // Zoom centrado en el cursor
+  state.offsetX = mouseX - zoomRatio * (mouseX - state.offsetX);
+  state.offsetY = mouseY - zoomRatio * (mouseY - state.offsetY);
+  state.zoom    = newZoom;
+
+  redraw();
+  actualizarZoomIndicator();
+}
+
+function onMouseDown(e) {
+  if (e.button === 2 || e.button === 1) {  // Clic derecho o medio para pan
+    state.isDragging = true;
+    state.dragStartX = e.clientX - state.offsetX;
+    state.dragStartY = e.clientY - state.offsetY;
+    canvas.style.cursor = 'grabbing';
+    e.preventDefault();
+  }
+}
+
+function onMouseMove(e) {
+  if (state.isDragging) {
+    state.offsetX = e.clientX - state.dragStartX;
+    state.offsetY = e.clientY - state.dragStartY;
+    redraw();
+  }
+
+  // Mostrar tooltip con el siguiente punto a marcar
+  if (state.imagen && state.puntoActivo < PUNTOS_CONFIG.length) {
+    const config = PUNTOS_CONFIG[state.puntoActivo];
+    const rect = canvas.getBoundingClientRect();
+    const tooltip = document.getElementById('tooltip');
+    tooltip.textContent = `→ ${config.key}: ${config.nombre}`;
+    tooltip.style.display = 'block';
+    tooltip.style.left = (e.clientX - rect.left) + 'px';
+    tooltip.style.top  = (e.clientY - rect.top) + 'px';
+  }
+}
+
+function onMouseUp(e) {
+  state.isDragging = false;
+  canvas.style.cursor = 'crosshair';
+}
+
+function onCanvasClick(e) {
+  if (!state.imagen) return;
+  if (state.puntoActivo >= PUNTOS_CONFIG.length) return;
+  if (e.button !== 0) return; // Solo clic izquierdo
+
+  const rect = canvas.getBoundingClientRect();
+  const screenX = e.clientX - rect.left;
+  const screenY = e.clientY - rect.top;
+
+  // *** CRÍTICO: Des-escalar coordenadas al tamaño real de la imagen ***
+  const imgX = (screenX - state.offsetX) / state.zoom;
+  const imgY = (screenY - state.offsetY) / state.zoom;
+
+  // Verificar que el clic está dentro de la imagen
+  if (imgX < 0 || imgX > state.imagen.width || imgY < 0 || imgY > state.imagen.height) {
+    return;
+  }
+
+  const config = PUNTOS_CONFIG[state.puntoActivo];
+  state.puntos[config.key] = { x: imgX, y: imgY };
+  state.puntoActivo++;
+
+  actualizarListaPuntos();
+  redraw();
+
+  if (state.puntoActivo >= PUNTOS_CONFIG.length) {
+    document.getElementById('btn-analizar').disabled = false;
+    document.getElementById('tooltip').style.display = 'none';
+    canvas.style.cursor = 'default';
+  }
+}
+
+// ============================================================
+// ACTUALIZAR UI
+// ============================================================
+function renderListaPuntos() {
+  const container = document.getElementById('points-list');
+  container.innerHTML = PUNTOS_CONFIG.map((p, i) => `
+    <div class="point-item" id="pt-item-${i}" onclick="irAPunto(${i})">
+      <div class="point-num">${i + 1}</div>
+      <div>
+        <div class="point-name">${p.key} — ${p.nombre}</div>
+        <div class="point-desc">${p.desc}</div>
+      </div>
+      <div class="point-coords" id="pt-coords-${i}"></div>
+    </div>
+  `).join('');
+  actualizarListaPuntos();
+}
+
+function actualizarListaPuntos() {
+  const count = Object.keys(state.puntos).length;
+  document.getElementById('pts-count').textContent = count;
+  document.getElementById('progress-fill').style.width = (count / 11 * 100) + '%';
+
+  PUNTOS_CONFIG.forEach((p, i) => {
+    const item = document.getElementById(`pt-item-${i}`);
+    const coords = document.getElementById(`pt-coords-${i}`);
+    item.className = 'point-item';
+
+    if (state.puntos[p.key]) {
+      item.classList.add('done');
+      const pt = state.puntos[p.key];
+      coords.textContent = `${Math.round(pt.x)}, ${Math.round(pt.y)}`;
+    } else if (i === state.puntoActivo) {
+      item.classList.add('active');
+      coords.textContent = '← marcar';
+    } else {
+      coords.textContent = '';
+    }
+  });
+}
+
+function actualizarZoomIndicator() {
+  document.getElementById('zoom-val').textContent = Math.round(state.zoom * 100) + '%';
+}
+
+// ============================================================
+// ACCIONES
+// ============================================================
+function irAPunto(idx) {
+  // Permite remarcar un punto haciendo clic en la lista
+  if (!state.imagen) return;
+  const config = PUNTOS_CONFIG[idx];
+  delete state.puntos[config.key];
+  state.puntoActivo = idx;
+  document.getElementById('btn-analizar').disabled = true;
+  actualizarListaPuntos();
+  redraw();
+}
+
+function resetPuntos() {
+  state.puntos = {};
+  state.puntoActivo = 0;
+  document.getElementById('btn-analizar').disabled = true;
+  document.getElementById('tooltip').style.display = 'none';
+  canvas.style.cursor = 'crosshair';
+  actualizarListaPuntos();
+  mostrarEmptyState();
+  redraw();
+}
+
+function resetTodo() {
+  state.imagen = null;
+  state.zoom = 1;
+  state.offsetX = 0;
+  state.offsetY = 0;
+  document.getElementById('no-image').style.display = 'flex';
+  document.getElementById('zoom-indicator').style.display = 'none';
+  document.getElementById('canvas-hint').style.display = 'none';
+  document.getElementById('fileInput').value = '';
+  resetPuntos();
+}
+
+function mostrarEmptyState() {
+  document.getElementById('results-area').innerHTML = `
+    <div class="empty-state" id="empty-state">
+      <div class="empty-icon">📊</div>
+      <div>Marca los 11 puntos anatómicos</div>
+      <div style="font-size:10px">Los resultados aparecerán aquí</div>
+    </div>
+  `;
+}
+
+// ============================================================
+// LLAMADA A LA API
+// ============================================================
+async function analizarPuntos() {
+  const count = Object.keys(state.puntos).length;
+  if (count < 11) {
+    alert('Faltan puntos por marcar.');
+    return;
+  }
+
+  // Mostrar loading
+  document.getElementById('loading').style.display = 'flex';
+  document.getElementById('results-area').style.display = 'none';
+
+  try {
+    const response = await fetch('/api/analizar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(state.puntos)
+    });
+
+    const data = await response.json();
+
+    if (!data.success) throw new Error(data.detail || 'Error en el análisis');
+
+    mostrarResultados(data);
+
+  } catch (err) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('results-area').style.display = 'block';
+    document.getElementById('results-area').innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">⚠️</div>
+        <div style="color:var(--warn)">Error de conexión</div>
+        <div style="font-size:10px">Asegúrate que FastAPI esté corriendo en el puerto 8000</div>
+      </div>
+    `;
+  }
+}
+
+// ============================================================
+// MOSTRAR RESULTADOS
+// ============================================================
+function mostrarResultados(data) {
+  document.getElementById('loading').style.display = 'none';
+  const area = document.getElementById('results-area');
+  area.style.display = 'block';
+
+  const f = data.factores_bimler;
+  const t = data.indicadores_petrovic;
+  const d = data.diagnostico;
+
+  const catColors = {
+    1: '#ff4466', 2: '#ff6b35',
+    3: '#ffdd00', 4: '#00ff87',
+    5: '#ff6b35', 6: '#ff4466'
+  };
+  const catColor = catColors[d.categoria] || '#00ff87';
+
+  area.innerHTML = `
+    <!-- DIAGNÓSTICO PRINCIPAL -->
+    <div class="diagnosis-card">
+      <div class="diagnosis-group">${d.grupo}</div>
+      <div class="diagnosis-cat">
+        Categoría <span style="background:${catColor}">${d.categoria}</span>
+        de crecimiento auxológico
+      </div>
+      <div class="diagnosis-meta">
+        <div class="meta-item">
+          <div class="meta-label">Rotación</div>
+          <div class="meta-val" style="color:${catColor}">${d.rotacion}</div>
+          <div style="font-size:8px;color:var(--text-dim)">${d.desc_rotacion}</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Basal</div>
+          <div class="meta-val" style="color:${catColor}">${d.basal}</div>
+          <div style="font-size:8px;color:var(--text-dim)">${d.desc_basal.split(' ').slice(0,3).join(' ')}</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Sagital</div>
+          <div class="meta-val" style="color:${catColor}">${d.sagital}</div>
+          <div style="font-size:8px;color:var(--text-dim)">${d.desc_sagital}</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Vertical</div>
+          <div class="meta-val" style="color:${catColor}">${d.vertical}</div>
+          <div style="font-size:8px;color:var(--text-dim)">${d.desc_vertical}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INDICADORES T -->
+    <div class="result-group">
+      <div class="result-group-title">Indicadores de Lavergne-Petrovic</div>
+      <div class="result-row">
+        <div class="result-key">T1 — Inclinación Mandibular</div>
+        <div class="result-val accent">${t.T1}°</div>
+      </div>
+      <div class="result-row">
+        <div class="result-key">T2 — Inclinación Maxilar</div>
+        <div class="result-val accent">${t.T2}°</div>
+      </div>
+      <div class="result-row">
+        <div class="result-key">T3 — Diferencia Sagital (ANB)</div>
+        <div class="result-val accent">${t.T3}°</div>
+      </div>
+    </div>
+
+    <!-- FACTORES DE BIMLER -->
+    <div class="result-group">
+      <div class="result-group-title">Factores de Bimler</div>
+      <div class="result-row">
+        <div class="result-key">SNA</div>
+        <div class="result-val">${f.SNA}°</div>
+      </div>
+      <div class="result-row">
+        <div class="result-key">SNB</div>
+        <div class="result-val">${f.SNB}°</div>
+      </div>
+      <div class="result-row">
+        <div class="result-key">ANB</div>
+        <div class="result-val ${Math.abs(f.ANB) > 4 ? 'warn' : 'info'}">${f.ANB}°</div>
+      </div>
+      <div class="result-row">
+        <div class="result-key">F3 — Inclinación Mandibular</div>
+        <div class="result-val">${f.F3}°</div>
+      </div>
+      <div class="result-row">
+        <div class="result-key">F4 — Inclinación Maxilar</div>
+        <div class="result-val">${f.F4}°</div>
+      </div>
+      <div class="result-row">
+        <div class="result-key">F7 — Base Craneal Anterior</div>
+        <div class="result-val">${f.F7}°</div>
+      </div>
+    </div>
+
+    <!-- NOTA CLÍNICA -->
+    <div style="background:rgba(0,200,255,.05);border:1px solid rgba(0,200,255,.15);border-radius:4px;padding:10px;margin-top:8px">
+      <div style="font-size:9px;color:var(--accent2);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Nota Clínica</div>
+      <div style="font-size:10px;color:var(--text-dim);line-height:1.6">
+        ${obtenerNotaClinica(d.categoria, d.rotacion, d.sagital)}
+      </div>
+    </div>
+  `;
+}
+
+function obtenerNotaClinica(cat, rot, sag) {
+  const notas = {
+    1: "Crecimiento condilar débil, predominantemente vertical. Respuesta funcional muy baja. Requiere control postural y respiratorio continuo.",
+    2: "Crecimiento vertical con componente horizontal leve. Respuesta moderada. Controlar dimensión vertical, especialmente mordidas profundas.",
+    3: "Crecimiento condilar predominantemente horizontal, rotación anterior leve. Buena respuesta a aparatos funcionales. Tiempo corto de tratamiento.",
+    4: "Crecimiento equilibrado, maxilar y mandibular con ritmos similares. Excelente respuesta. Corto tiempo de tratamiento en todas las maloclusiones sagitales.",
+    5: "Crecimiento mandibular dominante. Alta respuesta mandibular. Alto riesgo de Clase III. Requiere monitoreo constante.",
+    6: "⚠️ Crecimiento mandibular desmedido e incontrolable. Tendencia a Clase III esquelética severa. Potencial quirúrgico casi inevitable.",
+  };
+  return notas[cat] || "Consultar tabla clínica de referencia.";
+}
+
+// ============================================================
+// INICIAR
+// ============================================================
+init();
+</script>
+</body>
+</html>
