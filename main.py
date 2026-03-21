@@ -248,3 +248,26 @@ if __name__ == "__main__":
 ```
 
 ---
+
+## Pasos para aplicar el cambio
+
+**Paso 1 — Edita el archivo**
+1. Abre VS Code
+2. Abre `C:\Users\frank\Documents\Cefalometria\main.py`
+3. Selecciona todo (`Ctrl+A`) → borra → pega el código de arriba
+4. Guarda (`Ctrl+S`)
+
+**Paso 2 — Sube a GitHub**
+
+Abre CMD en la carpeta `Cefalometria` y ejecuta estos 3 comandos uno por uno:
+```
+git add main.py
+git commit -m "fix: corrige SNA/SNB negativos y formulas T1 T2 - validado 3 casos"
+git push
+```
+
+**Paso 3 — Espera ~2 minutos**
+
+Railway detecta el push automáticamente y redespliega. Cuando veas el ícono verde en Railway, entra a:
+```
+https://web-production-f2563.up.railway.app
