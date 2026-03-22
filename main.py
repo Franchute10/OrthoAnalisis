@@ -59,11 +59,10 @@ def calcular_indicadores_T(f):
     return T1, T2, T3
 
 def arbol_decision(T1, T2, T3):
-    # FIX 4: umbrales derivados de 3 casos reales
-    # Mia T1=5.50→R✓  Piero T1=13.71→A✓  Nicolas T1=4.98→R✓
-    if T1 > 9:    rot = "A"
-    elif T1 > 3:  rot = "R"
-    else:         rot = "P"
+    # Umbral ajustado a 1.5 para capturar casos límite de marcado
+    if T1 > 9:      rot = "A"
+    elif T1 > 1.5:  rot = "R"
+    else:           rot = "P"
 
     if T3 > 5:    sag = "D"
     elif T3 >= 0: sag = "N"
@@ -80,16 +79,19 @@ def arbol_decision(T1, T2, T3):
 
 def determinar_categoria(grupo):
     tabla = {
-        "R1 NOB": 1, "R2 DOB": 2, "R3 MOB": 2,
-        "R2 DN":  3, "R1 NN":  3, "R3 MN":  3,
+        "R1 NOB": 1, "R2 NOB": 1,
+        "R2 DOB": 2, "R3 MOB": 2, "R1 DOB": 2,
+        "R2 DN":  3, "R1 NN":  3, "R3 MN":  3, "R1 DN": 3,
         "R1 NDB": 4, "R2 DDB": 4, "R3 MDB": 4,
-        "A1 NDB": 5, "A2 DDB": 5, "P1 NN":  6,
+        "P1 NDB": 4, "P1 NN":  4, "P1 DDB": 4,
+        "A1 NDB": 5, "A2 DDB": 5, "A1 NN":  5,
+        "A2 DDB": 6, "A3 MDB": 6,
     }
     for key, cat in tabla.items():
         if key.replace(" ", "") in grupo.replace(" ", ""):
             return cat
     return "—"
-
+    
 # =================================================================
 # ENDPOINTS
 # =================================================================
