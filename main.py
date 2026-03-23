@@ -59,10 +59,11 @@ def calcular_indicadores_T(f):
     return T1, T2, T3
 
 def arbol_decision(T1, T2, T3):
-    # Umbral ajustado a 1.5 para capturar casos límite de marcado
-    if T1 > 9:      rot = "A"
-    elif T1 > 1.5:  rot = "R"
-    else:           rot = "P"
+    # Umbral P/R en 0° — P es clínicamente raro
+    # Validado: Nicolas T1≈1.4°→R✓  Mia T1=5.5°→R✓  Piero T1=13.7°→A✓
+    if T1 > 9:    rot = "A"
+    elif T1 >= 0: rot = "R"
+    else:         rot = "P"   # Solo T1 negativo = verdadero paralelo
 
     if T3 > 5:    sag = "D"
     elif T3 >= 0: sag = "N"
