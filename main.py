@@ -1,7 +1,8 @@
 import math
 import os
 import json
-import httpx
+import urllib.request
+import urllib.error
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 import uvicorn
@@ -139,40 +140,40 @@ Responde ÚNICAMENTE con JSON válido, sin texto adicional, en este formato exac
   "Co":  {{"x": 123, "y": 456}}
 }}"""
 
-        # Llamada a Claude Vision
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            resp = await client.post(
-                "https://api.anthropic.com/v1/messages",
-                headers={
-                    "x-api-key": api_key,
-                    "anthropic-version": "2023-06-01",
-                    "content-type": "application/json"
-                },
-                json={
-                    "model": "claude-opus-4-6",
-                    "max_tokens": 800,
-                    "messages": [{
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "image",
-                                "source": {
-                                    "type": "base64",
-                                    "media_type": "image/jpeg",
-                                    "data": image_b64
-                                }
-                            },
-                            {"type": "text", "text": prompt}
-                        ]
-                    }]
-                }
-            )
+        # Llamada a Claude Vision usando urllib (sin dependencias extra)
+        payload = json.dumps({
+            "model": "claude-opus-4-6",
+            "max_tokens": 800,
+            "messages": [{
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image",
+                        "source": {
+                            "type": "base64",
+                            "media_type": "image/jpeg",
+                            "data": image_b64
+                        }
+                    },
+                    {"type": "text", "text": prompt}
+                ]
+            }]
+        }).encode("utf-8")
 
-        if resp.status_code != 200:
-            return {"success": False, "detail": f"Error API: {resp.status_code}"}
+        req = urllib.request.Request(
+            "https://api.anthropic.com/v1/messages",
+            data=payload,
+            headers={
+                "x-api-key": api_key,
+                "anthropic-version": "2023-06-01",
+                "content-type": "application/json"
+            },
+            method="POST"
+        )
 
-        data    = resp.json()
-        texto   = data["content"][0]["text"].strip()
+        with urllib.request.urlopen(req, timeout=60) as response:
+            data  = json.loads(response.read().decode("utf-8"))
+        texto = data["content"][0]["text"].strip()
 
         # Limpiar markdown si viene con ```json
         if "```" in texto:
