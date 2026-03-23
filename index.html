@@ -8,118 +8,103 @@
   @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600&family=Syne:wght@400;600;800&display=swap');
 
   :root {
-    --bg: #0a0d12;
-    --panel: #0f1318;
-    --border: #1e2530;
-    --border-bright: #2a3445;
-    --accent: #00ff87;
-    --accent2: #00c8ff;
-    --warn: #ff6b35;
-    --text: #c8d6e5;
-    --text-dim: #556070;
-    --text-bright: #eef4ff;
-    --mono: 'JetBrains Mono', monospace;
-    --head: 'Syne', sans-serif;
-    --red: #ff4466;
+    --bg: #0a0d12; --panel: #0f1318; --border: #1e2530; --border-bright: #2a3445;
+    --accent: #00ff87; --accent2: #00c8ff; --warn: #ff6b35; --text: #c8d6e5;
+    --text-dim: #556070; --text-bright: #eef4ff;
+    --mono: 'JetBrains Mono', monospace; --head: 'Syne', sans-serif;
+    --ai: #a855f7;  /* purple for AI suggestions */
   }
-
   * { margin: 0; padding: 0; box-sizing: border-box; }
-
   body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--mono);
-    font-size: 12px;
-    height: 100vh;
-    overflow: hidden;
+    background: var(--bg); color: var(--text); font-family: var(--mono);
+    font-size: 12px; height: 100vh; overflow: hidden;
     display: grid;
     grid-template-rows: 52px 1fr;
     grid-template-columns: 280px 1fr 300px;
-    grid-template-areas:
-      "header header header"
-      "left   canvas right";
+    grid-template-areas: "header header header" "left canvas right";
   }
 
+  /* HEADER */
   header {
-    grid-area: header;
-    background: var(--panel);
+    grid-area: header; background: var(--panel);
     border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    padding: 0 20px;
-    gap: 16px;
+    display: flex; align-items: center; padding: 0 20px; gap: 16px;
   }
-  header h1 { font-family: var(--head); font-size: 18px; font-weight: 800; color: var(--text-bright); letter-spacing: -0.5px; }
+  header h1 { font-family: var(--head); font-size: 18px; font-weight: 800; color: var(--text-bright); }
   header h1 span { color: var(--accent); }
-  .header-badge { font-size: 9px; background: var(--accent); color: var(--bg); padding: 2px 7px; border-radius: 2px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
+  .header-badge { font-size: 9px; background: var(--accent); color: var(--bg); padding: 2px 7px; border-radius: 2px; font-weight: 600; letter-spacing: 1px; }
   .header-right { margin-left: auto; display: flex; align-items: center; gap: 10px; color: var(--text-dim); font-size: 11px; }
 
+  /* LEFT PANEL */
   .left-panel { grid-area: left; background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
-
   .panel-section { padding: 14px; border-bottom: 1px solid var(--border); }
   .section-title { font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-dim); margin-bottom: 10px; }
-
-  .upload-zone { border: 1px dashed var(--border-bright); border-radius: 4px; padding: 20px; text-align: center; cursor: pointer; transition: all .2s; background: var(--bg); }
+  .upload-zone { border: 1px dashed var(--border-bright); border-radius: 4px; padding: 16px; text-align: center; cursor: pointer; transition: all .2s; background: var(--bg); }
   .upload-zone:hover { border-color: var(--accent); color: var(--accent); }
   .upload-zone input { display: none; }
-  .upload-icon { font-size: 24px; margin-bottom: 6px; }
-
+  .upload-icon { font-size: 22px; margin-bottom: 4px; }
   .filter-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
   .filter-label { width: 70px; color: var(--text-dim); font-size: 10px; }
   input[type=range] { flex: 1; -webkit-appearance: none; height: 2px; background: var(--border-bright); border-radius: 2px; outline: none; }
   input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; background: var(--accent); border-radius: 50%; cursor: pointer; }
   .filter-val { width: 30px; text-align: right; color: var(--accent); font-size: 10px; }
-
   .points-list { flex: 1; overflow-y: auto; padding: 6px 14px; }
   .points-list::-webkit-scrollbar { width: 3px; }
   .points-list::-webkit-scrollbar-thumb { background: var(--border-bright); }
-
   .point-item { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 4px; margin-bottom: 3px; cursor: pointer; transition: background .15s; border: 1px solid transparent; }
   .point-item:hover { background: rgba(255,255,255,.04); }
   .point-item.active { background: rgba(0,255,135,.08); border-color: rgba(0,255,135,.2); }
   .point-item.done { border-color: rgba(0,255,135,.15); }
+  .point-item.suggested { border-color: rgba(168,85,247,.3); background: rgba(168,85,247,.05); }
   .point-num { width: 18px; height: 18px; border-radius: 50%; background: var(--border-bright); display: flex; align-items: center; justify-content: center; font-size: 9px; flex-shrink: 0; font-weight: 600; }
   .point-item.done .point-num { background: var(--accent); color: var(--bg); }
   .point-item.active .point-num { background: var(--accent2); color: var(--bg); }
+  .point-item.suggested .point-num { background: var(--ai); color: white; }
   .point-name { font-weight: 600; font-size: 11px; color: var(--text-bright); }
   .point-desc { font-size: 9px; color: var(--text-dim); margin-top: 1px; }
-  /* FIX: Coordenadas visibles en tiempo real para verificación */
   .point-coords { margin-left: auto; font-size: 9px; color: var(--accent); white-space: nowrap; text-align: right; }
   .point-coords .coord-xy { font-size: 8px; color: var(--text-dim); display: block; }
-
   .panel-bottom { padding: 12px 14px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 6px; }
-
   .btn { padding: 9px 14px; border-radius: 4px; font-family: var(--mono); font-size: 11px; font-weight: 600; cursor: pointer; border: 1px solid transparent; transition: all .15s; text-align: center; letter-spacing: .5px; }
   .btn-primary { background: var(--accent); color: var(--bg); }
   .btn-primary:hover { background: #00e07a; }
   .btn-primary:disabled { opacity: .3; cursor: not-allowed; }
+  .btn-ai { background: linear-gradient(135deg, #7c3aed, #a855f7); color: white; border: none; }
+  .btn-ai:hover { background: linear-gradient(135deg, #6d28d9, #9333ea); }
+  .btn-ai:disabled { opacity: .3; cursor: not-allowed; }
+  .btn-confirm-ai { background: transparent; color: var(--accent); border-color: var(--accent); font-size: 10px; padding: 6px 10px; }
+  .btn-confirm-ai:hover { background: rgba(0,255,135,.1); }
   .btn-secondary { background: transparent; color: var(--text-dim); border-color: var(--border-bright); }
   .btn-secondary:hover { border-color: var(--accent2); color: var(--accent2); }
 
+  /* AI status bar */
+  .ai-status {
+    display: none; align-items: center; gap: 8px; padding: 8px 14px;
+    background: rgba(168,85,247,.1); border-bottom: 1px solid rgba(168,85,247,.2);
+    font-size: 10px; color: var(--ai);
+  }
+  .ai-spinner { width: 14px; height: 14px; border: 2px solid rgba(168,85,247,.3); border-top-color: var(--ai); border-radius: 50%; animation: spin .8s linear infinite; flex-shrink: 0; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* CANVAS */
   .canvas-area { grid-area: canvas; position: relative; overflow: hidden; background: #060810; background-image: linear-gradient(rgba(30,37,48,.4) 1px, transparent 1px), linear-gradient(90deg, rgba(30,37,48,.4) 1px, transparent 1px); background-size: 30px 30px; }
   #main-canvas { position: absolute; top: 0; left: 0; cursor: crosshair; }
   .canvas-hint { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); background: rgba(10,13,18,.85); border: 1px solid var(--border); padding: 8px 16px; border-radius: 4px; font-size: 10px; color: var(--text-dim); pointer-events: none; white-space: nowrap; }
   .canvas-hint strong { color: var(--accent); }
-
   .zoom-indicator { position: absolute; top: 12px; left: 12px; background: rgba(10,13,18,.8); border: 1px solid var(--border); padding: 4px 10px; border-radius: 3px; font-size: 10px; color: var(--text-dim); }
   .zoom-indicator span { color: var(--accent2); font-weight: 600; }
+  .drag-indicator { position: absolute; top: 12px; left: 110px; background: rgba(255,107,53,.15); border: 1px solid rgba(255,107,53,.4); padding: 4px 10px; border-radius: 3px; font-size: 10px; color: var(--warn); display: none; }
 
-  /* FIX: Indicador de modo drag para evitar confusión */
-  .drag-indicator {
-    position: absolute; top: 12px; left: 110px;
-    background: rgba(255,107,53,.15); border: 1px solid rgba(255,107,53,.4);
-    padding: 4px 10px; border-radius: 3px; font-size: 10px;
-    color: var(--warn); display: none;
-  }
+  /* AI constellation badge */
+  .ai-badge { position: absolute; top: 12px; right: 12px; background: rgba(168,85,247,.2); border: 1px solid rgba(168,85,247,.4); padding: 4px 10px; border-radius: 3px; font-size: 10px; color: var(--ai); display: none; }
 
+  /* RIGHT PANEL */
   .right-panel { grid-area: right; background: var(--panel); border-left: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
   .results-area { flex: 1; overflow-y: auto; padding: 14px; }
   .results-area::-webkit-scrollbar { width: 3px; }
   .results-area::-webkit-scrollbar-thumb { background: var(--border-bright); }
-
   .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 10px; color: var(--text-dim); text-align: center; padding: 20px; }
   .empty-icon { font-size: 36px; opacity: .4; }
-
   .result-group { margin-bottom: 16px; }
   .result-group-title { font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-dim); margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
   .result-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid rgba(30,37,48,.5); }
@@ -128,7 +113,6 @@
   .result-val.accent { color: var(--accent); }
   .result-val.warn { color: var(--warn); }
   .result-val.info { color: var(--accent2); }
-
   .diagnosis-card { background: linear-gradient(135deg, rgba(0,255,135,.05), rgba(0,200,255,.05)); border: 1px solid rgba(0,255,135,.2); border-radius: 6px; padding: 16px; margin-bottom: 16px; text-align: center; }
   .diagnosis-group { font-family: var(--head); font-size: 28px; font-weight: 800; color: var(--accent); letter-spacing: 2px; margin-bottom: 4px; }
   .diagnosis-cat { font-size: 11px; color: var(--text-dim); margin-bottom: 12px; }
@@ -137,32 +121,24 @@
   .meta-item { background: rgba(255,255,255,.03); border: 1px solid var(--border); border-radius: 3px; padding: 6px; text-align: center; }
   .meta-label { font-size: 8px; color: var(--text-dim); margin-bottom: 2px; text-transform: uppercase; letter-spacing: 1px; }
   .meta-val { font-size: 11px; color: var(--text-bright); font-weight: 600; }
-
   .loading { display: none; align-items: center; gap: 8px; padding: 20px; color: var(--text-dim); font-size: 11px; }
   .spinner { width: 16px; height: 16px; border: 2px solid var(--border-bright); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
   .no-image { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; flex-direction: column; gap: 12px; color: var(--text-dim); }
   .no-image-icon { font-size: 48px; opacity: .2; }
-
   .progress-bar { height: 2px; background: var(--border); border-radius: 1px; margin: 0 14px 8px; overflow: hidden; }
   .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 1px; transition: width .3s ease; }
-
-  .tooltip { position: absolute; background: rgba(10,13,18,.95); border: 1px solid var(--accent); color: var(--accent); font-size: 10px; padding: 4px 10px; border-radius: 3px; pointer-events: none; transform: translate(-50%, -130%); white-space: nowrap; font-weight: 600; }
+  .tooltip { position: absolute; background: rgba(10,13,18,.95); border: 1px solid var(--accent); color: var(--accent); font-size: 10px; padding: 4px 10px; border-radius: 3px; pointer-events: none; transform: translate(-50%, -130%); white-space: nowrap; font-weight: 600; z-index: 10; }
 </style>
 </head>
 <body>
 
 <header>
   <h1>Ortho<span>Analysis</span></h1>
-  <div class="header-badge">Beta v2.1</div>
-  <div class="header-right">
-    Bimler · Lavergne-Petrovic
-    <span style="color: var(--border-bright)">|</span>
-    Motor v2.1
-  </div>
+  <div class="header-badge">Beta v2.2</div>
+  <div class="header-right">Bimler · Lavergne-Petrovic <span style="color:var(--border-bright)">|</span> Motor v2.2 ✦ IA</div>
 </header>
 
+<!-- LEFT PANEL -->
 <div class="left-panel">
   <div class="panel-section">
     <div class="section-title">Radiografía</div>
@@ -170,7 +146,7 @@
       <input type="file" id="fileInput" accept="image/*" onchange="cargarImagen(event)">
       <div class="upload-icon">🩻</div>
       <div>Cargar radiografía</div>
-      <div style="color: var(--text-dim); margin-top: 4px; font-size: 10px;">JPG · PNG · DICOM</div>
+      <div style="color:var(--text-dim);margin-top:4px;font-size:10px">JPG · PNG</div>
     </div>
   </div>
 
@@ -195,11 +171,15 @@
     </div>
   </div>
 
-  <div style="padding: 8px 14px 4px;">
+  <!-- AI Status -->
+  <div class="ai-status" id="ai-status">
+    <div class="ai-spinner"></div>
+    <span id="ai-status-text">Analizando radiografía con IA...</span>
+  </div>
+
+  <div style="padding:8px 14px 4px;">
     <div class="section-title">Puntos Anatómicos</div>
-    <div class="progress-bar">
-      <div class="progress-fill" id="progress-fill" style="width:0%"></div>
-    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
     <div style="text-align:right;font-size:9px;color:var(--text-dim);margin-bottom:4px">
       <span id="pts-count">0</span>/11 puntos
     </div>
@@ -208,6 +188,14 @@
   <div class="points-list" id="points-list"></div>
 
   <div class="panel-bottom">
+    <!-- AI Suggest button -->
+    <button class="btn btn-ai" id="btn-ia" onclick="sugerirPuntosIA()" disabled>
+      ✦ Sugerir puntos con IA
+    </button>
+    <!-- Confirm AI suggestions -->
+    <button class="btn btn-confirm-ai" id="btn-confirm-ai" onclick="confirmarSugerencias()" style="display:none">
+      ✓ Confirmar sugerencias IA
+    </button>
     <button class="btn btn-primary" id="btn-analizar" onclick="analizarPuntos()" disabled>
       ⚡ Calcular Diagnóstico
     </button>
@@ -216,6 +204,7 @@
   </div>
 </div>
 
+<!-- CANVAS -->
 <div class="canvas-area" id="canvas-area">
   <div class="no-image" id="no-image">
     <div class="no-image-icon">🦷</div>
@@ -223,88 +212,76 @@
     <div style="font-size:10px;color:var(--text-dim)">Lateral de cráneo estandarizada</div>
   </div>
   <canvas id="main-canvas"></canvas>
-  <div class="zoom-indicator" id="zoom-indicator" style="display:none">
-    Zoom: <span id="zoom-val">100%</span>
-  </div>
-  <!-- FIX: Indicador visual cuando está en modo drag (previene clics accidentales) -->
+  <div class="zoom-indicator" id="zoom-indicator" style="display:none">Zoom: <span id="zoom-val">100%</span></div>
   <div class="drag-indicator" id="drag-indicator">⟳ PAN</div>
+  <div class="ai-badge" id="ai-badge">✦ Sugerencias IA — arrastra para ajustar</div>
   <div class="canvas-hint" id="canvas-hint" style="display:none">
-    <strong>Rueda</strong> para zoom · <strong>Clic derecho+arrastre</strong> para mover · <strong>Clic izquierdo</strong> para marcar
+    <strong>Rueda</strong> zoom · <strong>Clic derecho+arrastre</strong> mover · <strong>Clic izquierdo</strong> marcar
   </div>
   <div class="tooltip" id="tooltip" style="display:none"></div>
 </div>
 
+<!-- RIGHT PANEL -->
 <div class="right-panel">
-  <div class="panel-section">
-    <div class="section-title">Diagnóstico Cefalométrico</div>
-  </div>
-  <div class="loading" id="loading">
-    <div class="spinner"></div>
-    Procesando análisis...
-  </div>
+  <div class="panel-section"><div class="section-title">Diagnóstico Cefalométrico</div></div>
+  <div class="loading" id="loading"><div class="spinner"></div>Procesando análisis...</div>
   <div class="results-area" id="results-area">
-    <div class="empty-state" id="empty-state">
+    <div class="empty-state">
       <div class="empty-icon">📊</div>
       <div>Marca los 11 puntos anatómicos</div>
-      <div style="font-size:10px">Los resultados aparecerán aquí</div>
+      <div style="font-size:10px">o usa ✦ Sugerir con IA</div>
     </div>
   </div>
 </div>
 
 <script>
 // ============================================================
-// CONFIGURACIÓN DE PUNTOS ANATÓMICOS
+// CONFIG PUNTOS
 // ============================================================
 const PUNTOS_CONFIG = [
-  { key: "S",   nombre: "Sella",     desc: "Centro de la Silla Turca",          color: "#00ff87" },
-  { key: "N",   nombre: "Nasion",    desc: "Sutura frontonasal",                 color: "#00c8ff" },
-  { key: "A",   nombre: "Punto A",   desc: "Subspinale — Maxilar superior",      color: "#ffdd00" },
-  { key: "B",   nombre: "Punto B",   desc: "Supramentale — Mandíbula",           color: "#ff8c42" },
-  { key: "Me",  nombre: "Menton",    desc: "Inferior de la sínfisis",            color: "#ff6b6b" },
-  { key: "Go",  nombre: "Gonion",    desc: "Ángulo mandibular inf-posterior",    color: "#c77dff" },
-  { key: "ENA", nombre: "ENA",       desc: "Espina Nasal Anterior",              color: "#48cae4" },
-  { key: "ENP", nombre: "ENP",       desc: "Espina Nasal Posterior",             color: "#0096c7" },
-  { key: "Po",  nombre: "Porion",    desc: "Borde SUPERIOR del CAE óseo",        color: "#f72585" },
-  { key: "Or",  nombre: "Orbitario", desc: "Borde INFERIOR de la órbita ósea",  color: "#7209b7" },
-  { key: "Co",  nombre: "Condylion", desc: "Polo superior del cóndilo",          color: "#3a0ca3" },
+  { key:"S",   nombre:"Sella",     desc:"Centro de la Silla Turca",         color:"#00ff87" },
+  { key:"N",   nombre:"Nasion",    desc:"Sutura frontonasal",                color:"#00c8ff" },
+  { key:"A",   nombre:"Punto A",   desc:"Subspinale — maxilar superior",     color:"#ffdd00" },
+  { key:"B",   nombre:"Punto B",   desc:"Supramentale — mandíbula",          color:"#ff8c42" },
+  { key:"Me",  nombre:"Mentón",    desc:"Inferior de la sínfisis",           color:"#ff6b6b" },
+  { key:"Go",  nombre:"Gonion",    desc:"Ángulo mandibular inf-posterior",   color:"#c77dff" },
+  { key:"ENA", nombre:"ENA",       desc:"Espina Nasal Anterior",             color:"#48cae4" },
+  { key:"ENP", nombre:"ENP",       desc:"Espina Nasal Posterior",            color:"#0096c7" },
+  { key:"Po",  nombre:"Porion",    desc:"Borde SUPERIOR del CAE óseo",       color:"#f72585" },
+  { key:"Or",  nombre:"Orbitario", desc:"Borde MÁS INFERIOR de la órbita",  color:"#7209b7" },
+  { key:"Co",  nombre:"Condylion", desc:"Polo postero-superior del cóndilo", color:"#3a0ca3" },
 ];
 
 // ============================================================
-// ESTADO GLOBAL
+// ESTADO
 // ============================================================
 let state = {
-  imagen: null,
-  puntos: {},
-  puntoActivo: 0,
-  zoom: 1.0,
-  offsetX: 0,
-  offsetY: 0,
-  // FIX: rastrear drag de AMBOS botones para no confundir clics
-  isDragging: false,
-  isLeftDragging: false,   // FIX nuevo: drag con botón izquierdo
-  dragStartX: 0,
-  dragStartY: 0,
-  dragMoved: false,        // FIX nuevo: ¿se movió el mouse durante el left-click?
-  filtro: { brillo: 1, contraste: 1, invertir: false },
+  imagen: null, puntos: {}, sugeridos: {},
+  puntoActivo: 0, zoom: 1.0, offsetX: 0, offsetY: 0,
+  isDragging: false, isLeftDragging: false,
+  dragStartX: 0, dragStartY: 0, dragMoved: false,
+  // Drag de punto sugerido
+  draggingPoint: null,  // { key, startImgX, startImgY }
+  modoSugerido: false,
 };
-
+const DRAG_THRESHOLD = 4;
 const canvas = document.getElementById('main-canvas');
 const ctx    = canvas.getContext('2d');
 const area   = document.getElementById('canvas-area');
 
 // ============================================================
-// INICIALIZACIÓN
+// INIT
 // ============================================================
 function init() {
   renderListaPuntos();
   resizeCanvas();
   window.addEventListener('resize', resizeCanvas);
-  canvas.addEventListener('wheel', onWheel, { passive: false });
-  canvas.addEventListener('mousedown', onMouseDown);
-  canvas.addEventListener('mousemove', onMouseMove);
-  canvas.addEventListener('mouseup', onMouseUp);
-  canvas.addEventListener('mouseleave', onMouseLeave);
-  canvas.addEventListener('click', onCanvasClick);
+  canvas.addEventListener('wheel',       onWheel,      { passive: false });
+  canvas.addEventListener('mousedown',   onMouseDown);
+  canvas.addEventListener('mousemove',   onMouseMove);
+  canvas.addEventListener('mouseup',     onMouseUp);
+  canvas.addEventListener('mouseleave',  onMouseLeave);
+  canvas.addEventListener('click',       onCanvasClick);
   canvas.addEventListener('contextmenu', e => e.preventDefault());
 }
 
@@ -323,9 +300,10 @@ function cargarImagen(event) {
   const img = new Image();
   img.onload = () => {
     state.imagen = img;
-    document.getElementById('no-image').style.display = 'none';
+    document.getElementById('no-image').style.display    = 'none';
     document.getElementById('zoom-indicator').style.display = 'block';
-    document.getElementById('canvas-hint').style.display = 'block';
+    document.getElementById('canvas-hint').style.display    = 'block';
+    document.getElementById('btn-ia').disabled = false;
     const scaleX = canvas.width  / img.width;
     const scaleY = canvas.height / img.height;
     state.zoom    = Math.min(scaleX, scaleY) * 0.9;
@@ -337,17 +315,112 @@ function cargarImagen(event) {
   img.src = URL.createObjectURL(file);
 }
 
-// ============================================================
-// FILTROS
-// ============================================================
 function aplicarFiltros() {
   const brillo    = document.getElementById('brillo').value;
   const contraste = document.getElementById('contraste').value;
   const invertir  = document.getElementById('invertir').checked;
   document.getElementById('brillo-val').textContent    = parseFloat(brillo).toFixed(1);
   document.getElementById('contraste-val').textContent = parseFloat(contraste).toFixed(1);
-  state.filtro = { brillo, contraste, invertir };
   canvas.style.filter = `brightness(${brillo}) contrast(${contraste}) ${invertir ? 'invert(1)' : ''}`;
+}
+
+// ============================================================
+// IA — SUGERIR PUNTOS
+// ============================================================
+async function sugerirPuntosIA() {
+  if (!state.imagen) return;
+
+  // Mostrar status
+  const statusEl = document.getElementById('ai-status');
+  statusEl.style.display = 'flex';
+  document.getElementById('ai-status-text').textContent = 'Analizando radiografía con IA...';
+  document.getElementById('btn-ia').disabled = true;
+
+  try {
+    // Renderizar imagen original en canvas temporal para obtener base64
+    const tmpCanvas = document.createElement('canvas');
+    tmpCanvas.width  = state.imagen.width;
+    tmpCanvas.height = state.imagen.height;
+    const tmpCtx = tmpCanvas.getContext('2d');
+    tmpCtx.drawImage(state.imagen, 0, 0);
+
+    // Comprimir para no saturar la API (max 1200px)
+    let imgB64;
+    const maxDim = 1200;
+    if (state.imagen.width > maxDim || state.imagen.height > maxDim) {
+      const scale  = maxDim / Math.max(state.imagen.width, state.imagen.height);
+      const resCanvas = document.createElement('canvas');
+      resCanvas.width  = Math.round(state.imagen.width  * scale);
+      resCanvas.height = Math.round(state.imagen.height * scale);
+      resCanvas.getContext('2d').drawImage(state.imagen, 0, 0, resCanvas.width, resCanvas.height);
+      imgB64 = resCanvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+    } else {
+      imgB64 = tmpCanvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+    }
+
+    const resp = await fetch('/api/sugerir-puntos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        image: imgB64,
+        width: state.imagen.width,
+        height: state.imagen.height
+      })
+    });
+
+    const data = await resp.json();
+    if (!data.success) throw new Error(data.detail || 'Error IA');
+
+    // Escalar coordenadas si la imagen fue comprimida
+    const maxDimUsed = 1200;
+    let scale = 1;
+    if (state.imagen.width > maxDimUsed || state.imagen.height > maxDimUsed) {
+      scale = Math.max(state.imagen.width, state.imagen.height) / maxDimUsed;
+    }
+
+    // Guardar sugerencias
+    state.sugeridos = {};
+    for (const [key, coords] of Object.entries(data.puntos)) {
+      state.sugeridos[key] = {
+        x: coords.x * scale,
+        y: coords.y * scale
+      };
+    }
+
+    state.modoSugerido = true;
+    document.getElementById('btn-confirm-ai').style.display = 'block';
+    document.getElementById('ai-badge').style.display = 'block';
+    document.getElementById('ai-status-text').textContent = '✓ Sugerencias listas — arrastra para ajustar';
+
+    actualizarListaPuntos();
+    redraw();
+
+  } catch (err) {
+    document.getElementById('ai-status-text').textContent = `Error: ${err.message}`;
+    document.getElementById('btn-ia').disabled = false;
+  }
+}
+
+// ============================================================
+// CONFIRMAR SUGERENCIAS IA → PASAR A PUNTOS DEFINITIVOS
+// ============================================================
+function confirmarSugerencias() {
+  for (const [key, coords] of Object.entries(state.sugeridos)) {
+    state.puntos[key] = { x: coords.x, y: coords.y };
+  }
+  state.sugeridos   = {};
+  state.modoSugerido = false;
+  state.puntoActivo  = PUNTOS_CONFIG.length; // todos marcados
+
+  document.getElementById('btn-confirm-ai').style.display = 'none';
+  document.getElementById('btn-ia').disabled = false;
+  document.getElementById('btn-analizar').disabled = false;
+  document.getElementById('ai-status').style.display = 'none';
+  document.getElementById('ai-badge').style.display = 'none';
+  canvas.style.cursor = 'default';
+
+  actualizarListaPuntos();
+  redraw();
 }
 
 // ============================================================
@@ -365,16 +438,30 @@ function redraw() {
 
   dibujarLineas();
 
-  // Dibujar puntos marcados
+  // Puntos confirmados
   Object.entries(state.puntos).forEach(([key, pos]) => {
-    const config = PUNTOS_CONFIG.find(p => p.key === key);
+    const config  = PUNTOS_CONFIG.find(p => p.key === key);
     const screenX = pos.x * state.zoom + state.offsetX;
     const screenY = pos.y * state.zoom + state.offsetY;
-    dibujarPunto(screenX, screenY, config);
+    dibujarPunto(screenX, screenY, config, false);
   });
 
-  // Indicador del punto activo
-  if (state.puntoActivo < PUNTOS_CONFIG.length && state.imagen) {
+  // Puntos sugeridos (IA) — semi-transparentes, arrastrables
+  if (state.modoSugerido) {
+    Object.entries(state.sugeridos).forEach(([key, pos]) => {
+      if (state.puntos[key]) return; // ya confirmado individualmente
+      const config  = PUNTOS_CONFIG.find(p => p.key === key);
+      const screenX = pos.x * state.zoom + state.offsetX;
+      const screenY = pos.y * state.zoom + state.offsetY;
+      dibujarPuntoIA(screenX, screenY, config);
+    });
+
+    // Dibujar líneas de constelación entre sugeridos
+    dibujarConstelacion();
+  }
+
+  // Borde indicador punto activo
+  if (!state.modoSugerido && state.puntoActivo < PUNTOS_CONFIG.length && state.imagen) {
     const config = PUNTOS_CONFIG[state.puntoActivo];
     ctx.save();
     ctx.strokeStyle = config.color;
@@ -386,164 +473,232 @@ function redraw() {
   }
 }
 
-// ============================================================
-// LÍNEAS DEL CEFALOGRAMA
-// ============================================================
-const LINEAS = [
-  ["S",  "N",   "#00c8ff60", "NSL"],
-  ["N",  "A",   "#ffdd0040", "NA"],
-  ["N",  "B",   "#ff8c4240", "NB"],
-  ["Me", "Go",  "#c77dff60", "ML"],
-  ["ENA","ENP", "#48cae460", "NL"],
-  ["Po", "Or",  "#f7258560", "FH"],
-];
-
-function dibujarLineas() {
-  LINEAS.forEach(([p1key, p2key, color, label]) => {
-    const p1 = state.puntos[p1key];
-    const p2 = state.puntos[p2key];
+// Constelación: líneas tenues entre puntos sugeridos
+function dibujarConstelacion() {
+  const conexiones = [
+    ["S","N"], ["N","A"], ["N","B"], ["A","B"],
+    ["Me","Go"], ["ENA","ENP"], ["Po","Or"], ["S","Co"]
+  ];
+  conexiones.forEach(([k1, k2]) => {
+    const p1 = state.sugeridos[k1] || state.puntos[k1];
+    const p2 = state.sugeridos[k2] || state.puntos[k2];
     if (!p1 || !p2) return;
     const sx1 = p1.x * state.zoom + state.offsetX;
     const sy1 = p1.y * state.zoom + state.offsetY;
     const sx2 = p2.x * state.zoom + state.offsetX;
     const sy2 = p2.y * state.zoom + state.offsetY;
-
     ctx.save();
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 1.5;
-    ctx.setLineDash([6, 3]);
+    ctx.strokeStyle = 'rgba(168,85,247,0.35)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 5]);
     ctx.beginPath();
     ctx.moveTo(sx1, sy1);
     ctx.lineTo(sx2, sy2);
     ctx.stroke();
-
-    // Label de la línea en el punto medio
-    const mx = (sx1 + sx2) / 2;
-    const my = (sy1 + sy2) / 2;
-    ctx.setLineDash([]);
-    ctx.font = 'bold 9px JetBrains Mono, monospace';
-    ctx.fillStyle = color;
-    ctx.globalAlpha = 0.9;
-    ctx.strokeStyle = '#0a0d12';
-    ctx.lineWidth = 2;
-    ctx.strokeText(label, mx + 4, my - 4);
-    ctx.fillText(label, mx + 4, my - 4);
     ctx.restore();
   });
 }
 
-// ============================================================
-// DIBUJAR PUNTO
-// ============================================================
-function dibujarPunto(screenX, screenY, config) {
+// Líneas cefalométricas
+const LINEAS = [
+  ["S","N","#00c8ff60","NSL"], ["N","A","#ffdd0040","NA"],
+  ["N","B","#ff8c4240","NB"],  ["Me","Go","#c77dff60","ML"],
+  ["ENA","ENP","#48cae460","NL"], ["Po","Or","#f7258560","FH"],
+];
+function dibujarLineas() {
+  LINEAS.forEach(([p1k, p2k, color, label]) => {
+    const p1 = state.puntos[p1k]; const p2 = state.puntos[p2k];
+    if (!p1 || !p2) return;
+    const sx1 = p1.x*state.zoom+state.offsetX, sy1 = p1.y*state.zoom+state.offsetY;
+    const sx2 = p2.x*state.zoom+state.offsetX, sy2 = p2.y*state.zoom+state.offsetY;
+    ctx.save();
+    ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.setLineDash([6,3]);
+    ctx.beginPath(); ctx.moveTo(sx1,sy1); ctx.lineTo(sx2,sy2); ctx.stroke();
+    const mx=(sx1+sx2)/2, my=(sy1+sy2)/2;
+    ctx.setLineDash([]); ctx.font='bold 9px JetBrains Mono,monospace';
+    ctx.fillStyle = color; ctx.strokeStyle='#0a0d12'; ctx.lineWidth=2; ctx.globalAlpha=.9;
+    ctx.strokeText(label,mx+4,my-4); ctx.fillText(label,mx+4,my-4);
+    ctx.restore();
+  });
+}
+
+function dibujarPunto(screenX, screenY, config, isAI=false) {
   const r = 5;
   ctx.save();
-  ctx.beginPath();
-  ctx.arc(screenX, screenY, r + 4, 0, Math.PI * 2);
-  ctx.fillStyle = config.color + '25';
-  ctx.fill();
-  ctx.restore();
-
+  ctx.beginPath(); ctx.arc(screenX, screenY, r+4, 0, Math.PI*2);
+  ctx.fillStyle = config.color + '25'; ctx.fill(); ctx.restore();
   ctx.save();
+  ctx.beginPath(); ctx.arc(screenX, screenY, r, 0, Math.PI*2);
+  ctx.fillStyle = config.color; ctx.fill();
+  ctx.strokeStyle = '#0a0d12'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.restore();
+  ctx.save();
+  ctx.strokeStyle = '#0a0d12'; ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.arc(screenX, screenY, r, 0, Math.PI * 2);
+  ctx.moveTo(screenX-r+1, screenY); ctx.lineTo(screenX+r-1, screenY);
+  ctx.moveTo(screenX, screenY-r+1); ctx.lineTo(screenX, screenY+r-1);
+  ctx.stroke(); ctx.restore();
+  ctx.save();
+  ctx.font = 'bold 10px JetBrains Mono,monospace';
+  ctx.fillStyle = config.color; ctx.strokeStyle = '#0a0d12'; ctx.lineWidth = 3;
+  ctx.strokeText(config.key, screenX+8, screenY-6);
+  ctx.fillText(config.key,   screenX+8, screenY-6);
+  ctx.restore();
+}
+
+function dibujarPuntoIA(screenX, screenY, config) {
+  const r = 6;
+  // Halo pulsante (color IA)
+  ctx.save();
+  ctx.beginPath(); ctx.arc(screenX, screenY, r+6, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(168,85,247,0.15)'; ctx.fill(); ctx.restore();
+  // Círculo IA
+  ctx.save();
+  ctx.beginPath(); ctx.arc(screenX, screenY, r, 0, Math.PI*2);
   ctx.fillStyle = config.color;
+  ctx.globalAlpha = 0.85;
   ctx.fill();
-  ctx.strokeStyle = '#0a0d12';
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
-  ctx.restore();
-
-  ctx.save();
-  ctx.strokeStyle = '#0a0d12';
-  ctx.lineWidth = 1;
+  ctx.strokeStyle = '#a855f7'; ctx.lineWidth = 2; ctx.stroke(); ctx.restore();
+  // Cruz
+  ctx.save(); ctx.strokeStyle = '#0a0d12'; ctx.lineWidth = 1; ctx.globalAlpha = 0.8;
   ctx.beginPath();
-  ctx.moveTo(screenX - r + 1, screenY);
-  ctx.lineTo(screenX + r - 1, screenY);
-  ctx.moveTo(screenX, screenY - r + 1);
-  ctx.lineTo(screenX, screenY + r - 1);
-  ctx.stroke();
-  ctx.restore();
-
+  ctx.moveTo(screenX-r+1, screenY); ctx.lineTo(screenX+r-1, screenY);
+  ctx.moveTo(screenX, screenY-r+1); ctx.lineTo(screenX, screenY+r-1);
+  ctx.stroke(); ctx.restore();
+  // Label con fondo IA
   ctx.save();
-  ctx.font = 'bold 10px JetBrains Mono, monospace';
+  ctx.font = 'bold 10px JetBrains Mono,monospace';
+  ctx.fillStyle = '#a855f7'; ctx.strokeStyle = '#0a0d12'; ctx.lineWidth = 3;
+  ctx.strokeText('✦'+config.key, screenX+9, screenY-7);
   ctx.fillStyle = config.color;
-  ctx.strokeStyle = '#0a0d12';
-  ctx.lineWidth = 3;
-  ctx.strokeText(config.key, screenX + 8, screenY - 6);
-  ctx.fillText(config.key, screenX + 8, screenY - 6);
+  ctx.fillText('✦'+config.key,   screenX+9, screenY-7);
   ctx.restore();
 }
 
 // ============================================================
-// EVENTOS DE MOUSE — FIX: protección contra drag accidental
+// EVENTOS MOUSE
 // ============================================================
-const DRAG_THRESHOLD = 4; // píxeles — mínimo movimiento para considerarlo drag
+function getPuntoEnPosicion(screenX, screenY) {
+  // Buscar si hay un punto sugerido cerca del cursor para arrastrarlo
+  const RADIO_HIT = 14 / state.zoom;
+  const imgX = (screenX - state.offsetX) / state.zoom;
+  const imgY = (screenY - state.offsetY) / state.zoom;
+
+  for (const [key, pos] of Object.entries(state.sugeridos)) {
+    if (state.puntos[key]) continue;
+    const dx = pos.x - imgX, dy = pos.y - imgY;
+    if (Math.sqrt(dx*dx + dy*dy) < RADIO_HIT) return { key, tipo: 'sugerido' };
+  }
+  for (const [key, pos] of Object.entries(state.puntos)) {
+    const dx = pos.x - imgX, dy = pos.y - imgY;
+    if (Math.sqrt(dx*dx + dy*dy) < RADIO_HIT) return { key, tipo: 'confirmado' };
+  }
+  return null;
+}
 
 function onWheel(e) {
   e.preventDefault();
   if (!state.imagen) return;
-  const rect   = canvas.getBoundingClientRect();
-  const mouseX = e.clientX - rect.left;
-  const mouseY = e.clientY - rect.top;
-  const delta     = e.deltaY > 0 ? 0.88 : 1.14;
-  const newZoom   = Math.max(0.1, Math.min(20, state.zoom * delta));
+  const rect = canvas.getBoundingClientRect();
+  const mouseX = e.clientX - rect.left, mouseY = e.clientY - rect.top;
+  const delta = e.deltaY > 0 ? 0.88 : 1.14;
+  const newZoom = Math.max(0.1, Math.min(20, state.zoom * delta));
   const zoomRatio = newZoom / state.zoom;
-  state.offsetX = mouseX - zoomRatio * (mouseX - state.offsetX);
-  state.offsetY = mouseY - zoomRatio * (mouseY - state.offsetY);
-  state.zoom    = newZoom;
-  redraw();
-  actualizarZoomIndicator();
+  state.offsetX = mouseX - zoomRatio*(mouseX - state.offsetX);
+  state.offsetY = mouseY - zoomRatio*(mouseY - state.offsetY);
+  state.zoom = newZoom;
+  redraw(); actualizarZoomIndicator();
 }
 
 function onMouseDown(e) {
+  const rect = canvas.getBoundingClientRect();
+  const screenX = e.clientX - rect.left, screenY = e.clientY - rect.top;
+
   if (e.button === 2 || e.button === 1) {
-    // Clic derecho o medio = PAN
     state.isDragging  = true;
     state.dragStartX  = e.clientX - state.offsetX;
     state.dragStartY  = e.clientY - state.offsetY;
     canvas.style.cursor = 'grabbing';
     document.getElementById('drag-indicator').style.display = 'block';
     e.preventDefault();
-  } else if (e.button === 0) {
-    // FIX: rastrear inicio del clic izquierdo para detectar drag accidental
-    state.isLeftDragging = true;
-    state.dragStartX     = e.clientX;
-    state.dragStartY     = e.clientY;
-    state.dragMoved      = false;
+    return;
+  }
+
+  if (e.button === 0) {
+    // ¿Hay un punto sugerido/confirmado cerca? → modo drag punto
+    const hit = getPuntoEnPosicion(screenX, screenY);
+    if (hit) {
+      const pos = hit.tipo === 'sugerido' ? state.sugeridos[hit.key] : state.puntos[hit.key];
+      state.draggingPoint = { key: hit.key, tipo: hit.tipo, startImgX: pos.x, startImgY: pos.y };
+      canvas.style.cursor = 'grab';
+      state.dragMoved = false;
+    } else {
+      state.isLeftDragging = true;
+      state.dragStartX = e.clientX;
+      state.dragStartY = e.clientY;
+      state.dragMoved  = false;
+    }
   }
 }
 
 function onMouseMove(e) {
-  // Pan con clic derecho
+  const rect = canvas.getBoundingClientRect();
+  const screenX = e.clientX - rect.left, screenY = e.clientY - rect.top;
+
+  // Pan clic derecho
   if (state.isDragging) {
     state.offsetX = e.clientX - state.dragStartX;
     state.offsetY = e.clientY - state.dragStartY;
-    redraw();
+    redraw(); return;
   }
 
-  // FIX: Detectar si el left-click se está convirtiendo en drag
+  // Arrastrar punto (sugerido o confirmado)
+  if (state.draggingPoint) {
+    const imgX = (screenX - state.offsetX) / state.zoom;
+    const imgY = (screenY - state.offsetY) / state.zoom;
+    if (state.draggingPoint.tipo === 'sugerido') {
+      state.sugeridos[state.draggingPoint.key] = { x: imgX, y: imgY };
+    } else {
+      state.puntos[state.draggingPoint.key] = { x: imgX, y: imgY };
+    }
+    state.dragMoved = true;
+    canvas.style.cursor = 'grabbing';
+    actualizarListaPuntos(); redraw(); return;
+  }
+
+  // Detectar hover sobre punto para cambiar cursor
+  const hit = getPuntoEnPosicion(screenX, screenY);
+  if (hit) {
+    canvas.style.cursor = 'grab';
+  } else if (!state.isDragging) {
+    canvas.style.cursor = state.puntoActivo < PUNTOS_CONFIG.length ? 'crosshair' : 'default';
+  }
+
+  // Detectar left-drag accidental
   if (state.isLeftDragging) {
     const dx = Math.abs(e.clientX - state.dragStartX);
     const dy = Math.abs(e.clientY - state.dragStartY);
-    if (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD) {
-      state.dragMoved = true;
-    }
+    if (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD) state.dragMoved = true;
   }
 
-  // Tooltip con el siguiente punto a marcar
-  if (state.imagen && state.puntoActivo < PUNTOS_CONFIG.length && !state.isDragging) {
+  // Tooltip punto activo
+  if (!state.modoSugerido && state.imagen && state.puntoActivo < PUNTOS_CONFIG.length && !state.isDragging && !hit) {
     const config  = PUNTOS_CONFIG[state.puntoActivo];
-    const rect    = canvas.getBoundingClientRect();
     const tooltip = document.getElementById('tooltip');
     tooltip.textContent = `→ ${config.key}: ${config.nombre}`;
     tooltip.style.display = 'block';
-    tooltip.style.left = (e.clientX - rect.left) + 'px';
-    tooltip.style.top  = (e.clientY - rect.top)  + 'px';
+    tooltip.style.left = screenX + 'px';
+    tooltip.style.top  = screenY + 'px';
+  } else {
+    document.getElementById('tooltip').style.display = 'none';
   }
 }
 
 function onMouseUp(e) {
+  if (state.draggingPoint) {
+    state.draggingPoint = null;
+    canvas.style.cursor = 'crosshair';
+    return;
+  }
   if (e.button === 2 || e.button === 1) {
     state.isDragging = false;
     canvas.style.cursor = 'crosshair';
@@ -554,64 +709,50 @@ function onMouseUp(e) {
 }
 
 function onMouseLeave() {
-  state.isDragging     = false;
-  state.isLeftDragging = false;
-  canvas.style.cursor  = 'crosshair';
+  state.isDragging = state.isLeftDragging = false;
+  if (state.draggingPoint) state.draggingPoint = null;
+  canvas.style.cursor = 'crosshair';
   document.getElementById('drag-indicator').style.display = 'none';
   document.getElementById('tooltip').style.display = 'none';
 }
 
-// ============================================================
-// CLICK — FIX PRINCIPAL: ignorar si hubo movimiento (drag accidental)
-// ============================================================
 function onCanvasClick(e) {
-  if (!state.imagen) return;
+  if (!state.imagen || state.modoSugerido) return;
   if (state.puntoActivo >= PUNTOS_CONFIG.length) return;
   if (e.button !== 0) return;
-
-  // FIX: Si el mouse se movió más del umbral durante el click, ignorarlo
-  if (state.dragMoved) {
-    state.dragMoved = false;
-    return;
-  }
-  state.dragMoved = false;
-
-  // FIX: Si hay pan derecho activo, no marcar punto
+  if (state.dragMoved) { state.dragMoved = false; return; }
   if (state.isDragging) return;
 
   const rect    = canvas.getBoundingClientRect();
-  const screenX = e.clientX - rect.left;
-  const screenY = e.clientY - rect.top;
+  const screenX = e.clientX - rect.left, screenY = e.clientY - rect.top;
 
-  // Des-escalar coordenadas al espacio de la imagen original
+  // Si hay punto cerca, no marcar nuevo
+  if (getPuntoEnPosicion(screenX, screenY)) return;
+
   const imgX = (screenX - state.offsetX) / state.zoom;
   const imgY = (screenY - state.offsetY) / state.zoom;
-
-  // Verificar que el clic está dentro de la imagen
   if (imgX < 0 || imgX > state.imagen.width || imgY < 0 || imgY > state.imagen.height) return;
 
   const config = PUNTOS_CONFIG[state.puntoActivo];
   state.puntos[config.key] = { x: imgX, y: imgY };
   state.puntoActivo++;
-
-  actualizarListaPuntos();
-  redraw();
+  actualizarListaPuntos(); redraw();
 
   if (state.puntoActivo >= PUNTOS_CONFIG.length) {
     document.getElementById('btn-analizar').disabled = false;
-    document.getElementById('tooltip').style.display = 'none';
+    document.getElementById('tooltip').style.display  = 'none';
     canvas.style.cursor = 'default';
   }
 }
 
 // ============================================================
-// ACTUALIZAR UI — FIX: mostrar coordenadas reales para verificación
+// UI
 // ============================================================
 function renderListaPuntos() {
   const container = document.getElementById('points-list');
   container.innerHTML = PUNTOS_CONFIG.map((p, i) => `
     <div class="point-item" id="pt-item-${i}" onclick="irAPunto(${i})">
-      <div class="point-num">${i + 1}</div>
+      <div class="point-num">${i+1}</div>
       <div style="flex:1;min-width:0">
         <div class="point-name">${p.key} — ${p.nombre}</div>
         <div class="point-desc">${p.desc}</div>
@@ -625,7 +766,7 @@ function renderListaPuntos() {
 function actualizarListaPuntos() {
   const count = Object.keys(state.puntos).length;
   document.getElementById('pts-count').textContent = count;
-  document.getElementById('progress-fill').style.width = (count / 11 * 100) + '%';
+  document.getElementById('progress-fill').style.width = (count/11*100)+'%';
 
   PUNTOS_CONFIG.forEach((p, i) => {
     const item   = document.getElementById(`pt-item-${i}`);
@@ -635,9 +776,12 @@ function actualizarListaPuntos() {
     if (state.puntos[p.key]) {
       item.classList.add('done');
       const pt = state.puntos[p.key];
-      // FIX: mostrar coordenadas reales en píxeles de imagen para debug
       coords.innerHTML = `✓<span class="coord-xy">${Math.round(pt.x)}, ${Math.round(pt.y)}</span>`;
-    } else if (i === state.puntoActivo) {
+    } else if (state.sugeridos[p.key]) {
+      item.classList.add('suggested');
+      const pt = state.sugeridos[p.key];
+      coords.innerHTML = `✦<span class="coord-xy">${Math.round(pt.x)}, ${Math.round(pt.y)}</span>`;
+    } else if (i === state.puntoActivo && !state.modoSugerido) {
       item.classList.add('active');
       coords.innerHTML = '<span style="color:var(--accent2)">← marcar</span>';
     } else {
@@ -647,169 +791,127 @@ function actualizarListaPuntos() {
 }
 
 function actualizarZoomIndicator() {
-  document.getElementById('zoom-val').textContent = Math.round(state.zoom * 100) + '%';
+  document.getElementById('zoom-val').textContent = Math.round(state.zoom*100)+'%';
 }
 
-// ============================================================
-// ACCIONES
-// ============================================================
 function irAPunto(idx) {
-  if (!state.imagen) return;
+  if (!state.imagen || state.modoSugerido) return;
   const config = PUNTOS_CONFIG[idx];
   delete state.puntos[config.key];
   state.puntoActivo = idx;
   document.getElementById('btn-analizar').disabled = true;
-  document.getElementById('tooltip').style.display = 'none';
-  actualizarListaPuntos();
-  redraw();
+  document.getElementById('tooltip').style.display  = 'none';
+  actualizarListaPuntos(); redraw();
 }
 
 function resetPuntos() {
-  state.puntos      = {};
-  state.puntoActivo = 0;
-  state.dragMoved   = false;
+  state.puntos = {}; state.sugeridos = {};
+  state.puntoActivo = 0; state.modoSugerido = false; state.dragMoved = false;
   document.getElementById('btn-analizar').disabled = true;
+  document.getElementById('btn-confirm-ai').style.display = 'none';
+  document.getElementById('ai-badge').style.display = 'none';
+  document.getElementById('ai-status').style.display = 'none';
   document.getElementById('tooltip').style.display = 'none';
   canvas.style.cursor = 'crosshair';
-  actualizarListaPuntos();
-  mostrarEmptyState();
-  redraw();
+  actualizarListaPuntos(); mostrarEmptyState(); redraw();
 }
 
 function resetTodo() {
-  state.imagen  = null;
-  state.zoom    = 1;
-  state.offsetX = 0;
-  state.offsetY = 0;
-  document.getElementById('no-image').style.display = 'flex';
+  state.imagen = null; state.zoom = 1; state.offsetX = 0; state.offsetY = 0;
+  document.getElementById('no-image').style.display    = 'flex';
   document.getElementById('zoom-indicator').style.display = 'none';
-  document.getElementById('canvas-hint').style.display = 'none';
+  document.getElementById('canvas-hint').style.display    = 'none';
+  document.getElementById('btn-ia').disabled = true;
   document.getElementById('fileInput').value = '';
   resetPuntos();
 }
 
 function mostrarEmptyState() {
   document.getElementById('results-area').innerHTML = `
-    <div class="empty-state" id="empty-state">
+    <div class="empty-state">
       <div class="empty-icon">📊</div>
       <div>Marca los 11 puntos anatómicos</div>
-      <div style="font-size:10px">Los resultados aparecerán aquí</div>
-    </div>
-  `;
+      <div style="font-size:10px">o usa ✦ Sugerir con IA</div>
+    </div>`;
 }
 
 // ============================================================
-// API
+// API ANALIZAR
 // ============================================================
 async function analizarPuntos() {
-  if (Object.keys(state.puntos).length < 11) { alert('Faltan puntos por marcar.'); return; }
-
+  if (Object.keys(state.puntos).length < 11) { alert('Faltan puntos.'); return; }
   document.getElementById('loading').style.display = 'flex';
   document.getElementById('results-area').style.display = 'none';
-
   try {
-    const response = await fetch('/api/analizar', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const resp = await fetch('/api/analizar', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(state.puntos)
     });
-    const data = await response.json();
-    if (!data.success) throw new Error(data.detail || 'Error en el análisis');
+    const data = await resp.json();
+    if (!data.success) throw new Error(data.detail || 'Error');
     mostrarResultados(data);
   } catch (err) {
     document.getElementById('loading').style.display = 'none';
     document.getElementById('results-area').style.display = 'block';
     document.getElementById('results-area').innerHTML = `
-      <div class="empty-state">
-        <div class="empty-icon">⚠️</div>
-        <div style="color:var(--warn)">Error de conexión</div>
-        <div style="font-size:10px">${err.message}</div>
-      </div>
-    `;
+      <div class="empty-state"><div class="empty-icon">⚠️</div>
+      <div style="color:var(--warn)">Error</div>
+      <div style="font-size:10px">${err.message}</div></div>`;
   }
 }
 
-// ============================================================
-// MOSTRAR RESULTADOS — FIX: incluye ML/NSL y NL/NSL para debug
-// ============================================================
 function mostrarResultados(data) {
   document.getElementById('loading').style.display = 'none';
   const area = document.getElementById('results-area');
   area.style.display = 'block';
-
-  const f = data.factores_bimler;
-  const t = data.indicadores_petrovic;
-  const d = data.diagnostico;
-
-  const catColors = { 1:'#ff4466', 2:'#ff6b35', 3:'#ffdd00', 4:'#00ff87', 5:'#ff6b35', 6:'#ff4466' };
-  const catColor = catColors[d.categoria] || '#00ff87';
-
+  const f = data.factores_bimler, t = data.indicadores_petrovic, d = data.diagnostico;
+  const catColors = {1:'#ff4466',2:'#ff6b35',3:'#ffdd00',4:'#00ff87',5:'#ff6b35',6:'#ff4466'};
+  const cc = catColors[d.categoria] || '#00ff87';
   area.innerHTML = `
     <div class="diagnosis-card">
       <div class="diagnosis-group">${d.grupo}</div>
-      <div class="diagnosis-cat">Categoría <span style="background:${catColor}">${d.categoria}</span> de crecimiento auxológico</div>
+      <div class="diagnosis-cat">Categoría <span style="background:${cc}">${d.categoria}</span> de crecimiento auxológico</div>
       <div class="diagnosis-meta">
-        <div class="meta-item">
-          <div class="meta-label">Rotación</div>
-          <div class="meta-val" style="color:${catColor}">${d.rotacion}</div>
-          <div style="font-size:8px;color:var(--text-dim)">${d.desc_rotacion}</div>
-        </div>
-        <div class="meta-item">
-          <div class="meta-label">Basal</div>
-          <div class="meta-val" style="color:${catColor}">${d.basal}</div>
-          <div style="font-size:8px;color:var(--text-dim)">${d.desc_basal.split(' ').slice(0,3).join(' ')}</div>
-        </div>
-        <div class="meta-item">
-          <div class="meta-label">Sagital</div>
-          <div class="meta-val" style="color:${catColor}">${d.sagital}</div>
-          <div style="font-size:8px;color:var(--text-dim)">${d.desc_sagital}</div>
-        </div>
-        <div class="meta-item">
-          <div class="meta-label">Vertical</div>
-          <div class="meta-val" style="color:${catColor}">${d.vertical}</div>
-          <div style="font-size:8px;color:var(--text-dim)">${d.desc_vertical}</div>
-        </div>
+        <div class="meta-item"><div class="meta-label">Rotación</div><div class="meta-val" style="color:${cc}">${d.rotacion}</div><div style="font-size:8px;color:var(--text-dim)">${d.desc_rotacion}</div></div>
+        <div class="meta-item"><div class="meta-label">Basal</div><div class="meta-val" style="color:${cc}">${d.basal}</div><div style="font-size:8px;color:var(--text-dim)">${d.desc_basal.split(' ').slice(0,3).join(' ')}</div></div>
+        <div class="meta-item"><div class="meta-label">Sagital</div><div class="meta-val" style="color:${cc}">${d.sagital}</div><div style="font-size:8px;color:var(--text-dim)">${d.desc_sagital}</div></div>
+        <div class="meta-item"><div class="meta-label">Vertical</div><div class="meta-val" style="color:${cc}">${d.vertical}</div><div style="font-size:8px;color:var(--text-dim)">${d.desc_vertical}</div></div>
       </div>
     </div>
-
     <div class="result-group">
       <div class="result-group-title">Indicadores Lavergne-Petrovic</div>
       <div class="result-row"><div class="result-key">T1 — Inclinación Mandibular</div><div class="result-val accent">${t.T1}°</div></div>
       <div class="result-row"><div class="result-key">T2 — Inclinación Maxilar</div><div class="result-val accent">${t.T2}°</div></div>
       <div class="result-row"><div class="result-key">T3 — Diferencia Sagital (ANB)</div><div class="result-val accent">${t.T3}°</div></div>
-      <div class="result-row" style="opacity:.6"><div class="result-key">ML/NSLc (calculado)</div><div class="result-val" style="font-size:10px">${t.ML_NSLc}°</div></div>
-      <div class="result-row" style="opacity:.6"><div class="result-key">NL/NSLc (calculado)</div><div class="result-val" style="font-size:10px">${t.NL_NSLc}°</div></div>
+      <div class="result-row" style="opacity:.6"><div class="result-key">ML/NSLc</div><div class="result-val" style="font-size:10px">${t.ML_NSLc}°</div></div>
+      <div class="result-row" style="opacity:.6"><div class="result-key">NL/NSLc</div><div class="result-val" style="font-size:10px">${t.NL_NSLc}°</div></div>
     </div>
-
     <div class="result-group">
       <div class="result-group-title">Factores de Bimler</div>
       <div class="result-row"><div class="result-key">SNA</div><div class="result-val">${f.SNA}°</div></div>
       <div class="result-row"><div class="result-key">SNB</div><div class="result-val">${f.SNB}°</div></div>
-      <div class="result-row"><div class="result-key">ANB</div><div class="result-val ${Math.abs(f.ANB) > 4 ? 'warn' : 'info'}">${f.ANB}°</div></div>
+      <div class="result-row"><div class="result-key">ANB</div><div class="result-val ${Math.abs(f.ANB)>4?'warn':'info'}">${f.ANB}°</div></div>
       <div class="result-row"><div class="result-key">F3 — Inclinación Mandibular (FH)</div><div class="result-val">${f.F3}°</div></div>
       <div class="result-row"><div class="result-key">F4 — Inclinación Maxilar (FH)</div><div class="result-val">${f.F4}°</div></div>
-      <div class="result-row"><div class="result-key">F7 — Inclinación NSL (FH)</div><div class="result-val ${f.F7 < 5 || f.F7 > 12 ? 'warn' : ''}">${f.F7}°</div></div>
+      <div class="result-row"><div class="result-key">F7 — Inclinación NSL (FH) ${f.F7<5||f.F7>12?'⚠':'✓'}</div><div class="result-val ${f.F7<5||f.F7>12?'warn':''}">${f.F7}°</div></div>
       <div class="result-row"><div class="result-key">ML/NSL (medido)</div><div class="result-val">${f.ML_NSL}°</div></div>
       <div class="result-row"><div class="result-key">NL/NSL = F4+F7</div><div class="result-val">${f.NL_NSL}°</div></div>
     </div>
-
     <div style="background:rgba(0,200,255,.05);border:1px solid rgba(0,200,255,.15);border-radius:4px;padding:10px;margin-top:8px">
       <div style="font-size:9px;color:var(--accent2);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Nota Clínica</div>
-      <div style="font-size:10px;color:var(--text-dim);line-height:1.6">${obtenerNotaClinica(d.categoria, d.rotacion, d.sagital)}</div>
-    </div>
-  `;
+      <div style="font-size:10px;color:var(--text-dim);line-height:1.6">${obtenerNota(d.categoria)}</div>
+    </div>`;
 }
 
-function obtenerNotaClinica(cat, rot, sag) {
-  const notas = {
-    1: "Crecimiento condilar débil, predominantemente vertical. Respuesta funcional muy baja.",
-    2: "Crecimiento vertical con componente horizontal leve. Controlar dimensión vertical.",
-    3: "Crecimiento horizontal, rotación anterior leve. Buena respuesta a aparatos funcionales.",
-    4: "Crecimiento equilibrado. Excelente respuesta. Corto tiempo de tratamiento.",
-    5: "Crecimiento mandibular dominante. Alto riesgo de Clase III. Monitoreo constante.",
-    6: "⚠️ Crecimiento mandibular desmedido. Clase III severa. Potencial quirúrgico.",
-  };
-  return notas[cat] || "Consultar tabla clínica de referencia.";
+function obtenerNota(cat) {
+  return {
+    1:"Crecimiento condilar débil, predominantemente vertical. Respuesta funcional muy baja.",
+    2:"Crecimiento vertical con componente horizontal leve. Controlar dimensión vertical.",
+    3:"Crecimiento horizontal, rotación anterior leve. Buena respuesta a aparatos funcionales.",
+    4:"Crecimiento equilibrado. Excelente respuesta. Corto tiempo de tratamiento.",
+    5:"Crecimiento mandibular dominante. Alto riesgo de Clase III. Monitoreo constante.",
+    6:"⚠️ Crecimiento mandibular desmedido. Clase III severa. Potencial quirúrgico.",
+  }[cat] || "Consultar tabla clínica de referencia.";
 }
 
 init();
