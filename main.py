@@ -106,26 +106,77 @@ async def sugerir_puntos(request: Request):
         if not api_key:
             return {"success": False, "detail": "ANTHROPIC_API_KEY no configurada en el servidor"}
 
-        prompt = f"""Eres un experto en cefalometría dental. Analiza esta radiografía lateral de cráneo (telerradiografía) e identifica las coordenadas EXACTAS en píxeles de los siguientes puntos anatómicos.
+        prompt = f"""Eres un especialista en cefalometría de Bimler-Lavergne-Petrovic. Analiza esta telerradiografía lateral de cráneo e identifica con MÁXIMA PRECISIÓN los 11 puntos cefalométricos.
 
-La imagen tiene {img_w}px de ancho × {img_h}px de alto. El eje Y aumenta hacia ABAJO.
+Dimensiones de imagen: {img_w}px ancho × {img_h}px alto. Eje Y crece hacia ABAJO.
 
-Puntos a identificar:
-- S: Centro de la Silla Turca (fosa pituitaria)
-- N: Nasion — sutura frontonasal, punto más anterior
-- A: Punto A — concavidad más profunda del maxilar superior (subespinal)
-- B: Punto B — concavidad más profunda del mentón (supramental)
-- Me: Mentón — punto más inferior de la sínfisis
-- Go: Gonion — ángulo mandibular postero-inferior (bisectriz de tangentes)
-- ENA: Espina Nasal Anterior — extremo anterior del paladar
-- ENP: Espina Nasal Posterior — extremo posterior del paladar
-- Po: Porion — punto más SUPERIOR del conducto auditivo externo óseo
-- Or: Orbitario — punto más INFERIOR del reborde orbitario óseo (importante: debe ser el punto MÁS BAJO de la órbita, significativamente más abajo que Po)
-- Co: Condylion — punto más postero-superior del cóndilo mandibular
+═══════════════════════════════════════
+INSTRUCCIONES CRÍTICAS PUNTO POR PUNTO
+═══════════════════════════════════════
 
-CRÍTICO para Or: En una telerradiografía estándar, la línea de Frankfurt (Po-Or) tiene una inclinación de aproximadamente 7-10 grados con respecto a S-N. Si Or y Po están a la misma altura, la posición es incorrecta. Or debe estar CLARAMENTE más bajo que Po en la imagen.
+S — SELLA TURCA:
+• Es el punto en el CENTRO GEOMÉTRICO de la fosa pituitaria (silla turca)
+• La fosa pituitaria es una concavidad ósea en la base del cráneo, detrás del quiasma óptico
+• S está DENTRO del hueso, no en el borde. Está en la mitad de esa concavidad
+• ERROR COMÚN: marcarlo demasiado anterior (hacia la cara). Debe estar bien posterior, en la base del cráneo
+• Referencia: S está aproximadamente sobre la vertical que pasa por el conducto auditivo externo
 
-Responde ÚNICAMENTE con JSON válido, sin texto adicional, en este formato exacto:
+N — NASION:
+• Es la intersección de la sutura frontonasal con el plano sagital medio
+• Se ubica en la CONCAVIDAD más profunda del perfil óseo entre la frente y la nariz
+• N está donde termina el hueso frontal y empiezan los huesos nasales — en la depresión/concavidad
+• ERROR COMÚN: marcarlo demasiado anterior (en la punta más saliente). Debe estar en la CONCAVIDAD, ligeramente más posterior
+• En perfil lateral, N es el punto más posterior-inferior de la unión frente-nariz, no el más anterior
+
+Or — ORBITARIO:
+• Es el punto MÁS INFERIOR del reborde orbitario óseo inferior
+• CRÍTICO: Or debe estar significativamente MÁS BAJO (mayor Y) que Po
+• La línea Frankfurt (Po→Or) debe tener ~7-10° de inclinación respecto a S-N
+• Si Or y Po tienen casi la misma coordenada Y, la posición es INCORRECTA
+• Or está en el borde inferior de la cavidad orbitaria, que en la radiografía se ve como una línea curva densa. El punto más bajo de esa curva es Or
+• Típicamente Or está 15-30px MÁS ABAJO que Po en la imagen
+
+Po — PORION:
+• Punto más SUPERIOR del conducto auditivo externo óseo
+• Es el punto más alto del agujero/canal del oído
+
+A — PUNTO A (Subespinal):
+• Punto de MÁXIMA CONCAVIDAD del perfil anterior del maxilar superior
+• Entre la espina nasal anterior y el borde alveolar superior
+• Es la parte más hundida (posterior) del contorno del maxilar, no el borde dental
+
+B — PUNTO B (Supramental):
+• Punto de MÁXIMA CONCAVIDAD del perfil anterior de la mandíbula
+• Entre el pogonion y el borde alveolar inferior
+• Es la parte más hundida (posterior) del contorno mandibular
+
+Me — MENTÓN:
+• Punto más INFERIOR de la sínfisis mentoniana
+• El punto más bajo de la mandíbula en la línea media
+
+Go — GONION:
+• Vértice del ángulo mandibular postero-inferior
+• Se obtiene como la bisectriz del ángulo formado por la rama ascendente y el cuerpo mandibular
+
+ENA — Espina Nasal Anterior:
+• Punta más anterior y prominente de la espina nasal anterior
+• Estructura ósea puntiaguda en el extremo anterior del paladar
+
+ENP — Espina Nasal Posterior:
+• Punta posterior del paladar duro
+• Extremo posterior de los huesos palatinos
+
+Co — CONDYLION:
+• Punto más postero-superior de la cabeza del cóndilo mandibular
+
+═══════════════════════════════════════
+VALIDACIÓN ANTES DE RESPONDER:
+═══════════════════════════════════════
+1. ¿Or.y > Po.y + 10px? (Or debe ser claramente más bajo que Po) → Si no, corrige Or
+2. ¿N está en la concavidad frente-nariz, no en la punta más anterior? → Si está muy anterior, muévelo posterior
+3. ¿S está en el centro de la fosa pituitaria, bien posterior en la base del cráneo? → Si está muy anterior, muévelo posterior
+
+Responde ÚNICAMENTE con JSON válido, sin texto adicional:
 {{
   "S":   {{"x": 123, "y": 456}},
   "N":   {{"x": 123, "y": 456}},
