@@ -424,6 +424,81 @@ function confirmarSugerencias() {
 }
 
 // ============================================================
+// CAPA 2 — VALIDACION EN TIEMPO REAL CON FLECHAS
+// ============================================================
+function rad2deg(r) { return r * 180 / Math.PI; }
+
+function calcularAlertas() {
+  const pts = {};
+  for (const [k,v] of Object.entries(state.sugeridos)) pts[k] = v;
+  for (const [k,v] of Object.entries(state.puntos))    pts[k] = v;
+  const alertas = {};
+
+  if (pts.Or && pts.Po) {
+    const diffY = pts.Or.y - pts.Po.y;
+    if (diffY < 15) {
+      const falta = Math.round(15 - diffY);
+      alertas.Or = { dir: '↓', msg: 'Bajar Or ~'+falta+'px', color: '#ff3333' };
+    }
+  }
+
+  if (pts.S && pts.N && pts.B) {
+    const v1x = pts.S.x-pts.N.x, v1y = -(pts.S.y-pts.N.y);
+    const v2x = pts.B.x-pts.N.x, v2y = -(pts.B.y-pts.N.y);
+    const a1  = Math.atan2(v1y,v1x), a2 = Math.atan2(v2y,v2x);
+    let snb = Math.abs(rad2deg(a1-a2));
+    if (snb > 180) snb = 360-snb;
+    if (snb > 90)  snb = 180-snb;
+    if (snb > 77) alertas.N = { dir: '←', msg: 'Mover N atras (SNB≈'+snb.toFixed(0)+')', color: '#ff3333' };
+  }
+
+  if (pts.S && pts.N) {
+    const diffX = pts.N.x - pts.S.x;
+    if (diffX < 80) alertas.S = { dir: '←', msg: 'Mover S mas atras', color: '#ff8800' };
+  }
+
+  return alertas;
+}
+
+function dibujarFlechaAlerta(sx, sy, alerta) {
+  const { dir, msg, color } = alerta;
+  ctx.save();
+  ctx.beginPath(); ctx.arc(sx,sy,14,0,Math.PI*2);
+  ctx.fillStyle = color+'25'; ctx.fill();
+  ctx.beginPath(); ctx.arc(sx,sy,9,0,Math.PI*2);
+  ctx.fillStyle = color; ctx.fill();
+  ctx.font = 'bold 11px Arial'; ctx.fillStyle = 'white';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(dir, sx, sy); ctx.restore();
+  ctx.save();
+  ctx.font = 'bold 9px JetBrains Mono,monospace';
+  const tw = ctx.measureText(msg).width+10;
+  const tx = sx-tw/2, ty = sy-26;
+  ctx.fillStyle = color;
+  ctx.fillRect(tx,ty,tw,14);
+  ctx.fillStyle = 'white'; ctx.textAlign = 'center';
+  ctx.fillText(msg, sx, ty+7); ctx.restore();
+}
+
+function dibujarPanelValidacion(alertas) {
+  const n = Object.keys(alertas).length;
+  const w=220,h=26,x=10,y=canvas.height-44;
+  ctx.save();
+  if (n===0) {
+    ctx.fillStyle='rgba(0,255,135,0.12)'; ctx.strokeStyle='rgba(0,255,135,0.5)';
+    ctx.lineWidth=1; ctx.fillRect(x,y,w,h); ctx.strokeRect(x,y,w,h);
+    ctx.fillStyle='#00ff87'; ctx.font='bold 10px JetBrains Mono,monospace';
+    ctx.fillText('✓ Posicion de puntos correcta', x+8, y+16);
+  } else {
+    ctx.fillStyle='rgba(255,51,51,0.12)'; ctx.strokeStyle='rgba(255,51,51,0.5)';
+    ctx.lineWidth=1; ctx.fillRect(x,y,w,h); ctx.strokeRect(x,y,w,h);
+    ctx.fillStyle='#ff3333'; ctx.font='bold 10px JetBrains Mono,monospace';
+    ctx.fillText('⚠ Ajustar: '+Object.keys(alertas).join(', '), x+8, y+16);
+  }
+  ctx.restore();
+}
+
+// ============================================================
 // REDIBUJADO
 // ============================================================
 function redraw() {
@@ -438,7 +513,6 @@ function redraw() {
 
   dibujarLineas();
 
-  // Puntos confirmados
   Object.entries(state.puntos).forEach(([key, pos]) => {
     const config  = PUNTOS_CONFIG.find(p => p.key === key);
     const screenX = pos.x * state.zoom + state.offsetX;
@@ -446,29 +520,36 @@ function redraw() {
     dibujarPunto(screenX, screenY, config, false);
   });
 
-  // Puntos sugeridos (IA) — semi-transparentes, arrastrables
   if (state.modoSugerido) {
     Object.entries(state.sugeridos).forEach(([key, pos]) => {
-      if (state.puntos[key]) return; // ya confirmado individualmente
+      if (state.puntos[key]) return;
       const config  = PUNTOS_CONFIG.find(p => p.key === key);
       const screenX = pos.x * state.zoom + state.offsetX;
       const screenY = pos.y * state.zoom + state.offsetY;
       dibujarPuntoIA(screenX, screenY, config);
     });
-
-    // Dibujar líneas de constelación entre sugeridos
     dibujarConstelacion();
   }
 
-  // Borde indicador punto activo
+  // CAPA 2: flechas en tiempo real
+  const totalPts = Object.keys(state.puntos).length + Object.keys(state.sugeridos).length;
+  if (totalPts >= 4) {
+    const alertas = calcularAlertas();
+    const allPts  = { ...state.sugeridos, ...state.puntos };
+    Object.entries(alertas).forEach(([key, alerta]) => {
+      const pos = allPts[key];
+      if (!pos) return;
+      dibujarFlechaAlerta(pos.x*state.zoom+state.offsetX, pos.y*state.zoom+state.offsetY, alerta);
+    });
+    dibujarPanelValidacion(alertas);
+  }
+
   if (!state.modoSugerido && state.puntoActivo < PUNTOS_CONFIG.length && state.imagen) {
     const config = PUNTOS_CONFIG[state.puntoActivo];
     ctx.save();
-    ctx.strokeStyle = config.color;
-    ctx.setLineDash([4, 4]);
-    ctx.lineWidth = 1;
-    ctx.globalAlpha = 0.4;
-    ctx.strokeRect(2, 2, canvas.width - 4, canvas.height - 4);
+    ctx.strokeStyle = config.color; ctx.setLineDash([4,4]);
+    ctx.lineWidth=1; ctx.globalAlpha=0.4;
+    ctx.strokeRect(2,2,canvas.width-4,canvas.height-4);
     ctx.restore();
   }
 }
