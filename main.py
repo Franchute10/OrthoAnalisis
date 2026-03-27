@@ -111,6 +111,15 @@ async def sugerir_puntos(request: Request):
 Dimensiones de imagen: {img_w}px ancho × {img_h}px alto. Eje Y crece hacia ABAJO.
 
 ═══════════════════════════════════════
+ADVERTENCIA GLOBAL — LEE ANTES DE MARCAR
+═══════════════════════════════════════
+⚠️ OBJETOS A IGNORAR COMPLETAMENTE:
+• RULERO / ESCALA METÁLICA: objeto rectangular con marcas de mm visible en la esquina de la radiografía. NO es anatomía.
+• SOPORTE DE CABEZA / CEFALOSTATO: estructura metálica que sujeta la cabeza del paciente. NO es anatomía.
+• ARTEFACTOS METÁLICOS: cualquier objeto brillante/rectangular fuera del contorno del cráneo.
+Todos los puntos deben estar DENTRO del contorno óseo del cráneo y la mandíbula.
+
+═══════════════════════════════════════
 INSTRUCCIONES CRÍTICAS PUNTO POR PUNTO
 ═══════════════════════════════════════
 
@@ -125,8 +134,11 @@ N — NASION:
 • Es la intersección de la sutura frontonasal con el plano sagital medio
 • Se ubica en la CONCAVIDAD más profunda del perfil óseo entre la frente y la nariz
 • N está donde termina el hueso frontal y empiezan los huesos nasales — en la depresión/concavidad
-• ERROR COMÚN: marcarlo demasiado anterior (en la punta más saliente). Debe estar en la CONCAVIDAD, ligeramente más posterior
+• ERROR COMÚN #1: marcarlo demasiado anterior (en la punta más saliente). Debe estar en la CONCAVIDAD, ligeramente más posterior
+• ERROR COMÚN #2 CRÍTICO: confundirlo con el RULERO o ESCALA METÁLICA de calibración que aparece en la esquina de la radiografía. El rulero es un objeto rectangular con marcas de medición — NO ES UN PUNTO ANATÓMICO. IGNORARLO COMPLETAMENTE.
+• N debe estar DENTRO del cráneo, en la unión ósea frente-nariz, no en ningún objeto externo a la cabeza
 • En perfil lateral, N es el punto más posterior-inferior de la unión frente-nariz, no el más anterior
+• Si ves una escala/rulero metálico en la esquina superior derecha de la imagen, NO coloques N allí
 
 Or — ORBITARIO:
 • Es el punto MÁS INFERIOR del reborde orbitario óseo inferior
