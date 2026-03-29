@@ -74,6 +74,9 @@
   .btn-ai:disabled { opacity: .3; cursor: not-allowed; }
   .btn-confirm-ai { background: transparent; color: var(--accent); border-color: var(--accent); font-size: 10px; padding: 6px 10px; }
   .btn-confirm-ai:hover { background: rgba(0,255,135,.1); }
+  .btn-autofix { background: linear-gradient(135deg,#1a6b3c,#0d9488); color:white; border:none; font-size:11px; }
+  .btn-autofix:hover { background: linear-gradient(135deg,#15803d,#0f766e); }
+  .btn-autofix:disabled { opacity:.3; cursor:not-allowed; }
   .btn-secondary { background: transparent; color: var(--text-dim); border-color: var(--border-bright); }
   .btn-secondary:hover { border-color: var(--accent2); color: var(--accent2); }
 
@@ -195,6 +198,9 @@
     <!-- Confirm AI suggestions -->
     <button class="btn btn-confirm-ai" id="btn-confirm-ai" onclick="confirmarSugerencias()" style="display:none">
       ✓ Confirmar sugerencias IA
+    </button>
+    <button class="btn btn-autofix" id="btn-autofix" onclick="autoCorregirPuntos()" disabled>
+      🔧 Auto-corregir puntos
     </button>
     <button class="btn btn-primary" id="btn-analizar" onclick="analizarPuntos()" disabled>
       ⚡ Calcular Diagnóstico
@@ -994,6 +1000,196 @@ function obtenerNota(cat) {
     6:"⚠️ Crecimiento mandibular desmedido. Clase III severa. Potencial quirúrgico.",
   }[cat] || "Consultar tabla clínica de referencia.";
 }
+
+// ============================================================
+// CAPA 3 — AUTO-CORRECCIÓN MATEMÁTICA
+// ============================================================
+// Corrige Or y N usando relaciones geométricas conocidas
+// F7 target: 9.83° (valor real Mia PDF, norma ~7.5°±2)
+// Si F7 < 5° → Or está muy alto → recalculamos Or
+// Si SNB estimado > 77° → N está muy anterior → recalculamos N
+
+const F7_TARGET  = 8.5;   // grados — punto medio norma
+const F7_MIN_OK  = 5.0;   // por debajo → Or necesita corrección
+const SNB_MAX_OK = 77.0;  // por encima → N necesita corrección
+
+function angEntreLineas(p1, p2, p3, p4) {
+  // Mismo algoritmo que el backend Python
+  const v1x = p2.x-p1.x, v1y = -(p2.y-p1.y);
+  const v2x = p4.x-p3.x, v2y = -(p4.y-p3.y);
+  const a1 = Math.atan2(v1y,v1x), a2 = Math.atan2(v2y,v2x);
+  let ang = Math.abs(rad2deg(a1-a2));
+  if (ang>180) ang=360-ang;
+  if (ang>90)  ang=180-ang;
+  return ang;
+}
+
+function angSNB(pts) {
+  if (!pts.S||!pts.N||!pts.B) return null;
+  const v1x=pts.S.x-pts.N.x, v1y=-(pts.S.y-pts.N.y);
+  const v2x=pts.B.x-pts.N.x, v2y=-(pts.B.y-pts.N.y);
+  const a1=Math.atan2(v1y,v1x), a2=Math.atan2(v2y,v2x);
+  let snb=Math.abs(rad2deg(a1-a2));
+  if (snb>180) snb=360-snb;
+  if (snb>90)  snb=180-snb;
+  return snb;
+}
+
+function calcularOrCorregido(pts, f7Target) {
+  // Dado S, N, Po → calcula dónde debe ir Or para que F7 = f7Target
+  // La línea FH (Po-Or) debe formar f7Target grados con S-N
+  // Estrategia: calculamos el ángulo de S-N, luego trazamos desde Po
+  // en la dirección que da f7Target respecto a S-N
+  const S=pts.S, N=pts.N, Po=pts.Po;
+  if (!S||!N||!Po) return null;
+
+  // Ángulo de S-N en coordenadas imagen (Y invertido)
+  const snAngle = Math.atan2(-(N.y-S.y), N.x-S.x); // radianes
+
+  // Frankfurt debe estar f7Target° por debajo de S-N
+  // En imagen lateral derecha, Or está a la derecha y abajo de Po
+  // El plano FH va de Po (atrás) → Or (adelante), levemente inclinado hacia abajo
+  // Ángulo de FH = snAngle - f7Target_rad (FH más inclinado hacia abajo que S-N)
+  const f7Rad = f7Target * Math.PI / 180;
+  const fhAngle = snAngle - f7Rad;
+
+  // Distancia Po-Or estimada: en la radiografía ~15% del ancho de imagen
+  // Usamos la distancia actual Po-Or si existe, o estimamos
+  let dist = 120; // px por defecto en imagen original
+  if (pts.Or) {
+    const dx=pts.Or.x-Po.x, dy=pts.Or.y-Po.y;
+    dist = Math.max(80, Math.sqrt(dx*dx+dy*dy));
+  }
+
+  // Or corregido
+  const orX = Po.x + dist * Math.cos(fhAngle);
+  const orY = Po.y - dist * Math.sin(fhAngle); // Y invertido en canvas
+
+  return { x: Math.round(orX), y: Math.round(orY) };
+}
+
+function calcularNCorregido(pts) {
+  // Si SNB > SNB_MAX_OK, N está muy anterior
+  // Movemos N hacia atrás (menor X en imagen lateral derecha)
+  // hasta que SNB estimado ≈ 75° (norma central)
+  const S=pts.S, N=pts.N, B=pts.B;
+  if (!S||!N||!B) return null;
+
+  // Buscar N ajustado por bisección: mover N en la dirección S→N (hacia atrás = alejarse de N actual)
+  // Dirección de retroceso: desde N hacia S
+  const dx = S.x - N.x, dy = S.y - N.y;
+  const dist = Math.sqrt(dx*dx+dy*dy);
+  const ux = dx/dist, uy = dy/dist; // vector unitario N→S
+
+  // Mover N en pasos de 1px hacia S hasta que SNB < 76°
+  let bestN = { x: N.x, y: N.y };
+  for (let step=1; step<=80; step++) {
+    const testN = { x: N.x + ux*step, y: N.y + uy*step };
+    const testPts = { ...pts, N: testN };
+    const snb = angSNB(testPts);
+    if (snb !== null && snb < 76) {
+      bestN = testN;
+      break;
+    }
+    if (step === 80) bestN = testN; // máximo desplazamiento
+  }
+  return { x: Math.round(bestN.x), y: Math.round(bestN.y) };
+}
+
+function autoCorregirPuntos() {
+  // Trabaja con puntos confirmados (state.puntos)
+  const pts = { ...state.puntos };
+  const correcciones = [];
+  const preview = { ...pts };
+
+  // --- Corregir Or ---
+  if (pts.S && pts.N && pts.Po) {
+    const f7actual = pts.Or ? angEntreLineas(pts.N, pts.S, pts.Po, pts.Or) : 0;
+    if (f7actual < F7_MIN_OK) {
+      const orNuevo = calcularOrCorregido(pts, F7_TARGET);
+      if (orNuevo) {
+        const f7nuevo = angEntreLineas(pts.N, pts.S, pts.Po, orNuevo);
+        correcciones.push({
+          punto: 'Or',
+          antes: `F7=${f7actual.toFixed(1)}°`,
+          despues: `F7≈${f7nuevo.toFixed(1)}°`,
+          posNueva: orNuevo
+        });
+        preview.Or = orNuevo;
+      }
+    }
+  }
+
+  // --- Corregir N si SNB sigue alto tras Or corregido ---
+  const snbActual = angSNB(preview);
+  if (snbActual !== null && snbActual > SNB_MAX_OK) {
+    const nNuevo = calcularNCorregido(preview);
+    if (nNuevo) {
+      const snbNuevo = angSNB({ ...preview, N: nNuevo });
+      correcciones.push({
+        punto: 'N',
+        antes: `SNB=${snbActual.toFixed(1)}°`,
+        despues: `SNB≈${snbNuevo ? snbNuevo.toFixed(1) : '?'}°`,
+        posNueva: nNuevo
+      });
+      preview.N = nNuevo;
+    }
+  }
+
+  if (correcciones.length === 0) {
+    mostrarToast('✓ Puntos ya están en posición correcta — no se necesitan correcciones', 'green');
+    return;
+  }
+
+  // Mostrar resumen y aplicar
+  const resumen = correcciones.map(c =>
+    `${c.punto}: ${c.antes} → ${c.despues}`
+  ).join('\n');
+
+  const confirmar = window.confirm(
+    `Auto-corrección matemática:\n\n${resumen}\n\n¿Aplicar correcciones?`
+  );
+
+  if (confirmar) {
+    correcciones.forEach(c => {
+      state.puntos[c.punto] = c.posNueva;
+    });
+    actualizarListaPuntos();
+    redraw();
+    mostrarToast(`✓ ${correcciones.length} punto(s) corregidos automáticamente`, 'green');
+  }
+}
+
+function mostrarToast(msg, tipo) {
+  // Toast notification temporal en el canvas
+  let el = document.getElementById('toast-notif');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'toast-notif';
+    el.style.cssText = `
+      position:absolute; bottom:60px; left:50%; transform:translateX(-50%);
+      padding:10px 20px; border-radius:6px; font-size:11px; font-family:monospace;
+      font-weight:600; z-index:100; pointer-events:none; transition:opacity .5s;
+      white-space:nowrap;
+    `;
+    document.getElementById('canvas-area').appendChild(el);
+  }
+  el.style.background = tipo === 'green' ? 'rgba(0,255,135,0.2)' : 'rgba(255,100,50,0.2)';
+  el.style.border = tipo === 'green' ? '1px solid #00ff87' : '1px solid #ff6432';
+  el.style.color = tipo === 'green' ? '#00ff87' : '#ff6432';
+  el.textContent = msg;
+  el.style.opacity = '1';
+  setTimeout(() => { el.style.opacity = '0'; }, 3000);
+}
+
+// Habilitar btn-autofix cuando hay suficientes puntos
+const _origActualizarListaPuntos = actualizarListaPuntos;
+actualizarListaPuntos = function() {
+  _origActualizarListaPuntos();
+  const count = Object.keys(state.puntos).length;
+  const btn = document.getElementById('btn-autofix');
+  if (btn) btn.disabled = count < 6; // necesitamos al menos S,N,B,Po,Or
+};
 
 init();
 </script>
