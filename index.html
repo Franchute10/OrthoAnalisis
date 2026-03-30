@@ -137,8 +137,8 @@
 
 <header>
   <h1>Ortho<span>Analysis</span></h1>
-  <div class="header-badge">Beta v2.2</div>
-  <div class="header-right">Bimler · Lavergne-Petrovic <span style="color:var(--border-bright)">|</span> Motor v2.2 ✦ IA</div>
+  <div class="header-badge">Beta v2.3</div>
+  <div class="header-right">Bimler · Lavergne-Petrovic <span style="color:var(--border-bright)">|</span> Motor v2.3 ✦ IA</div>
 </header>
 
 <!-- LEFT PANEL -->
@@ -256,6 +256,8 @@ const PUNTOS_CONFIG = [
   { key:"Po",  nombre:"Porion",    desc:"Borde SUPERIOR del CAE óseo",       color:"#f72585" },
   { key:"Or",  nombre:"Orbitario", desc:"Borde MÁS INFERIOR de la órbita",  color:"#7209b7" },
   { key:"Co",  nombre:"Condylion", desc:"Polo postero-superior del cóndilo", color:"#3a0ca3" },
+  { key:"Cls", nombre:"Clivus Sup", desc:"Clivus superior — 10mm bajo Sella",    color:"#0ea5e9" },
+  { key:"Cli", nombre:"Clivus Inf", desc:"Clivus inferior — sobre el Basion",    color:"#0284c7" },
 ];
 
 // ============================================================
@@ -564,7 +566,7 @@ function redraw() {
 function dibujarConstelacion() {
   const conexiones = [
     ["S","N"], ["N","A"], ["N","B"], ["A","B"],
-    ["Me","Go"], ["ENA","ENP"], ["Po","Or"], ["S","Co"]
+    ["Me","Go"], ["ENA","ENP"], ["Po","Or"], ["S","Co"],["Cls","Cli"],["S","Cls"]
   ];
   conexiones.forEach(([k1, k2]) => {
     const p1 = state.sugeridos[k1] || state.puntos[k1];
@@ -591,6 +593,7 @@ const LINEAS = [
   ["S","N","#00c8ff60","NSL"], ["N","A","#ffdd0040","NA"],
   ["N","B","#ff8c4240","NB"],  ["Me","Go","#c77dff60","ML"],
   ["ENA","ENP","#48cae460","NL"], ["Po","Or","#f7258560","FH"],
+  ["Cls","Cli","#0ea5e960","Clv"],
 ];
 function dibujarLineas() {
   LINEAS.forEach(([p1k, p2k, color, label]) => {
@@ -853,7 +856,7 @@ function renderListaPuntos() {
 function actualizarListaPuntos() {
   const count = Object.keys(state.puntos).length;
   document.getElementById('pts-count').textContent = count;
-  document.getElementById('progress-fill').style.width = (count/11*100)+'%';
+  document.getElementById('progress-fill').style.width = (count/13*100)+'%';
 
   PUNTOS_CONFIG.forEach((p, i) => {
     const item   = document.getElementById(`pt-item-${i}`);
@@ -952,6 +955,8 @@ function mostrarResultados(data) {
   const area = document.getElementById('results-area');
   area.style.display = 'block';
   const f = data.factores_bimler, t = data.indicadores_petrovic, d = data.diagnostico;
+  const ang = data.angulos_derivados || {};
+  const lin = data.medidas_lineales || {};
   const catColors = {1:'#ff4466',2:'#ff6b35',3:'#ffdd00',4:'#00ff87',5:'#ff6b35',6:'#ff4466'};
   const cc = catColors[d.categoria] || '#00ff87';
   area.innerHTML = `
@@ -983,6 +988,30 @@ function mostrarResultados(data) {
       <div class="result-row"><div class="result-key">F7 — Inclinación NSL (FH) ${f.F7<5||f.F7>12?'⚠':'✓'}</div><div class="result-val ${f.F7<5||f.F7>12?'warn':''}">${f.F7}°</div></div>
       <div class="result-row"><div class="result-key">ML/NSL (medido)</div><div class="result-val">${f.ML_NSL}°</div></div>
       <div class="result-row"><div class="result-key">NL/NSL = F4+F7</div><div class="result-val">${f.NL_NSL}°</div></div>
+    </div>
+    <div class="result-group">
+      <div class="result-group-title">Ángulos Derivados de Bimler</div>
+      <div class="result-row"><div class="result-key">F1 — Posición Maxilar (NA)</div><div class="result-val ${Math.abs((ang.perfil||0)-(ang.perfil||0))>14?'warn':''}">${f.F1??'—'}°</div></div>
+      <div class="result-row"><div class="result-key">F2 — Posición Mandibular (AB)</div><div class="result-val">${f.F2??'—'}°</div></div>
+      <div class="result-row"><div class="result-key">F5 — Inclinación Clivus</div><div class="result-val ${f.F5&&(f.F5<60||f.F5>70)?'warn':''}">${f.F5??'(marcar Cls/Cli)'}${f.F5?'°':''}</div></div>
+      <div class="result-row"><div class="result-key">F8 — Flexión Rama (Co-Go)</div><div class="result-val">${f.F8??'—'}°</div></div>
+      <div class="result-row" style="border-top:1px solid var(--border);margin-top:4px;padding-top:4px">
+        <div class="result-key">Ángulo de Perfil (F1+F2)</div>
+        <div class="result-val ${Math.abs(ang.perfil||0)>14?'warn':'info'}">${ang.perfil??'—'}°</div></div>
+      <div class="result-row"><div class="result-key">Basal Superior (F4+F5)</div><div class="result-val ${ang.ABS&&(ang.ABS<60||ang.ABS>70)?'warn':''}">${ang.ABS??'—'}° <span style="font-size:8px;color:var(--text-dim)">${ang.clasif_ABS||''}</span></div></div>
+      <div class="result-row"><div class="result-key">Basal Inferior (F3-F4)</div><div class="result-val">${ang.ABI??'—'}°</div></div>
+      <div class="result-row"><div class="result-key">Basal Total (F3+F5)</div><div class="result-val ${ang.ABT&&(ang.ABT<80||ang.ABT>100)?'warn':''}">${ang.ABT??'—'}°</div></div>
+      <div class="result-row"><div class="result-key">Ángulo Gonial (F3+F8+90°)</div><div class="result-val ${ang.AG&&(ang.AG<106||ang.AG>120)?'warn':''}">${ang.AG??'—'}°</div></div>
+      <div class="result-row"><div class="result-key">APNI (F2+F4)</div><div class="result-val">${ang.APNI??'—'}°</div></div>
+      <div class="result-row"><div class="result-key">ODI (90-ABI+F2)</div><div class="result-val">${ang.ODI??'—'}°</div></div>
+    </div>
+    <div class="result-group">
+      <div class="result-group-title">Medidas Lineales (px)</div>
+      <div class="result-row"><div class="result-key">A'-T — Long. maxilar</div><div class="result-val">${lin.A_prima_T??'—'}</div></div>
+      <div class="result-row"><div class="result-key">A'-B' — Overjet esquelético</div><div class="result-val">${lin.A_prima_B_prima??'—'}</div></div>
+      <div class="result-row"><div class="result-key">Co-Me — Diagonal mandibular</div><div class="result-val">${lin.Co_Me??'—'}</div></div>
+      <div class="result-row"><div class="result-key">Co-Go — Altura de rama</div><div class="result-val">${lin.Co_Go??'—'}</div></div>
+      <div class="result-row"><div class="result-key">N-S — Base craneal</div><div class="result-val">${lin.N_S??'—'}</div></div>
     </div>
     <div style="background:rgba(0,200,255,.05);border:1px solid rgba(0,200,255,.15);border-radius:4px;padding:10px;margin-top:8px">
       <div style="font-size:9px;color:var(--accent2);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Nota Clínica</div>
