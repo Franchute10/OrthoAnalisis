@@ -7,10 +7,14 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 import uvicorn
 
-app = FastAPI(title="OrthoAnalysis - Motor Cefalométrico v2.2")
+app = FastAPI(title="OrthoAnalysis - Motor Cefalométrico v2.3")
 
 # =================================================================
-# MOTOR MATEMÁTICO — v2.1 (validado con 3 casos reales)
+# MOTOR MATEMÁTICO v2.3
+# - 33 grupos rotacionales completos de Petrovic-Lavergne
+# - 8 factores de Bimler (F1,F2,F3,F4,F5,F7,F8 + derivados)
+# - Medidas lineales (TM derivado de Co)
+# - Lógica basal corregida: D→2, N→1, M→3
 # =================================================================
 
 def calcular_angulo_3_puntos(p1, vertice, p2):
@@ -19,13 +23,14 @@ def calcular_angulo_3_puntos(p1, vertice, p2):
     ang_v1 = math.atan2(v1[1], v1[0])
     ang_v2 = math.atan2(v2[1], v2[0])
     angulo = math.degrees(ang_v1 - ang_v2)
-    if angulo > 180:   angulo -= 360
+    if angulo > 180:    angulo -= 360
     elif angulo < -180: angulo += 360
     return round(angulo, 2)
 
 def calcular_angulo_entre_lineas(p1, p2, p3, p4):
-    v1 = (p2[0] - p1[0], p1[1] - p2[1])
-    v2 = (p4[0] - p3[0], p3[1] - p4[1])
+    """Ángulo sin signo entre dos líneas (0-90°)"""
+    v1 = (p2[0]-p1[0], p1[1]-p2[1])
+    v2 = (p4[0]-p3[0], p3[1]-p4[1])
     ang_v1 = math.atan2(v1[1], v1[0])
     ang_v2 = math.atan2(v2[1], v2[0])
     angulo = math.degrees(abs(ang_v1 - ang_v2))
@@ -33,18 +38,120 @@ def calcular_angulo_entre_lineas(p1, p2, p3, p4):
     if angulo > 90:  angulo = 180 - angulo
     return round(angulo, 2)
 
-def calcular_factores_bimler(pts):
+def calcular_angulo_signed(p1, p2, Po, Or):
+    """
+    Ángulo FIRMADO de la línea p1→p2 con la vertical T (perpendicular a FH).
+    Positivo: p2 está anterior (prognático) respecto a p1.
+    Negativo: p2 está posterior (retrognático).
+    """
+    # Vector FH normalizado
+    fhx = Or[0] - Po[0]
+    fhy = -(Or[1] - Po[1])  # flip Y (matemático)
+    fh_len = math.sqrt(fhx**2 + fhy**2)
+    if fh_len < 1: return 0.0
+    fhx /= fh_len; fhy /= fh_len
+
+    # Vertical T = perpendicular a FH (rotada 90° CCW)
+    vtx = -fhy; vty = fhx
+
+    # Vector p1→p2 en coords matemáticas
+    dx = p2[0] - p1[0]
+    dy = -(p2[1] - p1[1])
+
+    # Ángulo firmado desde vertical T hacia el vector línea
+    ang = math.degrees(math.atan2(dx * vty - dy * vtx,
+                                   dx * vtx + dy * vty))
+    if ang > 90:  ang -= 180
+    if ang < -90: ang += 180
+    return round(ang, 2)
+
+def proyectar_punto_en_linea(P, L1, L2):
+    """Proyecta P perpendicularmente sobre la línea L1-L2. Devuelve (x, y)."""
+    dx = L2[0] - L1[0]; dy = L2[1] - L1[1]
+    t = ((P[0]-L1[0])*dx + (P[1]-L1[1])*dy) / (dx**2 + dy**2 + 1e-9)
+    return (L1[0] + t*dx, L1[1] + t*dy)
+
+def distancia(p1, p2):
+    return math.sqrt((p2[0]-p1[0])**2 + (p2[1]-p1[1])**2)
+
+# -----------------------------------------------------------------
+# MOTOR PRINCIPAL
+# -----------------------------------------------------------------
+def calcular_factores_bimler(pts, escala_mm_px=None):
+    """
+    Calcula todos los factores de Bimler y medidas derivadas.
+    escala_mm_px: mm por píxel (para medidas lineales). Si None, en píxeles.
+    """
+    Po, Or = pts["Po"], pts["Or"]
+
+    # ── Factores angulares base ────────────────────────────────
     SNA = abs(calcular_angulo_3_puntos(pts["S"], pts["N"], pts["A"]))
     SNB = abs(calcular_angulo_3_puntos(pts["S"], pts["N"], pts["B"]))
     ANB = round(SNA - SNB, 2)
-    F3  = calcular_angulo_entre_lineas(pts["Me"],  pts["Go"],  pts["Po"], pts["Or"])
-    F4  = calcular_angulo_entre_lineas(pts["ENA"], pts["ENP"], pts["Po"], pts["Or"])
-    F7  = calcular_angulo_entre_lineas(pts["N"],   pts["S"],   pts["Po"], pts["Or"])
-    ML_NSL = calcular_angulo_entre_lineas(pts["Me"], pts["Go"], pts["S"], pts["N"])
-    NL_NSL = round(F4 + F7, 2)
-    return {"SNA": SNA, "SNB": SNB, "ANB": ANB,
-            "F3": F3, "F4": F4, "F7": F7,
-            "ML_NSL": ML_NSL, "NL_NSL": NL_NSL}
+
+    # F3 y F4 sin signo (ángulo con FH)
+    F3 = calcular_angulo_entre_lineas(pts["Me"], pts["Go"], Po, Or)
+    F4_raw = calcular_angulo_signed(pts["ENA"], pts["ENP"], Po, Or)
+    F4 = round(F4_raw, 2)   # firmado: + plano palatino hacia abajo, - hacia arriba
+
+    F7  = calcular_angulo_entre_lineas(pts["N"],  pts["S"],  Po, Or)
+    F8  = calcular_angulo_signed(pts["Co"], pts["Go"], Po, Or)  # firmado
+
+    # F1 y F2 firmados (relación sagital maxilar y mandibular)
+    F1  = calcular_angulo_signed(pts["N"], pts["A"], Po, Or)    # >0 prognático
+    F2  = calcular_angulo_signed(pts["A"], pts["B"], Po, Or)    # >0 retrogenia
+
+    # F5 (Clivus) — solo si están marcados
+    F5 = None
+    if "Cls" in pts and "Cli" in pts:
+        F5 = calcular_angulo_entre_lineas(pts["Cls"], pts["Cli"], Po, Or)
+
+    # ML/NSL medido y calculado
+    ML_NSL  = calcular_angulo_entre_lineas(pts["Me"], pts["Go"], pts["S"], pts["N"])
+    NL_NSL  = round(abs(F4) + F7, 2)
+
+    # ── Ángulos derivados ──────────────────────────────────────
+    perfil = round(F1 + F2, 2)                     # Ángulo de Perfil NAB
+    ABS    = round(abs(F4) + (F5 or 0), 2)         # Basal Superior F4+F5
+    ABI    = round(F3 - abs(F4), 2)                # Basal Inferior F3-|F4|
+    ABT    = round(F3 + (F5 or 0), 2)              # Basal Total F3+F5
+    AG     = round(F3 + abs(F8) + 90, 2)           # Ángulo Gonial
+    APNI   = round(F2 + abs(F4), 2)                # APNI = F2+F4
+    ODI    = round(90 - ABI + F2, 2)               # ODI
+
+    # ── TM = proyección de Co sobre FH ────────────────────────
+    TM = proyectar_punto_en_linea(pts["Co"], Po, Or)
+
+    # Proyecciones A' y B' sobre FH
+    A_prima = proyectar_punto_en_linea(pts["A"], Po, Or)
+    B_prima = proyectar_punto_en_linea(pts["B"], Po, Or)
+
+    # Punto T = intersección de vertical desde tuber con FH
+    # (Usamos Po como referencia para T en nuestro sistema)
+    T = Po  # aproximación: T ≈ Po proyectado sobre FH
+
+    # ── Medidas lineales (en píxeles, convertibles a mm) ──────
+    lin = {
+        "A_prima_T":   round(distancia(A_prima, T),    1),
+        "A_prima_B_prima": round(distancia(A_prima, B_prima), 1),
+        "A_prima_TM":  round(distancia(A_prima, TM),   1),
+        "B_prima_TM":  round(distancia(B_prima, TM),   1),
+        "T_TM":        round(distancia(T, TM),          1),
+        "N_S":         round(distancia(pts["N"], pts["S"]), 1),
+        "Co_Me":       round(distancia(pts["Co"], pts["Me"]), 1),  # diagonal mandibular
+        "Co_Go":       round(distancia(pts["Co"], pts["Go"]), 1),  # altura rama
+    }
+
+    result = {
+        "SNA": SNA, "SNB": SNB, "ANB": ANB,
+        "F1": F1, "F2": F2, "F3": F3, "F4": F4,
+        "F5": F5, "F7": F7, "F8": F8,
+        "ML_NSL": ML_NSL, "NL_NSL": NL_NSL,
+        "perfil": perfil, "ABS": ABS, "ABI": ABI, "ABT": ABT,
+        "AG": AG, "APNI": APNI, "ODI": ODI,
+        "lineales": lin,
+    }
+    return result
 
 def calcular_indicadores_T(f):
     ML_NSLc = round(192 - (2 * f["SNB"]), 2)
@@ -55,44 +162,83 @@ def calcular_indicadores_T(f):
     return T1, T2, T3, ML_NSLc, NL_NSLc
 
 def arbol_decision(T1, T2, T3):
+    """
+    Árbol de decisión Lavergne-Petrovic.
+    Genera el grupo trinomial {rot}{basal} {sag}{vert}
+    
+    Rotación (T1):
+      A  si T1 > 9   (Anterior — cóndilo rota hacia adelante)
+      R  si 0≤T1≤9  (Neutra)
+      P  si T1 < 0   (Posterior — cóndilo rota hacia atrás)
+
+    Sagital (T3 = ANB):
+      D  si T3 > 5   (Distal — Clase II)
+      N  si 0≤T3≤5  (Normal — Clase I)
+      M  si T3 < 0   (Mesial — Clase III)
+
+    Basal (derivado de sagital — relación mandíbula/maxila):
+      2  si sag=D  (mandíbula < maxila → Clase II)
+      1  si sag=N  (iguales → equilibrio)
+      3  si sag=M  (mandíbula > maxila → Clase III)
+
+    Vertical (T2):
+      OB si T2 > 3   (Mordida Abierta)
+      DB si T2 < -1  (Mordida Profunda)
+      N  si -1≤T2≤3 (Normal)
+    """
     if T1 > 9:    rot = "A"
     elif T1 >= 0: rot = "R"
     else:         rot = "P"
+
     if T3 > 5:    sag = "D"
     elif T3 >= 0: sag = "N"
     else:         sag = "M"
+
+    # Basal determinado por la relación sagital
+    basal = "2" if sag == "D" else ("3" if sag == "M" else "1")
+
     if T2 > 3:    vert = "OB"
     elif T2 < -1: vert = "DB"
     else:         vert = "N"
-    num   = "2" if T1 > 13 else "1"
-    grupo = f"{rot}{num} {sag}N" if vert == "N" else f"{rot}{num} {sag}{vert}"
-    return grupo
+
+    return f"{rot}{basal} {sag}{vert}"
+
+# 33 grupos rotacionales de Petrovic-Lavergne
+# 11 tipos base × 3 variantes verticales (OB/N/DB)
+GRUPOS_33 = {
+    # Categoría 1 — Potencial Muy Bajo (P2D × 3)
+    "P2 DOB": 1,  "P2 DN":  1,  "P2 DDB": 1,
+
+    # Categoría 2 — Potencial Bajo (A2D × 3, P1N × 3)
+    "A2 DOB": 2,  "A2 DN":  2,  "A2 DDB": 2,
+    "P1 NOB": 2,  "P1 NN":  2,  "P1 NDB": 2,
+
+    # Categoría 3 — Potencial Moderado (R2D × 3)
+    "R2 DOB": 3,  "R2 DN":  3,  "R2 DDB": 3,
+
+    # Categoría 4 — Potencial Neutro/Alto (R1N × 3)
+    "R1 NOB": 4,  "R1 NN":  4,  "R1 NDB": 4,
+
+    # Categoría 5 — Potencial Muy Alto (A1D, A1N, P1M, R3M × 3)
+    "A1 DOB": 5,  "A1 DN":  5,  "A1 DDB": 5,
+    "A1 NOB": 5,  "A1 NN":  5,  "A1 NDB": 5,
+    "P1 MOB": 5,  "P1 MN":  5,  "P1 MDB": 5,
+    "R3 MOB": 5,  "R3 MN":  5,  "R3 MDB": 5,
+
+    # Categoría 6 — Potencial Excesivo (A3M, P3M × 3)
+    "A3 MOB": 6,  "A3 MN":  6,  "A3 MDB": 6,
+    "P3 MOB": 6,  "P3 MN":  6,  "P3 MDB": 6,
+}
 
 def determinar_categoria(grupo):
-    tabla = {
-        "R1 NOB": 1, "R2 NOB": 1,
-        "R2 DOB": 2, "R3 MOB": 2, "R1 DOB": 2,
-        "R2 DN":  3, "R1 NN":  3, "R3 MN":  3, "R1 DN": 3,
-        "R1 NDB": 4, "R2 DDB": 4, "R3 MDB": 4,
-        "P1 NDB": 4, "P1 NN":  4, "P1 DDB": 4,
-        "A1 NDB": 5, "A1 DDB": 5, "A1 NN":  5,
-        "A2 DDB": 6, "A3 MDB": 6,
-    }
-    g = grupo.replace(" ", "")
-    for key, cat in tabla.items():
-        if key.replace(" ", "") == g:
-            return cat
-    return "—"
+    """Busca el grupo en la tabla de 33 grupos de Petrovic-Lavergne."""
+    return GRUPOS_33.get(grupo.strip(), "—")
 
-# =================================================================
+# -----------------------------------------------------------------
 # ENDPOINT: SUGERIR PUNTOS CON IA
-# =================================================================
+# -----------------------------------------------------------------
 @app.post("/api/sugerir-puntos")
 async def sugerir_puntos(request: Request):
-    """
-    Recibe imagen base64 de la radiografía lateral y devuelve
-    coordenadas sugeridas para los 11 puntos cefalométricos.
-    """
     try:
         body      = await request.json()
         image_b64 = body.get("image", "")
@@ -106,7 +252,7 @@ async def sugerir_puntos(request: Request):
         if not api_key:
             return {"success": False, "detail": "ANTHROPIC_API_KEY no configurada en el servidor"}
 
-        prompt = f"""Eres un especialista en cefalometría de Bimler-Lavergne-Petrovic. Analiza esta telerradiografía lateral de cráneo e identifica con MÁXIMA PRECISIÓN los 11 puntos cefalométricos.
+        prompt = f"""Eres un especialista en cefalometría de Bimler-Lavergne-Petrovic. Analiza esta telerradiografía lateral de cráneo e identifica con MÁXIMA PRECISIÓN los 13 puntos cefalométricos.
 
 Dimensiones de imagen: {img_w}px ancho × {img_h}px alto. Eje Y crece hacia ABAJO.
 
@@ -114,9 +260,9 @@ Dimensiones de imagen: {img_w}px ancho × {img_h}px alto. Eje Y crece hacia ABAJ
 ADVERTENCIA GLOBAL — LEE ANTES DE MARCAR
 ═══════════════════════════════════════
 ⚠️ OBJETOS A IGNORAR COMPLETAMENTE:
-• RULERO / ESCALA METÁLICA: objeto rectangular con marcas de mm visible en la esquina de la radiografía. NO es anatomía.
-• SOPORTE DE CABEZA / CEFALOSTATO: estructura metálica que sujeta la cabeza del paciente. NO es anatomía.
-• ARTEFACTOS METÁLICOS: cualquier objeto brillante/rectangular fuera del contorno del cráneo.
+• RULERO / ESCALA METÁLICA: objeto rectangular con marcas de mm visible en las esquinas. NO es anatomía.
+• SOPORTE DE CABEZA / CEFALOSTATO: estructura metálica que sujeta la cabeza. NO es anatomía.
+• ARTEFACTOS METÁLICOS: cualquier objeto brillante/rectangular fuera del contorno óseo del cráneo.
 Todos los puntos deben estar DENTRO del contorno óseo del cráneo y la mandíbula.
 
 ═══════════════════════════════════════
@@ -124,125 +270,92 @@ INSTRUCCIONES CRÍTICAS PUNTO POR PUNTO
 ═══════════════════════════════════════
 
 S — SELLA TURCA:
-• Es el punto en el CENTRO GEOMÉTRICO de la fosa pituitaria (silla turca)
-• La fosa pituitaria es una concavidad ósea en la base del cráneo, detrás del quiasma óptico
-• S está DENTRO del hueso, no en el borde. Está en la mitad de esa concavidad
-• ERROR COMÚN: marcarlo demasiado anterior (hacia la cara). Debe estar bien posterior, en la base del cráneo
-• Referencia: S está aproximadamente sobre la vertical que pasa por el conducto auditivo externo
+• Centro geométrico de la fosa pituitaria (concavidad ósea en la base del cráneo)
+• Debe estar bien POSTERIOR, aproximadamente sobre la vertical del CAE
+• ERROR: marcarlo demasiado anterior. Verificar: S debe estar claramente a la izquierda de N en imagen lateral derecha
 
 N — NASION:
-• Es la intersección de la sutura frontonasal con el plano sagital medio
-• Se ubica en la CONCAVIDAD más profunda del perfil óseo entre la frente y la nariz
-• N está donde termina el hueso frontal y empiezan los huesos nasales — en la depresión/concavidad
-• ERROR COMÚN #1: marcarlo demasiado anterior (en la punta más saliente). Debe estar en la CONCAVIDAD, ligeramente más posterior
-• ERROR COMÚN #2 CRÍTICO: confundirlo con el RULERO o ESCALA METÁLICA de calibración que aparece en la esquina de la radiografía. El rulero es un objeto rectangular con marcas de medición — NO ES UN PUNTO ANATÓMICO. IGNORARLO COMPLETAMENTE.
-• N debe estar DENTRO del cráneo, en la unión ósea frente-nariz, no en ningún objeto externo a la cabeza
-• En perfil lateral, N es el punto más posterior-inferior de la unión frente-nariz, no el más anterior
-• Si ves una escala/rulero metálico en la esquina superior derecha de la imagen, NO coloques N allí
+• Intersección de la sutura frontonasal — en la CONCAVIDAD entre frente y nariz
+• Debe estar DENTRO del cráneo, en la depresión ósea frente-nariz
+• ERROR CRÍTICO: confundirlo con el RULERO METÁLICO de la esquina de la radiografía
+• Si ves escala/rulero en esquina superior derecha → N NO va allí, va en la sutura ósea frente-nariz
 
 Or — ORBITARIO:
-• Es el punto MÁS INFERIOR del reborde orbitario óseo inferior
-• CRÍTICO: Or debe estar significativamente MÁS BAJO (mayor Y) que Po
-• La línea Frankfurt (Po→Or) debe tener ~7-10° de inclinación respecto a S-N
-• Si Or y Po tienen casi la misma coordenada Y, la posición es INCORRECTA
-• Or está en el borde inferior de la cavidad orbitaria, que en la radiografía se ve como una línea curva densa. El punto más bajo de esa curva es Or
-• Típicamente Or está 15-30px MÁS ABAJO que Po en la imagen
+• Punto MÁS INFERIOR del reborde orbitario óseo
+• CRÍTICO: Or.y debe ser > Po.y + 15px (Or claramente más bajo que Po)
+• La línea Frankfurt (Po→Or) tiene ~7-10° de inclinación respecto a S-N
+• Si Or y Po tienen la misma altura → POSICIÓN INCORRECTA
 
 Po — PORION:
 • Punto más SUPERIOR del conducto auditivo externo óseo
-• Es el punto más alto del agujero/canal del oído
 
-A — PUNTO A (Subespinal):
-• Punto de MÁXIMA CONCAVIDAD del perfil anterior del maxilar superior
-• Entre la espina nasal anterior y el borde alveolar superior
-• Es la parte más hundida (posterior) del contorno del maxilar, no el borde dental
+A — Punto A (Subespinal): máxima concavidad del perfil anterior del maxilar superior
+B — Punto B (Supramental): máxima concavidad del perfil anterior mandibular
+Me — Mentón: punto más INFERIOR de la sínfisis
+Go — Gonion: ángulo mandibular postero-inferior (bisectriz de tangentes)
+ENA — Espina Nasal Anterior: extremo más anterior del paladar
+ENP — Espina Nasal Posterior: extremo posterior del paladar óseo
+Co — Condylion: punto más postero-superior del cóndilo mandibular
 
-B — PUNTO B (Supramental):
-• Punto de MÁXIMA CONCAVIDAD del perfil anterior de la mandíbula
-• Entre el pogonion y el borde alveolar inferior
-• Es la parte más hundida (posterior) del contorno mandibular
+Cls — CLIVUS SUPERIOR:
+• Punto en el clivus (superficie posterior de la silla turca / cuerpo del esfenoides)
+• Se ubica aproximadamente 10mm POR DEBAJO del centro de la silla turca (S)
+• Es la parte superior del plano inclinado posterior de la base craneal
 
-Me — MENTÓN:
-• Punto más INFERIOR de la sínfisis mentoniana
-• El punto más bajo de la mandíbula en la línea media
-
-Go — GONION:
-• Vértice del ángulo mandibular postero-inferior
-• Se obtiene como la bisectriz del ángulo formado por la rama ascendente y el cuerpo mandibular
-
-ENA — Espina Nasal Anterior:
-• Punta más anterior y prominente de la espina nasal anterior
-• Estructura ósea puntiaguda en el extremo anterior del paladar
-
-ENP — Espina Nasal Posterior:
-• Punta posterior del paladar duro
-• Extremo posterior de los huesos palatinos
-
-Co — CONDYLION:
-• Punto más postero-superior de la cabeza del cóndilo mandibular
+Cli — CLIVUS INFERIOR:
+• Punto inferior del clivus, aproximadamente 10mm POR ENCIMA del Basion
+• El Basion es la punta más inferior y anterior del hueso occipital (donde termina el clivus)
 
 ═══════════════════════════════════════
 VALIDACIÓN ANTES DE RESPONDER:
 ═══════════════════════════════════════
-1. ¿Or.y > Po.y + 10px? (Or debe ser claramente más bajo que Po) → Si no, corrige Or
-2. ¿N está en la concavidad frente-nariz, no en la punta más anterior? → Si está muy anterior, muévelo posterior
-3. ¿S está en el centro de la fosa pituitaria, bien posterior en la base del cráneo? → Si está muy anterior, muévelo posterior
+1. ¿Or.y > Po.y + 15? → Si no, corrige Or hacia abajo
+2. ¿N está en sutura ósea frente-nariz (NO en el rulero metálico)? → Si está en el rulero, corrígelo
+3. ¿S está bien posterior en la base del cráneo? → Si está muy anterior, muévelo hacia atrás
+4. ¿Cls está entre S y Cli, en la cara posterior de la silla turca? → Verificar secuencia S→Cls→Cli
 
-Responde ÚNICAMENTE con JSON válido, sin texto adicional:
+Responde ÚNICAMENTE con JSON válido:
 {{
-  "S":   {{"x": 123, "y": 456}},
-  "N":   {{"x": 123, "y": 456}},
-  "A":   {{"x": 123, "y": 456}},
-  "B":   {{"x": 123, "y": 456}},
-  "Me":  {{"x": 123, "y": 456}},
-  "Go":  {{"x": 123, "y": 456}},
-  "ENA": {{"x": 123, "y": 456}},
-  "ENP": {{"x": 123, "y": 456}},
-  "Po":  {{"x": 123, "y": 456}},
-  "Or":  {{"x": 123, "y": 456}},
-  "Co":  {{"x": 123, "y": 456}}
+  "S":   {{"x": 0, "y": 0}},
+  "N":   {{"x": 0, "y": 0}},
+  "A":   {{"x": 0, "y": 0}},
+  "B":   {{"x": 0, "y": 0}},
+  "Me":  {{"x": 0, "y": 0}},
+  "Go":  {{"x": 0, "y": 0}},
+  "ENA": {{"x": 0, "y": 0}},
+  "ENP": {{"x": 0, "y": 0}},
+  "Po":  {{"x": 0, "y": 0}},
+  "Or":  {{"x": 0, "y": 0}},
+  "Co":  {{"x": 0, "y": 0}},
+  "Cls": {{"x": 0, "y": 0}},
+  "Cli": {{"x": 0, "y": 0}}
 }}"""
 
-        # Llamada a Claude Vision usando urllib (sin dependencias extra)
         payload = json.dumps({
             "model": "claude-opus-4-6",
-            "max_tokens": 800,
-            "messages": [{
-                "role": "user",
-                "content": [
-                    {
-                        "type": "image",
-                        "source": {
-                            "type": "base64",
-                            "media_type": "image/jpeg",
-                            "data": image_b64
-                        }
-                    },
-                    {"type": "text", "text": prompt}
-                ]
-            }]
+            "max_tokens": 1000,
+            "messages": [{"role": "user", "content": [
+                {"type": "image", "source": {"type": "base64",
+                    "media_type": "image/jpeg", "data": image_b64}},
+                {"type": "text", "text": prompt}
+            ]}]
         }).encode("utf-8")
 
         req = urllib.request.Request(
             "https://api.anthropic.com/v1/messages",
             data=payload,
-            headers={
-                "x-api-key": api_key,
-                "anthropic-version": "2023-06-01",
-                "content-type": "application/json"
-            },
+            headers={"x-api-key": api_key,
+                     "anthropic-version": "2023-06-01",
+                     "content-type": "application/json"},
             method="POST"
         )
-
         with urllib.request.urlopen(req, timeout=60) as response:
             data  = json.loads(response.read().decode("utf-8"))
         texto = data["content"][0]["text"].strip()
 
-        # Limpiar markdown si viene con ```json
         if "```" in texto:
             texto = texto.split("```")[1]
-            if texto.startswith("json"):
-                texto = texto[4:]
+            if texto.startswith("json"): texto = texto[4:]
 
         puntos = json.loads(texto)
         return {"success": True, "puntos": puntos}
@@ -253,9 +366,9 @@ Responde ÚNICAMENTE con JSON válido, sin texto adicional:
         return {"success": False, "detail": str(e)}
 
 
-# =================================================================
-# ENDPOINTS PRINCIPALES
-# =================================================================
+# -----------------------------------------------------------------
+# ENDPOINT: ANALIZAR
+# -----------------------------------------------------------------
 @app.get("/", response_class=HTMLResponse)
 async def root():
     with open("index.html", "r", encoding="utf-8") as f:
@@ -267,12 +380,9 @@ async def analizar(request: Request):
         body = await request.json()
         pts  = {}
         for nombre, coords in body.items():
-            if isinstance(coords, dict):
-                pts[nombre] = (coords["x"], coords["y"])
-            elif isinstance(coords, list):
-                pts[nombre] = (coords[0], coords[1])
-            else:
-                pts[nombre] = tuple(coords)
+            if isinstance(coords, dict):   pts[nombre] = (coords["x"], coords["y"])
+            elif isinstance(coords, list): pts[nombre] = (coords[0], coords[1])
+            else:                          pts[nombre] = tuple(coords)
 
         requeridos = ["S","N","A","B","Me","Go","ENA","ENP","Po","Or","Co"]
         for p in requeridos:
@@ -285,32 +395,70 @@ async def analizar(request: Request):
         categoria           = determinar_categoria(grupo)
 
         rot_letra  = grupo[0]
-        num_letra  = grupo[1] if len(grupo) > 1 and grupo[1].isdigit() else "1"
-        sag_letra  = "D" if " D" in grupo else "M" if " M" in grupo else "N"
-        vert_letra = "OB" if "OB" in grupo else "DB" if "DB" in grupo else "N"
+        basal_num  = grupo[1]
+        sag_letra  = "D" if " D" in grupo else ("M" if " M" in grupo else "N")
+        vert_letra = "OB" if "OB" in grupo else ("DB" if "DB" in grupo else "N")
 
-        rot_map  = {"A": "Anterior",  "R": "Neutra", "P": "Paralelo/Posterior"}
-        sag_map  = {"D": "Distoclusión (Clase II)", "N": "Normal (Clase I)", "M": "Mesioclusión (Clase III)"}
-        vert_map = {"OB": "Mordida Abierta", "DB": "Mordida Profunda", "N": "Normal"}
-        basal_map = {"1": "Mandíbula = Maxila", "2": "Mandíbula < Maxila", "3": "Mandíbula > Maxila"}
+        rot_map  = {"A":"Anterior","R":"Neutra","P":"Paralelo/Posterior"}
+        sag_map  = {"D":"Distoclusión (Clase II)","N":"Normal (Clase I)","M":"Mesioclusión (Clase III)"}
+        vert_map = {"OB":"Mordida Abierta","DB":"Mordida Profunda","N":"Normal"}
+        basal_map = {"1":"Mandíbula = Maxila","2":"Mandíbula < Maxila (→ Clase II)","3":"Mandíbula > Maxila (→ Clase III)"}
+
+        # Clasificaciones clínicas por factor
+        def clasif_F3(v):
+            if v < 20: return "Dólico (cara corta)"
+            if v > 30: return "Lepto (cara larga)"
+            return "Meso (norma)"
+
+        def clasif_F4(v):
+            if v > 2:  return "Pro-inclinado (mordida profunda)"
+            if v < -2: return "Retro-inclinado (mordida abierta)"
+            return "Orto-posición (norma)"
+
+        def clasif_F7(v):
+            if v > 9.5: return "Base vertical"
+            if v < 5.5: return "Base horizontal"
+            return "Neutra (norma)"
+
+        def clasif_ABS(v):
+            if v is None: return "—"
+            if v < 60: return "Dólico"
+            if v > 70: return "Lepto"
+            return "Meso (norma)"
 
         return {
             "success": True,
             "factores_bimler": {
                 "SNA": factores["SNA"], "SNB": factores["SNB"], "ANB": factores["ANB"],
-                "F3":  factores["F3"],  "F4":  factores["F4"],  "F7":  factores["F7"],
+                "F1": factores["F1"],   "F2": factores["F2"],
+                "F3": factores["F3"],   "F4": factores["F4"],
+                "F5": factores["F5"],   "F7": factores["F7"],   "F8": factores["F8"],
                 "ML_NSL": factores["ML_NSL"], "NL_NSL": factores["NL_NSL"],
+                "clasif_F3": clasif_F3(factores["F3"]),
+                "clasif_F4": clasif_F4(factores["F4"]),
+                "clasif_F7": clasif_F7(factores["F7"]),
             },
+            "angulos_derivados": {
+                "perfil": factores["perfil"],
+                "ABS": factores["ABS"],
+                "ABI": factores["ABI"],
+                "ABT": factores["ABT"],
+                "AG":  factores["AG"],
+                "APNI": factores["APNI"],
+                "ODI":  factores["ODI"],
+                "clasif_ABS": clasif_ABS(factores["ABS"]),
+            },
+            "medidas_lineales": factores["lineales"],
             "indicadores_petrovic": {
                 "T1": T1, "T2": T2, "T3": T3,
                 "ML_NSLc": ML_NSLc, "NL_NSLc": NL_NSLc,
             },
             "diagnostico": {
                 "grupo": grupo, "categoria": categoria,
-                "rotacion": rot_letra, "desc_rotacion": rot_map.get(rot_letra, "—"),
-                "basal":    num_letra, "desc_basal":    basal_map.get(num_letra, "—"),
-                "sagital":  sag_letra, "desc_sagital":  sag_map.get(sag_letra, "—"),
-                "vertical": vert_letra, "desc_vertical": vert_map.get(vert_letra, "—"),
+                "rotacion": rot_letra, "desc_rotacion": rot_map.get(rot_letra,"—"),
+                "basal":    basal_num,  "desc_basal":    basal_map.get(basal_num,"—"),
+                "sagital":  sag_letra,  "desc_sagital":  sag_map.get(sag_letra,"—"),
+                "vertical": vert_letra, "desc_vertical": vert_map.get(vert_letra,"—"),
             }
         }
     except Exception as e:
@@ -318,8 +466,10 @@ async def analizar(request: Request):
 
 @app.get("/api/health")
 async def health():
-    return {"status": "ok", "version": "2.2", "casos_validados": 3,
-            "features": ["ai_point_suggestion"]}
+    return {"status": "ok", "version": "2.3",
+            "grupos_rotacionales": 33,
+            "factores_bimler": 8,
+            "casos_validados": 3}
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
