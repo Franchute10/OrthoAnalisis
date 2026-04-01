@@ -89,22 +89,39 @@ def calcular_factores_bimler(pts, escala_mm_px=None):
     SNB = abs(calcular_angulo_3_puntos(pts["S"], pts["N"], pts["B"]))
     ANB = round(SNA - SNB, 2)
 
-    # F3 y F4 sin signo (ángulo con FH)
-    F3 = calcular_angulo_entre_lineas(pts["Me"], pts["Go"], Po, Or)
-    F4_raw = calcular_angulo_signed(pts["ENA"], pts["ENP"], Po, Or)
-    F4 = round(F4_raw, 2)   # firmado: + plano palatino hacia abajo, - hacia arriba
+    # REGLA: F3, F4, F5, F7 → contra FH (líneas casi horizontales)
+    #        F1, F2, F8     → contra VT (líneas casi verticales = 90-FH)
+    def _ang_FH(p1,p2):
+        return calcular_angulo_entre_lineas(p1,p2,Po,Or)
+    def _ang_VT(p1,p2):
+        return round(90 - _ang_FH(p1,p2), 2)
 
-    F7  = calcular_angulo_entre_lineas(pts["N"],  pts["S"],  Po, Or)
-    F8  = calcular_angulo_signed(pts["Co"], pts["Go"], Po, Or)  # firmado
+    # F3: plano mandibular con FH (sin signo)
+    F3 = _ang_FH(pts["Me"], pts["Go"])
 
-    # F1 y F2 firmados (relación sagital maxilar y mandibular)
-    F1  = calcular_angulo_signed(pts["N"], pts["A"], Po, Or)    # >0 prognático
-    F2  = calcular_angulo_signed(pts["A"], pts["B"], Po, Or)    # >0 retrogenia
+    # F4: plano palatino con FH — firmado: + si ENA más bajo que ENP
+    F4 = round(_ang_FH(pts["ENA"],pts["ENP"]) *
+               (1 if pts["ENA"][1] > pts["ENP"][1] else -1), 2)
 
-    # F5 (Clivus) — solo si están marcados
+    # F7: base craneal anterior con FH (sin signo)
+    F7 = _ang_FH(pts["N"], pts["S"])
+
+    # F8: rama mandibular con VT — firmado: + si Go más anterior (mayor X) que Co
+    F8 = round(_ang_VT(pts["Co"],pts["Go"]) *
+               (1 if pts["Go"][0] > pts["Co"][0] else -1), 2)
+
+    # F1: N-A con VT — firmado: + si A anterior a N (mayor X = prognático)
+    F1 = round(_ang_VT(pts["N"],pts["A"]) *
+               (1 if pts["A"][0] > pts["N"][0] else -1), 2)
+
+    # F2: A-B con VT — firmado: + si B posterior a A (menor X = retrogenia Cl.II)
+    F2 = round(_ang_VT(pts["A"],pts["B"]) *
+               (1 if pts["B"][0] < pts["A"][0] else -1), 2)
+
+    # F5: clivus con FH — solo si están marcados Cls y Cli
     F5 = None
     if "Cls" in pts and "Cli" in pts:
-        F5 = calcular_angulo_entre_lineas(pts["Cls"], pts["Cli"], Po, Or)
+        F5 = _ang_FH(pts["Cls"], pts["Cli"])
 
     # ML/NSL medido y calculado
     ML_NSL  = calcular_angulo_entre_lineas(pts["Me"], pts["Go"], pts["S"], pts["N"])
