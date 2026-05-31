@@ -198,6 +198,8 @@
   border-radius: 4px;
   padding: 10px;
   margin-bottom: 2px;
+  min-width: 0;
+  overflow: hidden;
 }
 .patient-box-title {
   font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px;
@@ -207,6 +209,8 @@
 .patient-field:last-child { margin-bottom: 0; }
 .patient-field label { font-size: 9px; color: var(--text-dim); letter-spacing: .5px; }
 .patient-field input {
+  width: 100%;
+  box-sizing: border-box;
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 3px;
@@ -1006,6 +1010,7 @@ function actualizarListaPuntos() {
   PUNTOS_CONFIG.forEach((p, i) => {
     const item   = document.getElementById(`pt-item-${i}`);
     const coords = document.getElementById(`pt-coords-${i}`);
+    if (!item || !coords) return; // guard: DOM not ready yet
     item.className = 'point-item';
 
     if (state.puntos[p.key]) {
