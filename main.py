@@ -7,14 +7,20 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 import uvicorn
 
-app = FastAPI(title="OrthoAnalysis - Motor Cefalométrico v2.3")
+app = FastAPI(title="OrthoAnalysis - Motor Cefalométrico v2.4")
 
 # =================================================================
-# MOTOR MATEMÁTICO v2.3
-# - 33 grupos rotacionales completos de Petrovic-Lavergne
-# - 8 factores de Bimler (F1,F2,F3,F4,F5,F7,F8 + derivados)
+# MOTOR MATEMÁTICO v2.4
+# - Fix A: NL_NSL = F4 + F7 (con signo, no |F4|)
+# - Fix B: AG = F3 - F8 + 90 (F8 con signo, hiperflexión negativa)
+# - Fix C: NL/NSLc marcado como NO validado (nslc_validado: false)
+# - Fix D: APNI -> APNI_estimado (NO es el APDI real de OrthoTP)
+# - Fix E: 33 -> 27 grupos alcanzables; categoria_advertencia si no mapea
+# - Fix F: F1, F2, F8 usan calcular_angulo_signed() con la convención
+#          OrthoTP validada: F1 = -signed, F2 = +signed, F8 = -signed
+# - 27 grupos rotacionales alcanzables de Petrovic-Lavergne
 # - Medidas lineales (TM derivado de Co)
-# - Lógica basal corregida: D→2, N→1, M→3
+# - Lógica basal: D->2, N->1, M->3 (derivada del sagital)
 # =================================================================
 
 def calcular_angulo_3_puntos(p1, vertice, p2):
@@ -41,8 +47,16 @@ def calcular_angulo_entre_lineas(p1, p2, p3, p4):
 def calcular_angulo_signed(p1, p2, Po, Or):
     """
     Ángulo FIRMADO de la línea p1→p2 con la vertical T (perpendicular a FH).
-    Positivo: p2 está anterior (prognático) respecto a p1.
-    Negativo: p2 está posterior (retrognático).
+    Convención geométrica interna: positivo si p2 se desvía hacia +X (anterior)
+    respecto a la vertical T. Es robusta ante la inclinación de FH (no depende
+    del truco 90-ang_FH ni de comparar coordenadas X sueltas).
+
+    ⚠ NOTA DE SIGNO (validado contra OrthoTP en 3 casos reales):
+       OrthoTP usa convenciones por factor que NO siempre coinciden con esta
+       función geométrica. El mapeo verificado es:
+         F1 (N→A)  = -calcular_angulo_signed(...)
+         F2 (A→B)  = +calcular_angulo_signed(...)
+         F8 (Co→Go)= -calcular_angulo_signed(...)
     """
     # Vector FH normalizado
     fhx = Or[0] - Po[0]
@@ -90,11 +104,9 @@ def calcular_factores_bimler(pts, escala_mm_px=None):
     ANB = round(SNA - SNB, 2)
 
     # REGLA: F3, F4, F5, F7 → contra FH (líneas casi horizontales)
-    #        F1, F2, F8     → contra VT (líneas casi verticales = 90-FH)
+    #        F1, F2, F8     → firmados contra VT vía calcular_angulo_signed()
     def _ang_FH(p1,p2):
         return calcular_angulo_entre_lineas(p1,p2,Po,Or)
-    def _ang_VT(p1,p2):
-        return round(90 - _ang_FH(p1,p2), 2)
 
     # F3: plano mandibular con FH (sin signo)
     F3 = _ang_FH(pts["Me"], pts["Go"])
@@ -106,17 +118,14 @@ def calcular_factores_bimler(pts, escala_mm_px=None):
     # F7: base craneal anterior con FH (sin signo)
     F7 = _ang_FH(pts["N"], pts["S"])
 
-    # F8: rama mandibular con VT — firmado: + si Go más anterior (mayor X) que Co
-    F8 = round(_ang_VT(pts["Co"],pts["Go"]) *
-               (1 if pts["Go"][0] > pts["Co"][0] else -1), 2)
-
-    # F1: N-A con VT — firmado: + si A anterior a N (mayor X = prognático)
-    F1 = round(_ang_VT(pts["N"],pts["A"]) *
-               (1 if pts["A"][0] > pts["N"][0] else -1), 2)
-
-    # F2: A-B con VT — firmado: + si B posterior a A (menor X = retrogenia Cl.II)
-    F2 = round(_ang_VT(pts["A"],pts["B"]) *
-               (1 if pts["B"][0] < pts["A"][0] else -1), 2)
+    # ── Fix F: F1, F2, F8 firmados con calcular_angulo_signed() ──
+    # Convención OrthoTP validada en 3 casos (Mia/Nicolás/Piero):
+    #   F1 = -signed(N,A)  (+ = maxilar prognático)
+    #   F2 = +signed(A,B)  (+ = retrogenia / Clase II)
+    #   F8 = -signed(Co,Go)(+ = ortoflexión; hiperflexión = negativa, igual que OrthoTP)
+    F1 = round(-calcular_angulo_signed(pts["N"],  pts["A"],  Po, Or), 2)
+    F2 = round( calcular_angulo_signed(pts["A"],  pts["B"],  Po, Or), 2)
+    F8 = round(-calcular_angulo_signed(pts["Co"], pts["Go"], Po, Or), 2)
 
     # F5: clivus con FH — solo si están marcados Cls y Cli
     F5 = None
@@ -125,15 +134,26 @@ def calcular_factores_bimler(pts, escala_mm_px=None):
 
     # ML/NSL medido y calculado
     ML_NSL  = calcular_angulo_entre_lineas(pts["Me"], pts["Go"], pts["S"], pts["N"])
-    NL_NSL  = round(abs(F4) + F7, 2)
+
+    # ── Fix A: NL/NSL = F4 + F7 (CON SIGNO, no |F4|) ───────────
+    # Antes: |F4| + F7 inflaba NL/NSL cuando F4<0 (Nicolás: 16.71 vs 11.46 real).
+    NL_NSL  = round(F4 + F7, 2)
 
     # ── Ángulos derivados ──────────────────────────────────────
     perfil = round(F1 + F2, 2)                     # Ángulo de Perfil NAB
     ABS    = round(abs(F4) + (F5 or 0), 2)         # Basal Superior F4+F5
     ABI    = round(F3 - abs(F4), 2)                # Basal Inferior F3-|F4|
     ABT    = round(F3 + (F5 or 0), 2)              # Basal Total F3+F5
-    AG     = round(F3 + abs(F8) + 90, 2)           # Ángulo Gonial
-    APNI   = round(F2 + abs(F4), 2)                # APNI = F2+F4
+
+    # ── Fix B: AG = F3 - F8 + 90 (F8 con signo) ────────────────
+    # Antes: F3 + |F8| + 90 (Mia daba 128.83 vs 118.07 real).
+    AG     = round(F3 - F8 + 90, 2)                # Ángulo Gonial
+
+    # ── Fix D: APNI_estimado (NO es el APDI real de OrthoTP) ───
+    # El APDI verdadero de OrthoTP = (N-Pg) - F2 + F4 y requiere el punto Pg.
+    # Esto es una aproximación interna, NO comparable con APDI ni clase esquelética.
+    APNI_estimado = round(F2 + abs(F4), 2)
+
     ODI    = round(90 - ABI + F2, 2)               # ODI
 
     # ── TM = proyección de Co sobre FH ────────────────────────
@@ -144,7 +164,8 @@ def calcular_factores_bimler(pts, escala_mm_px=None):
     B_prima = proyectar_punto_en_linea(pts["B"], Po, Or)
 
     # Punto T = intersección de vertical desde tuber con FH
-    # (Usamos Po como referencia para T en nuestro sistema)
+    # ⚠ PENDIENTE: T real = fisura pterigomaxilar proyectada en FH.
+    #    Usamos Po como aproximación → A'-T NO es profundidad maxilar fiable.
     T = Po  # aproximación: T ≈ Po proyectado sobre FH
 
     # ── Medidas lineales (en píxeles, convertibles a mm) ──────
@@ -165,13 +186,17 @@ def calcular_factores_bimler(pts, escala_mm_px=None):
         "F5": F5, "F7": F7, "F8": F8,
         "ML_NSL": ML_NSL, "NL_NSL": NL_NSL,
         "perfil": perfil, "ABS": ABS, "ABI": ABI, "ABT": ABT,
-        "AG": AG, "APNI": APNI, "ODI": ODI,
+        "AG": AG, "APNI_estimado": APNI_estimado, "ODI": ODI,
         "lineales": lin,
     }
     return result
 
 def calcular_indicadores_T(f):
     ML_NSLc = round(192 - (2 * f["SNB"]), 2)
+    # ── Fix C: NL/NSLc NO validado contra OrthoTP ──────────────
+    # La fórmula 0.198*SNA - 4.39 NO reproduce OrthoTP (Nicolás: 11.18 vs 9.31).
+    # NL/NSLc NO es función lineal solo de SNA. Se expone marcado como no validado.
+    # No afecta el diagnóstico: T1 usa ML/NSLc, y T2 usa NL/NSL MEDIDO (no NL/NSLc).
     NL_NSLc = round(0.198 * f["SNA"] - 4.39, 2)
     T1 = round(ML_NSLc - f["ML_NSL"], 2)
     T2 = round(NL_NSLc - f["NL_NSL"], 2)
@@ -182,7 +207,7 @@ def arbol_decision(T1, T2, T3):
     """
     Árbol de decisión Lavergne-Petrovic.
     Genera el grupo trinomial {rot}{basal} {sag}{vert}
-    
+
     Rotación (T1):
       A  si T1 > 9   (Anterior — cóndilo rota hacia adelante)
       R  si 0≤T1≤9  (Neutra)
@@ -197,6 +222,9 @@ def arbol_decision(T1, T2, T3):
       2  si sag=D  (mandíbula < maxila → Clase II)
       1  si sag=N  (iguales → equilibrio)
       3  si sag=M  (mandíbula > maxila → Clase III)
+    ⚠ LIMITACIÓN CONOCIDA: el basal se deriva del sagital. En Lavergne-Petrovic
+      el basal es un eje independiente (diferencia de crecimiento basal real).
+      Por eso el árbol sólo alcanza 27 de los 33 grupos teóricos.
 
     Vertical (T2):
       OB si T2 > 3   (Mordida Abierta)
@@ -220,8 +248,11 @@ def arbol_decision(T1, T2, T3):
 
     return f"{rot}{basal} {sag}{vert}"
 
-# 33 grupos rotacionales de Petrovic-Lavergne
-# 11 tipos base × 3 variantes verticales (OB/N/DB)
+# ── Fix E: 27 grupos ALCANZABLES de Petrovic-Lavergne ─────────
+# Se eliminaron las 6 filas inalcanzables por el acoplamiento basal↔sagital:
+#   A1 DOB, A1 DN, A1 DDB  (sag=D fuerza basal=2, nunca 1)
+#   P1 MOB, P1 MN, P1 MDB  (sag=M fuerza basal=3, nunca 1)
+# Si en el futuro el basal se calcula de forma independiente, restituirlas.
 GRUPOS_33 = {
     # Categoría 1 — Potencial Muy Bajo (P2D × 3)
     "P2 DOB": 1,  "P2 DN":  1,  "P2 DDB": 1,
@@ -236,10 +267,8 @@ GRUPOS_33 = {
     # Categoría 4 — Potencial Neutro/Alto (R1N × 3)
     "R1 NOB": 4,  "R1 NN":  4,  "R1 NDB": 4,
 
-    # Categoría 5 — Potencial Muy Alto (A1D, A1N, P1M, R3M × 3)
-    "A1 DOB": 5,  "A1 DN":  5,  "A1 DDB": 5,
+    # Categoría 5 — Potencial Muy Alto (A1N, R3M × 3) [A1D y P1M eliminados]
     "A1 NOB": 5,  "A1 NN":  5,  "A1 NDB": 5,
-    "P1 MOB": 5,  "P1 MN":  5,  "P1 MDB": 5,
     "R3 MOB": 5,  "R3 MN":  5,  "R3 MDB": 5,
 
     # Categoría 6 — Potencial Excesivo (A3M, P3M × 3)
@@ -248,8 +277,18 @@ GRUPOS_33 = {
 }
 
 def determinar_categoria(grupo):
-    """Busca el grupo en la tabla de 33 grupos de Petrovic-Lavergne."""
-    return GRUPOS_33.get(grupo.strip(), "—")
+    """
+    Busca el grupo en la tabla de grupos alcanzables de Petrovic-Lavergne.
+    Devuelve (categoria, advertencia):
+      categoria   -> int 1-6, o None si no está mapeado
+      advertencia -> None, o texto si el grupo no está en la tabla
+    """
+    cat = GRUPOS_33.get(grupo.strip())
+    if cat is None:
+        return None, (f"Grupo '{grupo}' no está en la tabla de 27 grupos "
+                      f"alcanzables de Petrovic-Lavergne. Revise los puntos "
+                      f"o considere que el basal puede requerir cálculo independiente.")
+    return cat, None
 
 # -----------------------------------------------------------------
 # ENDPOINT: SUGERIR PUNTOS CON IA
@@ -409,7 +448,7 @@ async def analizar(request: Request):
         factores            = calcular_factores_bimler(pts)
         T1, T2, T3, ML_NSLc, NL_NSLc = calcular_indicadores_T(factores)
         grupo               = arbol_decision(T1, T2, T3)
-        categoria           = determinar_categoria(grupo)
+        categoria, advertencia = determinar_categoria(grupo)   # Fix E
 
         rot_letra  = grupo[0]
         basal_num  = grupo[1]
@@ -461,17 +500,26 @@ async def analizar(request: Request):
                 "ABI": factores["ABI"],
                 "ABT": factores["ABT"],
                 "AG":  factores["AG"],
-                "APNI": factores["APNI"],
+                # Fix D: renombrado + nota explícita
+                "APNI_estimado": factores["APNI_estimado"],
+                "APNI_nota": "Estimación interna (F2+|F4|). NO es el APDI real de OrthoTP, "
+                             "que es (N-Pg)-F2+F4 y requiere el punto Pg. No usar para clase esquelética.",
                 "ODI":  factores["ODI"],
                 "clasif_ABS": clasif_ABS(factores["ABS"]),
             },
             "medidas_lineales": factores["lineales"],
             "indicadores_petrovic": {
                 "T1": T1, "T2": T2, "T3": T3,
-                "ML_NSLc": ML_NSLc, "NL_NSLc": NL_NSLc,
+                "ML_NSLc": ML_NSLc,
+                "NL_NSLc": NL_NSLc,
+                # Fix C: NL/NSLc no validado contra OrthoTP
+                "nslc_validado": False,
+                "nslc_nota": "NL/NSLc (0.198*SNA-4.39) NO reproduce OrthoTP y NO es función "
+                             "lineal solo de SNA. No afecta el diagnóstico (T2 usa NL/NSL medido).",
             },
             "diagnostico": {
                 "grupo": grupo, "categoria": categoria,
+                "categoria_advertencia": advertencia,   # Fix E: None si mapea OK
                 "rotacion": rot_letra, "desc_rotacion": rot_map.get(rot_letra,"—"),
                 "basal":    basal_num,  "desc_basal":    basal_map.get(basal_num,"—"),
                 "sagital":  sag_letra,  "desc_sagital":  sag_map.get(sag_letra,"—"),
@@ -483,8 +531,8 @@ async def analizar(request: Request):
 
 @app.get("/api/health")
 async def health():
-    return {"status": "ok", "version": "2.3",
-            "grupos_rotacionales": 33,
+    return {"status": "ok", "version": "2.4",
+            "grupos_rotacionales": 27,
             "factores_bimler": 8,
             "casos_validados": 3}
 
