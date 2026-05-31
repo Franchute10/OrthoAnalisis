@@ -191,6 +191,57 @@
   .progress-bar { height: 2px; background: var(--border); border-radius: 1px; margin: 0 14px 8px; overflow: hidden; }
   .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 1px; transition: width .3s ease; }
   .tooltip { position: absolute; background: rgba(10,13,18,.95); border: 1px solid var(--accent); color: var(--accent); font-size: 10px; padding: 4px 10px; border-radius: 3px; pointer-events: none; transform: translate(-50%, -130%); white-space: nowrap; font-weight: 600; z-index: 10; }
+/* --- Formulario datos del paciente (panel izquierdo) --- */
+.patient-box {
+  background: var(--bg);
+  border: 1px solid var(--border-bright);
+  border-radius: 4px;
+  padding: 10px;
+  margin-bottom: 2px;
+}
+.patient-box-title {
+  font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px;
+  color: var(--text-dim); margin-bottom: 8px;
+}
+.patient-field { display: flex; flex-direction: column; gap: 3px; margin-bottom: 7px; }
+.patient-field:last-child { margin-bottom: 0; }
+.patient-field label { font-size: 9px; color: var(--text-dim); letter-spacing: .5px; }
+.patient-field input {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--text-bright);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 6px 8px;
+  outline: none;
+  transition: border-color .15s;
+}
+.patient-field input:focus { border-color: var(--accent); }
+.patient-field input::placeholder { color: var(--text-dim); opacity: .7; }
+/* Normaliza el date picker en modo oscuro */
+.patient-field input[type=date]::-webkit-calendar-picker-indicator {
+  filter: invert(.7); cursor: pointer;
+}
+
+/* --- Botón exportar PDF --- */
+.btn-pdf {
+  background: transparent;
+  color: var(--accent2);
+  border: 1px solid var(--accent2);
+}
+.btn-pdf:hover:not(:disabled) { background: rgba(0,200,255,.1); }
+.btn-pdf:disabled { opacity: .3; cursor: not-allowed; }
+
+/* --- Sistema de color por rango en el panel (verde/naranja/rojo) --- */
+.result-val.in-norma { color: #2ecc71; }
+.result-val.leve     { color: #ff9f43; }
+.result-val.fuera    { color: #ff4466; }
+/* punto-semáforo opcional a la izquierda del valor */
+.norm-dot { display:inline-block; width:7px; height:7px; border-radius:50%; margin-right:5px; vertical-align:middle; }
+.norm-dot.in-norma { background:#2ecc71; }
+.norm-dot.leve     { background:#ff9f43; }
+.norm-dot.fuera    { background:#ff4466; }
 </style>
 </head>
 <body>
@@ -272,9 +323,31 @@
     <button class="btn btn-autofix" id="btn-autofix" onclick="autoCorregirPuntos()" disabled>
       🔧 Auto-corregir geometría
     </button>
-    <button class="btn btn-primary" id="btn-analizar" onclick="analizarPuntos()" disabled>
+<div class="patient-box">
+  <div class="patient-box-title">Datos del paciente</div>
+  <div class="patient-field">
+    <label for="pac-nombre">Nombre</label>
+    <input type="text" id="pac-nombre" placeholder="Nombre del paciente" autocomplete="off">
+  </div>
+  <div class="patient-field">
+    <label for="pac-fecha">Fecha de análisis</label>
+    <input type="date" id="pac-fecha">
+  </div>
+  <div class="patient-field">
+    <label for="pac-edad">Edad</label>
+    <input type="text" id="pac-edad" placeholder="ej. 12a 3m" autocomplete="off">
+  </div>
+  <div class="patient-field">
+    <label for="pac-orto">Ortodoncista</label>
+    <input type="text" id="pac-orto" placeholder="Profesional responsable" autocomplete="off">
+  </div>
+</div>
+        <button class="btn btn-primary" id="btn-analizar" onclick="analizarPuntos()" disabled>
       ⚡ Calcular Diagnóstico
     </button>
+    <button class="btn btn-pdf" id="btn-pdf" onclick="exportarPDF()" disabled>
+  ⬇ Exportar PDF
+</button>
     <div class="panel-divider"></div>
     <button class="btn btn-secondary" onclick="resetPuntos()">↺ Reiniciar puntos</button>
     <button class="btn btn-secondary" onclick="resetTodo()">✕ Nueva radiografía</button>
@@ -311,6 +384,7 @@
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 // ============================================================
 // CONFIG PUNTOS
@@ -967,6 +1041,7 @@ function irAPunto(idx) {
 
 function resetPuntos() {
   state.puntos = {}; state.sugeridos = {};
+  const _bpR = document.getElementById('btn-pdf'); if (_bpR) _bpR.disabled = true;
   state.puntoActivo = 0; state.modoSugerido = false; state.dragMoved = false;
   document.getElementById('btn-analizar').disabled = true;
   document.getElementById('btn-confirm-ai').style.display = 'none';
@@ -1025,6 +1100,8 @@ function mostrarResultados(data) {
   document.getElementById('loading').style.display = 'none';
   const area = document.getElementById('results-area');
   area.style.display = 'block';
+  state.ultimoAnalisis = data;
+  const _btnPdf = document.getElementById('btn-pdf'); if (_btnPdf) _btnPdf.disabled = false;
   const f = data.factores_bimler, t = data.indicadores_petrovic, d = data.diagnostico;
   const ang = data.angulos_derivados || {};
   const lin = data.medidas_lineales || {};
@@ -1069,12 +1146,12 @@ function mostrarResultados(data) {
     </div>
     <div class="result-group">
       <div class="result-group-title">Factores de Bimler</div>
-      <div class="result-row"><div class="result-key">SNA</div><div class="result-val">${f.SNA}°</div></div>
-      <div class="result-row"><div class="result-key">SNB</div><div class="result-val">${f.SNB}°</div></div>
-      <div class="result-row"><div class="result-key">ANB</div><div class="result-val ${Math.abs(f.ANB)>4?'warn':'info'}">${f.ANB}°</div></div>
-      <div class="result-row"><div class="result-key">F3 — Inclinación Mandibular (FH)</div><div class="result-val">${f.F3}°</div></div>
-      <div class="result-row"><div class="result-key">F4 — Inclinación Maxilar (FH)</div><div class="result-val">${f.F4}°</div></div>
-      <div class="result-row"><div class="result-key">F7 — Inclinación NSL (FH) ${f.F7<5||f.F7>12?'⚠':'✓'}</div><div class="result-val ${f.F7<5||f.F7>12?'warn':''}">${f.F7}°</div></div>
+      <div class="result-row"><div class="result-key">SNA</div><div class="result-val ${clasificarNorma('SNA',f.SNA)||''}">${f.SNA}°</div></div>
+      <div class="result-row"><div class="result-key">SNB</div><div class="result-val ${clasificarNorma('SNB',f.SNB)||''}">${f.SNB}°</div></div>
+      <div class="result-row"><div class="result-key">ANB</div><div class="result-val ${clasificarNorma('ANB',f.ANB)||''}">${f.ANB}°</div></div>
+      <div class="result-row"><div class="result-key">F3 — Inclinación Mandibular (FH)</div><div class="result-val ${clasificarNorma('F3',f.F3)||''}">${f.F3}°</div></div>
+      <div class="result-row"><div class="result-key">F4 — Inclinación Maxilar (FH)</div><div class="result-val ${clasificarNorma('F4',f.F4)||''}">${f.F4}°</div></div>
+      <div class="result-row"><div class="result-key">F7 — Inclinación NSL (FH)</div><div class="result-val ${clasificarNorma('F7',f.F7)||''}">${f.F7}°</div></div>
       <div class="result-row"><div class="result-key">ML/NSL (medido)</div><div class="result-val">${f.ML_NSL}°</div></div>
       <div class="result-row"><div class="result-key">NL/NSL = F4+F7</div><div class="result-val">${f.NL_NSL}°</div></div>
     </div>
@@ -1083,14 +1160,14 @@ function mostrarResultados(data) {
       <div class="result-row"><div class="result-key">F1 — Posición Maxilar (NA)</div><div class="result-val">${f.F1??'—'}°</div></div>
       <div class="result-row"><div class="result-key">F2 — Posición Mandibular (AB)</div><div class="result-val">${f.F2??'—'}°</div></div>
       <div class="result-row"><div class="result-key">F5 — Inclinación Clivus</div><div class="result-val ${f.F5&&(f.F5<60||f.F5>70)?'warn':''}">${f.F5??'(marcar Cls/Cli)'}${f.F5?'°':''}</div></div>
-      <div class="result-row"><div class="result-key">F8 — Flexión Rama (Co-Go)</div><div class="result-val">${f.F8??'—'}°</div></div>
+      <div class="result-row"><div class="result-key">F8 — Flexión Rama (Co-Go)</div><div class="result-val ${clasificarNorma('F8',f.F8)||''}">${f.F8??'—'}°</div></div>
       <div class="result-row" style="border-top:1px solid var(--border);margin-top:4px;padding-top:4px">
         <div class="result-key">Ángulo de Perfil (F1+F2)</div>
         <div class="result-val ${Math.abs(ang.perfil||0)>14?'warn':'info'}">${ang.perfil??'—'}°</div></div>
-      <div class="result-row"><div class="result-key">Basal Superior (F4+F5)</div><div class="result-val ${ang.ABS&&(ang.ABS<60||ang.ABS>70)?'warn':''}">${ang.ABS??'—'}° <span style="font-size:8px;color:var(--text-dim)">${ang.clasif_ABS||''}</span></div></div>
+      <div class="result-row"><div class="result-key">Basal Superior (F4+F5)</div><div class="result-val ${clasificarNorma('ABS',ang.ABS)||''}">${ang.ABS??'—'}° <span style="font-size:8px;color:var(--text-dim)">${ang.clasif_ABS||''}</span></div></div>
       <div class="result-row"><div class="result-key">Basal Inferior (F3-F4)</div><div class="result-val">${ang.ABI??'—'}°</div></div>
       <div class="result-row"><div class="result-key">Basal Total (F3+F5)</div><div class="result-val ${ang.ABT&&(ang.ABT<80||ang.ABT>100)?'warn':''}">${ang.ABT??'—'}°</div></div>
-      <div class="result-row"><div class="result-key">Ángulo Gonial (F3-F8+90°)</div><div class="result-val ${ang.AG&&(ang.AG<106||ang.AG>120)?'warn':''}">${ang.AG??'—'}°</div></div>
+      <div class="result-row"><div class="result-key">Ángulo Gonial (F3-F8+90°)</div><div class="result-val ${clasificarNorma('AG',ang.AG)||''}">${ang.AG??'—'}°</div></div>
       <div class="result-row"><div class="result-key">APNI_estimado (F2+|F4|) <span style="font-size:8px;color:var(--text-dim)">no es APDI</span></div><div class="result-val">${ang.APNI_estimado??'—'}°</div></div>
       ${ang.APNI_nota ? `<div style="font-size:8px;color:var(--text-dim);padding:2px 0 0 2px">${ang.APNI_nota}</div>` : ''}
       <div class="result-row"><div class="result-key">ODI (90-ABI+F2)</div><div class="result-val">${ang.ODI??'—'}°</div></div>
@@ -1310,6 +1387,239 @@ actualizarListaPuntos = function() {
   const btn = document.getElementById('btn-autofix');
   if (btn) btn.disabled = count < 6; // necesitamos al menos S,N,B,Po,Or
 };
+
+// 3) JAVASCRIPT — EXPORTAR PDF  (+ helpers de norma compartidos)
+//
+//   a) Agrega el CDN de jsPDF UNA vez, antes de tu <script> principal:
+//      (justo después de <body> o antes de tu <script> grande; cualquiera sirve)
+//
+//      <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+//
+//   b) Pega TODO este bloque dentro de tu <script> principal
+//      (p. ej. justo después de obtenerNota(), ~línea 1122).
+//
+//   Requiere: state.ultimoAnalisis (lo setea mostrarResultados — ver sección 5)
+//             y el canvas id="main-canvas" ya dibujado.
+// ════════════════════════════════════════════════════════════════
+
+// ---- Fuente ÚNICA de normas (usada por el PDF y por el panel) ----
+// valor ± tolerancia. "leve" = fuera de ±tol pero dentro de ±2·tol. "fuera" = más allá.
+const NORMAS = {
+  SNA: { v: 82,  tol: 3 },
+  SNB: { v: 79,  tol: 3 },
+  ANB: { v: 2,   tol: 2 },
+  F3:  { v: 25,  tol: 5 },
+  F4:  { v: 0,   tol: 2 },
+  F7:  { v: 7.5, tol: 2 },
+  F8:  { v: 4,   tol: 4 },
+  AG:  { v: 113, tol: 7 },
+  ABS: { v: 65,  tol: 5 },
+};
+
+// Devuelve 'in-norma' | 'leve' | 'fuera' | null (si no hay norma o el valor es nulo)
+function clasificarNorma(clave, valor) {
+  const n = NORMAS[clave];
+  if (!n || valor === null || valor === undefined || isNaN(valor)) return null;
+  const d = Math.abs(Number(valor) - n.v);
+  if (d <= n.tol)       return 'in-norma';
+  if (d <= n.tol * 2)   return 'leve';
+  return 'fuera';
+}
+
+// Colores de relleno para jsPDF (RGB) por clasificación
+const PDF_NORM_RGB = {
+  'in-norma': [46, 204, 113],   // verde
+  'leve':     [255, 159,  67],  // naranja
+  'fuera':    [255,  68, 102],  // rojo
+  null:       [60,  60,  60],   // texto oscuro neutro
+};
+
+// Lee los datos del paciente del formulario
+function leerDatosPaciente() {
+  const g = id => (document.getElementById(id)?.value || '').trim();
+  let fecha = g('pac-fecha');
+  if (fecha) { // YYYY-MM-DD -> DD/MM/YYYY
+    const [y, m, d] = fecha.split('-');
+    if (y && m && d) fecha = `${d}/${m}/${y}`;
+  }
+  return {
+    nombre: g('pac-nombre') || '—',
+    fecha:  fecha || new Date().toLocaleDateString('es-PE'),
+    edad:   g('pac-edad') || '—',
+    orto:   g('pac-orto') || '—',
+  };
+}
+
+// ---------------------------------------------------------------
+// EXPORTAR PDF
+// ---------------------------------------------------------------
+function exportarPDF() {
+  if (!window.jspdf || !window.jspdf.jsPDF) {
+    alert('No se pudo cargar jsPDF (revisa el <script> del CDN).');
+    return;
+  }
+  const data = state.ultimoAnalisis;
+  if (!data) { alert('Primero calcula el diagnóstico.'); return; }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const PW = 210, M = 14;
+  let y = 0;
+
+  const f   = data.factores_bimler || {};
+  const t   = data.indicadores_petrovic || {};
+  const d   = data.diagnostico || {};
+  const ang = data.angulos_derivados || {};
+  const pac = leerDatosPaciente();
+
+  // ---- HEADER (banda clara) ----
+  doc.setFillColor(238, 244, 255);
+  doc.rect(0, 0, PW, 30, 'F');
+  doc.setTextColor(20, 28, 40);
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(17);
+  doc.text('OrthoAnalysis · Reporte Cefalométrico', M, 13);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+  doc.setTextColor(70, 80, 95);
+  doc.text(`Paciente: ${pac.nombre}`, M, 20);
+  doc.text(`Edad: ${pac.edad}`, M, 25);
+  doc.text(`Fecha: ${pac.fecha}`, PW - M, 20, { align: 'right' });
+  doc.text(`Ortodoncista: ${pac.orto}`, PW - M, 25, { align: 'right' });
+  doc.setDrawColor(0, 200, 255); doc.setLineWidth(0.6);
+  doc.line(0, 30, PW, 30);
+  y = 38;
+
+  // ---- IMAGEN DEL CANVAS (radiografía con puntos y líneas) ----
+  try {
+    const canvasEl = document.getElementById('main-canvas');
+    const img = canvasEl.toDataURL('image/jpeg', 0.85);
+    const maxW = PW - M * 2, maxH = 78;
+    const ar = canvasEl.width / canvasEl.height;
+    let w = maxW, h = w / ar;
+    if (h > maxH) { h = maxH; w = h * ar; }
+    const x = (PW - w) / 2;
+    doc.setDrawColor(200); doc.setLineWidth(0.3);
+    doc.rect(x - 0.5, y - 0.5, w + 1, h + 1);
+    doc.addImage(img, 'JPEG', x, y, w, h);
+    y += h + 8;
+  } catch (e) {
+    doc.setTextColor(180, 60, 60); doc.setFontSize(9);
+    doc.text('(No se pudo capturar la imagen del canvas)', M, y); y += 8;
+  }
+
+  // ---- DIAGNÓSTICO LAVERGNE-PETROVIC (destacado) ----
+  doc.setFillColor(245, 248, 252);
+  doc.setDrawColor(0, 200, 255); doc.setLineWidth(0.4);
+  doc.roundedRect(M, y, PW - M * 2, 22, 2, 2, 'FD');
+  doc.setTextColor(20, 28, 40);
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(20);
+  doc.text(String(d.grupo || '—'), M + 6, y + 11);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+  const catTxt = (d.categoria === null || d.categoria === undefined) ? '—' : d.categoria;
+  doc.text(`Categoría ${catTxt} de crecimiento auxológico`, M + 6, y + 18);
+  doc.setFontSize(8); doc.setTextColor(70, 80, 95);
+  const meta = `Rotación: ${d.desc_rotacion || d.rotacion || '—'}   |   ` +
+               `Sagital: ${d.desc_sagital || d.sagital || '—'}   |   ` +
+               `Vertical: ${d.desc_vertical || d.vertical || '—'}`;
+  doc.text(meta, PW - M - 6, y + 8, { align: 'right' });
+  if (d.categoria_advertencia) {
+    doc.setTextColor(200, 50, 70); doc.setFontSize(7);
+    doc.text('⚠ ' + d.categoria_advertencia, PW - M - 6, y + 18,
+             { align: 'right', maxWidth: 90 });
+  }
+  y += 28;
+
+  // ---- TABLA DE RESULTADOS con colores por rango ----
+  doc.setTextColor(20, 28, 40);
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
+  doc.text('Resultados', M, y); y += 2;
+  doc.setDrawColor(210); doc.setLineWidth(0.3);
+  doc.line(M, y, PW - M, y); y += 6;
+
+  // columnas
+  const cMed = M + 2, cVal = M + 80, cNorma = M + 120, cEstado = M + 160;
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(8);
+  doc.setTextColor(120, 130, 145);
+  doc.text('MEDIDA', cMed, y);
+  doc.text('VALOR', cVal, y);
+  doc.text('NORMA', cNorma, y);
+  doc.text('ESTADO', cEstado, y);
+  y += 4;
+  doc.setDrawColor(225); doc.line(M, y, PW - M, y); y += 5;
+
+  // filas: [etiqueta, clave, valor, sufijo]
+  const filas = [
+    ['SNA', 'SNA', f.SNA, '°'],
+    ['SNB', 'SNB', f.SNB, '°'],
+    ['ANB', 'ANB', f.ANB, '°'],
+    ['F3 — Plano mandibular', 'F3', f.F3, '°'],
+    ['F4 — Plano palatino', 'F4', f.F4, '°'],
+    ['F7 — Base craneal ant.', 'F7', f.F7, '°'],
+    ['F8 — Flexión rama', 'F8', f.F8, '°'],
+    ['AG — Ángulo gonial', 'AG', ang.AG, '°'],
+    ['ABS — Basal superior', 'ABS', ang.ABS, '°'],
+  ];
+  const estadoTxt = { 'in-norma': 'En norma', 'leve': 'Leve', 'fuera': 'Fuera', null: '—' };
+
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+  filas.forEach((row, i) => {
+    const [label, clave, valor, suf] = row;
+    const cls = clasificarNorma(clave, valor);
+    const norma = NORMAS[clave];
+    if (i % 2 === 0) { doc.setFillColor(247, 249, 252); doc.rect(M, y - 3.5, PW - M * 2, 6, 'F'); }
+    doc.setTextColor(40, 48, 60);
+    doc.text(String(label), cMed, y);
+    const rgb = PDF_NORM_RGB[cls];
+    doc.setTextColor(rgb[0], rgb[1], rgb[2]); doc.setFont('helvetica', 'bold');
+    const valTxt = (valor === null || valor === undefined || isNaN(valor)) ? '—' : (valor + suf);
+    doc.text(valTxt, cVal, y);
+    doc.setFont('helvetica', 'normal'); doc.setTextColor(110, 120, 135);
+    doc.text(norma ? `${norma.v}±${norma.tol}` : '—', cNorma, y);
+    doc.setTextColor(rgb[0], rgb[1], rgb[2]); doc.setFont('helvetica', 'bold');
+    doc.text(estadoTxt[cls], cEstado, y);
+    doc.setFont('helvetica', 'normal');
+    y += 6.2;
+  });
+
+  // leyenda de colores
+  y += 3;
+  const leyenda = [['En norma', PDF_NORM_RGB['in-norma']],
+                   ['Leve', PDF_NORM_RGB['leve']],
+                   ['Fuera', PDF_NORM_RGB['fuera']]];
+  let lx = M;
+  doc.setFontSize(7.5);
+  leyenda.forEach(([txt, rgb]) => {
+    doc.setFillColor(rgb[0], rgb[1], rgb[2]);
+    doc.circle(lx + 1, y - 1, 1.1, 'F');
+    doc.setTextColor(90, 100, 115);
+    doc.text(txt, lx + 4, y);
+    lx += 26;
+  });
+  y += 8;
+
+  // ---- NOTA CLÍNICA según categoría ----
+  const nota = d.categoria ? obtenerNota(d.categoria)
+                           : 'Sin categoría asignada — revise la advertencia de grupo.';
+  doc.setDrawColor(0, 200, 255); doc.setFillColor(240, 250, 255);
+  doc.setLineWidth(0.3);
+  const notaLines = doc.splitTextToSize(nota, PW - M * 2 - 8);
+  const notaH = 8 + notaLines.length * 4.6;
+  doc.roundedRect(M, y, PW - M * 2, notaH, 2, 2, 'FD');
+  doc.setTextColor(0, 120, 160); doc.setFont('helvetica', 'bold'); doc.setFontSize(8);
+  doc.text('NOTA CLÍNICA', M + 4, y + 5);
+  doc.setTextColor(50, 60, 72); doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+  doc.text(notaLines, M + 4, y + 10);
+  y += notaH + 6;
+
+  // ---- PIE ----
+  doc.setFontSize(7); doc.setTextColor(150, 158, 170);
+  doc.text('Generado por OrthoAnalysis · Cefalometría Digital · APOFI',
+           PW / 2, 290, { align: 'center' });
+
+  // ---- GUARDAR ----
+  const safe = pac.nombre.replace(/[^\w\-]+/g, '_').replace(/^_+|_+$/g, '') || 'paciente';
+  doc.save(`OrthoAnalysis_${safe}.pdf`);
+}
+
 
 init();
 </script>
