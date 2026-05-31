@@ -53,10 +53,8 @@ CASOS = {
     # La categoría 4 SÍ se mantiene (R1 N* -> Cat.4 en ambos casos).
     "Nicolas": dict(
         SNA=78.62, SNB=77.20, ANB=1.42, ML_NSL=32.62, F4=-2.63, F7=14.08,
-        esperado=dict(NL_NSL=11.45, T1=4.98, categoria=4),
-        # divergencia documentada con OrthoTP (pendiente fórmula NL/NSLc real):
-        orthotp=dict(grupo="R1 NDB", T2=-2.14),
-        motor_actual=dict(grupo="R1 NN", T2=-0.27),
+        # NL/NSLc corregida (ML/NSL/2-7=9.31) → T2=-2.14 → R1 NDB ✅
+        esperado=dict(NL_NSL=11.45, T1=4.98, T2=-2.14, grupo="R1 NDB", categoria=4),
     ),
     # Caso 2 — Piero Espinoza: A1 NDB Cat.5
     "Piero": dict(
@@ -99,21 +97,18 @@ def test_nicolas_espinoza():
     r, errores = _check("Nicolas")
     assert not errores, f"Nicolás: {errores}  ({r})"
 
-def test_nicolas_divergencia_orthotp_documentada():
+def test_nicolas_nlnslc_corregida():
     """
-    DIVERGENCIA CONOCIDA: el motor da R1 NN / T2≈-0.27, OrthoTP da R1 NDB / T2=-2.14.
-    Causa: fórmula NL/NSLc (0.198*SNA-4.39) NO validada — da 11.18 vs 9.31 real.
-    Este test fija la divergencia: si algún día el motor empieza a dar NDB para
-    Nicolás, significará que se corrigió NL/NSLc y habrá que actualizar esperado.
+    NL/NSLc corregida (ML/NSL/2 - 7, fuente: Lavergne-Petrovic 1979).
+    Nicolás ahora reproduce exactamente OrthoTP: R1 NDB Cat.4, T2=-2.14.
+    Antes (con 0.198*SNA-4.39): daba R1 NN, T2=-0.27 (divergencia documentada
+    que quedó expuesta al aplicar Fix A de NL/NSL con signo).
     """
     c = CASOS["Nicolas"]
     r = _pipeline_desde_medidas(c["SNA"], c["SNB"], c["ANB"],
                                 c["ML_NSL"], c["F4"], c["F7"])
-    assert r["grupo"] == c["motor_actual"]["grupo"], (
-        f"El motor cambió de grupo para Nicolás: {r['grupo']}. "
-        f"¿Se corrigió NL/NSLc? Actualizar el esperado a OrthoTP {c['orthotp']}.")
-    assert abs(r["T2"] - c["motor_actual"]["T2"]) <= 0.05
-    # la categoría coincide con OrthoTP pese a la divergencia de bucket vertical
+    assert r["grupo"] == "R1 NDB", f"Nicolás debe dar R1 NDB, dio {r['grupo']}"
+    assert abs(r["T2"] - (-2.14)) <= 0.05, f"T2 debe ser -2.14, dio {r['T2']}"
     assert r["categoria"] == 4
 
 def test_piero_espinoza():
