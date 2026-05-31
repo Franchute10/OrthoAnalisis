@@ -306,7 +306,7 @@
     </div>
     <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
     <div style="text-align:right;font-size:9px;color:var(--text-dim);margin-bottom:4px">
-      <span id="pts-count">0</span>/11 puntos
+      <span id="pts-count">0</span>/13 puntos
     </div>
   </div>
 
@@ -442,9 +442,24 @@ function init() {
   canvas.addEventListener('contextmenu', e => e.preventDefault());
 }
 
+function getCanvasDimensions() {
+  // Medir paneles reales para calcular espacio disponible
+  const lp = document.querySelector('.left-panel');
+  const rp = document.querySelector('.right-panel');
+  const hd = document.querySelector('header');
+  const lw = lp ? lp.offsetWidth  : 280;
+  const rw = rp ? rp.offsetWidth  : 300;
+  const hh = hd ? hd.offsetHeight : 52;
+  return {
+    w: Math.max(window.innerWidth  - lw - rw, 200),
+    h: Math.max(window.innerHeight - hh, 200)
+  };
+}
+
 function resizeCanvas() {
-  canvas.width  = area.clientWidth;
-  canvas.height = area.clientHeight;
+  const { w, h } = getCanvasDimensions();
+  canvas.width  = w;
+  canvas.height = h;
   redraw();
 }
 
@@ -457,10 +472,10 @@ function cargarImagen(event) {
   const img = new Image();
   img.onload = () => {
     state.imagen = img;
-    // Forzar redimensionado del canvas ANTES de calcular zoom
-    // (el layout del grid puede no estar resuelto al arrancar)
-    canvas.width  = area.clientWidth;
-    canvas.height = area.clientHeight;
+    // Forzar redimensionado usando medición directa de paneles
+    const { w: _w, h: _h } = getCanvasDimensions();
+    canvas.width  = _w;
+    canvas.height = _h;
     document.getElementById('no-image').style.display    = 'none';
     document.getElementById('zoom-indicator').style.display = 'block';
     document.getElementById('canvas-hint').style.display    = 'block';
