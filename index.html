@@ -77,6 +77,66 @@
   .btn-autofix { background: linear-gradient(135deg,#1a6b3c,#0d9488); color:white; border:none; font-size:11px; }
   .btn-autofix:hover { background: linear-gradient(135deg,#15803d,#0f766e); }
   .btn-autofix:disabled { opacity:.3; cursor:not-allowed; }
+
+  /* AI Guide Box */
+  .ai-guide-box { background: rgba(0,200,255,.04); border: 1px solid rgba(0,200,255,.12); border-radius:4px; padding:8px 10px; margin-bottom:2px; }
+  .ai-guide-title { font-size:9px; font-weight:700; color:var(--accent2); text-transform:uppercase; letter-spacing:1.2px; margin-bottom:4px; }
+  .ai-guide-text { font-size:9px; color:var(--text-dim); line-height:1.5; }
+  .ai-guide-text strong { color:var(--text); }
+
+  /* Panel divider */
+  .panel-divider { height:1px; background:var(--border); margin:2px 0; }
+
+  /* Header improvements */
+  header { padding: 0 18px; }
+  header h1 { font-size: 16px; }
+  .header-right { gap: 8px; font-size: 10px; }
+
+  /* Resultado card mejorado */
+  .diagnosis-card {
+    background: linear-gradient(135deg, rgba(0,255,135,.06), rgba(0,200,255,.04));
+    border: 1px solid rgba(0,255,135,.2);
+    border-radius: 6px; padding: 16px; margin-bottom: 12px; text-align: center;
+    position: relative; overflow: hidden;
+  }
+  .diagnosis-card::before {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(135deg, transparent 60%, rgba(0,255,135,.03));
+    pointer-events: none;
+  }
+  .diagnosis-group {
+    font-family: var(--head); font-size: 32px; font-weight: 900;
+    color: var(--accent); letter-spacing: 4px; margin-bottom: 2px;
+    text-shadow: 0 0 20px rgba(0,255,135,.3);
+  }
+  .result-group-title {
+    font-size: 9px; font-weight: 700; color: var(--accent2);
+    text-transform: uppercase; letter-spacing: 1.5px;
+    margin-bottom: 8px; padding-bottom: 6px;
+    border-bottom: 1px solid rgba(0,200,255,.15);
+  }
+  .result-row {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 4px 0; border-bottom: 1px solid rgba(30,37,48,.8);
+    font-size: 10px;
+  }
+  .result-key { color: var(--text-dim); flex: 1; }
+  .result-val { font-weight: 700; font-size: 11px; color: var(--text-bright); text-align: right; }
+  .result-val.warn { color: #ff6b35; }
+  .result-val.info { color: var(--accent2); }
+  .result-val.accent { color: var(--accent); font-size: 13px; }
+
+  /* Nota clínica mejorada */
+  .nota-clinica {
+    background: rgba(0,200,255,.04);
+    border: 1px solid rgba(0,200,255,.12);
+    border-radius: 4px; padding: 10px; margin-top: 10px;
+  }
+  .nota-clinica-label {
+    font-size: 8px; color: var(--accent2); text-transform: uppercase;
+    letter-spacing: 1.5px; margin-bottom: 5px; font-weight: 700;
+  }
+  .nota-clinica-text { font-size: 10px; color: var(--text-dim); line-height: 1.6; }
   .btn-secondary { background: transparent; color: var(--text-dim); border-color: var(--border-bright); }
   .btn-secondary:hover { border-color: var(--accent2); color: var(--accent2); }
 
@@ -137,8 +197,14 @@
 
 <header>
   <h1>Ortho<span>Analysis</span></h1>
-  <div class="header-badge">Beta v2.3</div>
-  <div class="header-right">Bimler · Lavergne-Petrovic <span style="color:var(--border-bright)">|</span> Motor v2.3 ✦ IA</div>
+  <div class="header-badge">v2.5</div>
+  <div class="header-right">
+    <span>Bimler · Lavergne-Petrovic</span>
+    <span style="color:var(--border-bright)">|</span>
+    <span style="color:var(--accent)">APOFI Lima</span>
+    <span style="color:var(--border-bright)">|</span>
+    <span style="color:var(--text-dim);font-size:10px">27 grupos · 8 factores · Motor validado</span>
+  </div>
 </header>
 
 <!-- LEFT PANEL -->
@@ -181,7 +247,10 @@
   </div>
 
   <div style="padding:8px 14px 4px;">
-    <div class="section-title">Puntos Anatómicos</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div class="section-title" style="margin-bottom:0">Puntos Anatómicos</div>
+      <div style="font-size:8px;color:var(--text-dim)">Clic para marcar · Arrastrar para mover</div>
+    </div>
     <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
     <div style="text-align:right;font-size:9px;color:var(--text-dim);margin-bottom:4px">
       <span id="pts-count">0</span>/11 puntos
@@ -191,20 +260,24 @@
   <div class="points-list" id="points-list"></div>
 
   <div class="panel-bottom">
-    <!-- AI Suggest button -->
+    <div class="ai-guide-box">
+      <div class="ai-guide-title">✦ Asistente IA</div>
+      <div class="ai-guide-text">Sugiere posiciones iniciales como <strong>guía aproximada</strong>. Revisa y ajusta cada punto arrastrándolo.</div>
+    </div>
     <button class="btn btn-ai" id="btn-ia" onclick="sugerirPuntosIA()" disabled>
-      ✦ Sugerir puntos con IA
+      ✦ Sugerir posiciones (guía IA)
     </button>
-    <!-- Confirm AI suggestions -->
     <button class="btn btn-confirm-ai" id="btn-confirm-ai" onclick="confirmarSugerencias()" style="display:none">
-      ✓ Confirmar sugerencias IA
+      ✓ Usar estas posiciones como base
     </button>
+    <div class="panel-divider"></div>
     <button class="btn btn-autofix" id="btn-autofix" onclick="autoCorregirPuntos()" disabled>
-      🔧 Auto-corregir puntos
+      🔧 Auto-corregir geometría
     </button>
     <button class="btn btn-primary" id="btn-analizar" onclick="analizarPuntos()" disabled>
       ⚡ Calcular Diagnóstico
     </button>
+    <div class="panel-divider"></div>
     <button class="btn btn-secondary" onclick="resetPuntos()">↺ Reiniciar puntos</button>
     <button class="btn btn-secondary" onclick="resetTodo()">✕ Nueva radiografía</button>
   </div>
