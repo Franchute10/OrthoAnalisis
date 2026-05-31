@@ -457,6 +457,10 @@ function cargarImagen(event) {
   const img = new Image();
   img.onload = () => {
     state.imagen = img;
+    // Forzar redimensionado del canvas ANTES de calcular zoom
+    // (el layout del grid puede no estar resuelto al arrancar)
+    canvas.width  = area.clientWidth;
+    canvas.height = area.clientHeight;
     document.getElementById('no-image').style.display    = 'none';
     document.getElementById('zoom-indicator').style.display = 'block';
     document.getElementById('canvas-hint').style.display    = 'block';
