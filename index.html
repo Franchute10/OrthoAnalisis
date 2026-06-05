@@ -429,6 +429,29 @@ const area   = document.getElementById('canvas-area');
 // ============================================================
 // INIT
 // ============================================================
+
+// ── Touch event adapters (para demos en tablet / mobile) ──────
+function onTouchStart(e) {
+  e.preventDefault();
+  if (e.touches.length === 1) {
+    const t = e.touches[0];
+    onMouseDown({ button: 0, clientX: t.clientX, clientY: t.clientY,
+                  preventDefault: ()=>{} });
+  }
+}
+function onTouchMove(e) {
+  e.preventDefault();
+  if (e.touches.length === 1) {
+    const t = e.touches[0];
+    onMouseMove({ clientX: t.clientX, clientY: t.clientY });
+  }
+}
+function onTouchEnd(e) {
+  e.preventDefault();
+  const t = e.changedTouches[0];
+  onMouseUp({ button: 0, clientX: t.clientX, clientY: t.clientY });
+}
+
 function init() {
   renderListaPuntos();
   resizeCanvas();
@@ -437,22 +460,24 @@ function init() {
   canvas.addEventListener('mousedown',   onMouseDown);
   canvas.addEventListener('mousemove',   onMouseMove);
   canvas.addEventListener('mouseup',     onMouseUp);
+  // Touch events for tablet/mobile
+  canvas.addEventListener('touchstart',  onTouchStart, { passive: false });
+  canvas.addEventListener('touchmove',   onTouchMove,  { passive: false });
+  canvas.addEventListener('touchend',    onTouchEnd,   { passive: false });
   canvas.addEventListener('mouseleave',  onMouseLeave);
   canvas.addEventListener('click',       onCanvasClick);
   canvas.addEventListener('contextmenu', e => e.preventDefault());
 }
 
 function getCanvasDimensions() {
-  // Medir paneles reales para calcular espacio disponible
-  const lp = document.querySelector('.left-panel');
-  const rp = document.querySelector('.right-panel');
-  const hd = document.querySelector('header');
-  const lw = lp ? lp.offsetWidth  : 280;
-  const rw = rp ? rp.offsetWidth  : 300;
-  const hh = hd ? hd.offsetHeight : 52;
+  // Usar valores FIJOS del grid CSS (grid-template-columns: 280px 1fr 300px)
+  // Más fiable que medir offsetWidth (puede inflarse por contenido CSS)
+  const LEFT_W  = 280;   // fixed in CSS grid
+  const RIGHT_W = 300;   // fixed in CSS grid
+  const HDR_H   = 52;    // fixed in CSS grid
   return {
-    w: Math.max(window.innerWidth  - lw - rw, 200),
-    h: Math.max(window.innerHeight - hh, 200)
+    w: Math.max(window.innerWidth  - LEFT_W - RIGHT_W, 400),
+    h: Math.max(window.innerHeight - HDR_H,            400)
   };
 }
 
