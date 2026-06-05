@@ -327,6 +327,10 @@
     <button class="btn btn-autofix" id="btn-autofix" onclick="autoCorregirPuntos()" disabled>
       🔧 Auto-corregir geometría
     </button>
+    <div style="display:flex;gap:6px">
+      <button class="btn btn-secondary" id="btn-undo" onclick="deshacerUltimoPunto()" disabled style="flex:1">↶ Deshacer punto</button>
+      <button class="btn btn-secondary" id="btn-fit"  onclick="encajarImagen()"       disabled style="flex:1">⤢ Encajar</button>
+    </div>
 <div class="patient-box">
   <div class="patient-box-title">Datos del paciente</div>
   <div class="patient-field">
@@ -382,7 +386,7 @@
   <div class="results-area" id="results-area">
     <div class="empty-state">
       <div class="empty-icon">📊</div>
-      <div>Marca los 11 puntos anatómicos</div>
+      <div>Marca los 13 puntos anatómicos</div>
       <div style="font-size:10px">o usa ✦ Sugerir con IA</div>
     </div>
   </div>
@@ -420,6 +424,7 @@ let state = {
   // Drag de punto sugerido
   draggingPoint: null,  // { key, startImgX, startImgY }
   modoSugerido: false,
+  ordenMarcado: [],                          // ⟵ HOOK undo (orden real de marcado)
 };
 const DRAG_THRESHOLD = 4;
 const canvas = document.getElementById('main-canvas');
@@ -514,6 +519,7 @@ function cargarImagen(event) {
     state.offsetY = (canvas.height - img.height * state.zoom) / 2;
     redraw();
     actualizarZoomIndicator();
+    if (typeof actualizarBotonesUX === 'function') actualizarBotonesUX();  // ⟵ HOOK
   };
   img.src = URL.createObjectURL(file);
 }
@@ -617,7 +623,8 @@ function confirmarSugerencias() {
 
   document.getElementById('btn-confirm-ai').style.display = 'none';
   document.getElementById('btn-ia').disabled = false;
-  document.getElementById('btn-analizar').disabled = false;
+  if (typeof actualizarBotonesUX === 'function') actualizarBotonesUX();   // ⟵ solo habilita si están los 13
+  else document.getElementById('btn-analizar').disabled = false;
   document.getElementById('ai-status').style.display = 'none';
   document.getElementById('ai-badge').style.display = 'none';
   canvas.style.cursor = 'default';
@@ -1020,8 +1027,10 @@ function onCanvasClick(e) {
 
   const config = PUNTOS_CONFIG[state.puntoActivo];
   state.puntos[config.key] = { x: imgX, y: imgY };
-  state.puntoActivo++;
-  actualizarListaPuntos(); redraw();
+  if (state.ordenMarcado) state.ordenMarcado.push(config.key);   // ⟵ HOOK undo
+  state.puntoActivo = siguientePuntoLibre();                     // ⟵ HOOK salto a hueco
+  actualizarListaPuntos(); actualizarBotonesUX(); redraw();
+  scrollPuntoActivoAVista();                                     // ⟵ HOOK auto-scroll
 
   if (state.puntoActivo >= PUNTOS_CONFIG.length) {
     document.getElementById('btn-analizar').disabled = false;
@@ -1074,6 +1083,7 @@ function actualizarListaPuntos() {
       coords.innerHTML = '';
     }
   });
+  if (typeof actualizarBotonesUX === 'function') actualizarBotonesUX();  // ⟵ HOOK
 }
 
 function actualizarZoomIndicator() {
@@ -1084,15 +1094,77 @@ function irAPunto(idx) {
   if (!state.imagen || state.modoSugerido) return;
   const config = PUNTOS_CONFIG[idx];
   delete state.puntos[config.key];
+  if (state.ordenMarcado) {
+    const j = state.ordenMarcado.indexOf(config.key);
+    if (j !== -1) state.ordenMarcado.splice(j, 1);
+  }
   state.puntoActivo = idx;
   document.getElementById('btn-analizar').disabled = true;
+  const _bp = document.getElementById('btn-pdf'); if (_bp) _bp.disabled = true;
   document.getElementById('tooltip').style.display  = 'none';
-  actualizarListaPuntos(); redraw();
+  actualizarListaPuntos(); actualizarBotonesUX(); redraw();
+  scrollPuntoActivoAVista();
 }
+
+// ============================================================
+// MEJORAS UX DE VELOCIDAD  (no toca el motor matemático)
+// ============================================================
+function siguientePuntoLibre() {
+  for (let i = 0; i < PUNTOS_CONFIG.length; i++) {
+    if (!state.puntos[PUNTOS_CONFIG[i].key]) return i;
+  }
+  return PUNTOS_CONFIG.length;
+}
+
+function scrollPuntoActivoAVista() {
+  const item = document.getElementById(`pt-item-${state.puntoActivo}`);
+  if (item && item.scrollIntoView) {
+    item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+}
+
+function actualizarBotonesUX() {
+  const total    = PUNTOS_CONFIG.length;
+  const marcados = Object.keys(state.puntos).length;
+  const btnUndo  = document.getElementById('btn-undo');
+  const btnFit   = document.getElementById('btn-fit');
+  if (btnUndo) btnUndo.disabled = (state.ordenMarcado.length === 0) || state.modoSugerido;
+  if (btnFit)  btnFit.disabled  = !state.imagen;
+  const btnA = document.getElementById('btn-analizar');
+  if (btnA) btnA.disabled = (marcados < total) || state.modoSugerido;
+}
+
+function deshacerUltimoPunto() {
+  if (state.modoSugerido) return;
+  const key = state.ordenMarcado.pop();
+  if (!key) return;
+  delete state.puntos[key];
+  state.puntoActivo = siguientePuntoLibre();
+  document.getElementById('btn-analizar').disabled = true;
+  const _bp = document.getElementById('btn-pdf'); if (_bp) _bp.disabled = true;
+  document.getElementById('tooltip').style.display = 'none';
+  canvas.style.cursor = state.puntoActivo < PUNTOS_CONFIG.length ? 'crosshair' : 'default';
+  actualizarListaPuntos(); actualizarBotonesUX(); redraw();
+  scrollPuntoActivoAVista();
+}
+
+function encajarImagen() {
+  if (!state.imagen) return;
+  const img = state.imagen;
+  const scaleX = canvas.width  / img.width;
+  const scaleY = canvas.height / img.height;
+  state.zoom    = Math.min(scaleX, scaleY) * 0.9;
+  state.offsetX = (canvas.width  - img.width  * state.zoom) / 2;
+  state.offsetY = (canvas.height - img.height * state.zoom) / 2;
+  redraw();
+  if (typeof actualizarZoomIndicator === 'function') actualizarZoomIndicator();
+}
+
 
 function resetPuntos() {
   state.puntos = {}; state.sugeridos = {};
   const _bpR = document.getElementById('btn-pdf'); if (_bpR) _bpR.disabled = true;
+  state.ordenMarcado = [];                                    // ⟵ HOOK undo reset
   state.puntoActivo = 0; state.modoSugerido = false; state.dragMoved = false;
   document.getElementById('btn-analizar').disabled = true;
   document.getElementById('btn-confirm-ai').style.display = 'none';
@@ -1101,6 +1173,7 @@ function resetPuntos() {
   document.getElementById('tooltip').style.display = 'none';
   canvas.style.cursor = 'crosshair';
   actualizarListaPuntos(); mostrarEmptyState(); redraw();
+  if (typeof actualizarBotonesUX === 'function') actualizarBotonesUX();  // ⟵ HOOK
 }
 
 function resetTodo() {
@@ -1117,7 +1190,7 @@ function mostrarEmptyState() {
   document.getElementById('results-area').innerHTML = `
     <div class="empty-state">
       <div class="empty-icon">📊</div>
-      <div>Marca los 11 puntos anatómicos</div>
+      <div>Marca los 13 puntos anatómicos</div>
       <div style="font-size:10px">o usa ✦ Sugerir con IA</div>
     </div>`;
 }
@@ -1126,7 +1199,10 @@ function mostrarEmptyState() {
 // API ANALIZAR
 // ============================================================
 async function analizarPuntos() {
-  if (Object.keys(state.puntos).length < 11) { alert('Faltan puntos.'); return; }
+  if (Object.keys(state.puntos).length < PUNTOS_CONFIG.length) {
+    alert('Faltan puntos: marca los 13 (incluidos Clivus Sup. e Inf.) para un reporte completo.');
+    return;
+  }
   document.getElementById('loading').style.display = 'flex';
   document.getElementById('results-area').style.display = 'none';
   try {
