@@ -1330,6 +1330,14 @@ function mostrarResultados(data) {
     <div style="background:rgba(0,200,255,.05);border:1px solid rgba(0,200,255,.15);border-radius:4px;padding:10px;margin-top:8px">
       <div style="font-size:9px;color:var(--accent2);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Nota Clínica</div>
       <div style="font-size:10px;color:var(--text-dim);line-height:1.6">${d.categoria ? obtenerNota(d.categoria) : 'Sin categoría asignada — revise la advertencia de grupo arriba.'}</div>
+    </div>
+    <div style="padding:8px 0 0">
+      <button onclick="exportarPDF()"
+        style="width:100%;padding:10px 0;background:transparent;color:var(--accent2);border:1px solid var(--accent2);border-radius:4px;font-family:var(--mono);font-size:11px;letter-spacing:1px;cursor:pointer"
+        onmouseover="this.style.background='rgba(0,200,255,.1)'"
+        onmouseout="this.style.background='transparent'">
+        ⬇  Exportar PDF del reporte
+      </button>
     </div>`;
 }
 
