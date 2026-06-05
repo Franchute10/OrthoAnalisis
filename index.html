@@ -581,11 +581,11 @@ async function sugerirPuntosIA() {
     }
 
     // Enviar dimensiones comprimidas (lo que Claude realmente ve)
-    const sendW = (state.imagen.width > maxDimUsed || state.imagen.height > maxDimUsed)
-      ? Math.round(state.imagen.width  * (maxDimUsed / Math.max(state.imagen.width, state.imagen.height)))
+    const sendW = (state.imagen.width > maxDim || state.imagen.height > maxDim)
+      ? Math.round(state.imagen.width  * (maxDim / Math.max(state.imagen.width, state.imagen.height)))
       : state.imagen.width;
-    const sendH = (state.imagen.width > maxDimUsed || state.imagen.height > maxDimUsed)
-      ? Math.round(state.imagen.height * (maxDimUsed / Math.max(state.imagen.width, state.imagen.height)))
+    const sendH = (state.imagen.width > maxDim || state.imagen.height > maxDim)
+      ? Math.round(state.imagen.height * (maxDim / Math.max(state.imagen.width, state.imagen.height)))
       : state.imagen.height;
 
     const resp = await fetch('/api/sugerir-puntos', {
