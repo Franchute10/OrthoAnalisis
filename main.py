@@ -7,7 +7,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 import uvicorn
 
-app = FastAPI(title="OrthoAnalysis - Motor Cefalométrico v2.5")
+app = FastAPI(title="OrthoAnalysis - Motor Cefalométrico v2.4")
 
 # =================================================================
 # MOTOR MATEMÁTICO v2.4
@@ -193,15 +193,11 @@ def calcular_factores_bimler(pts, escala_mm_px=None):
 
 def calcular_indicadores_T(f):
     ML_NSLc = round(192 - (2 * f["SNB"]), 2)
-    # ── FÓRMULA CORRECTA de NL/NSLc — Lavergne-Petrovic (Estrasburgo) ──────
-    # NL/NSLc = ML/NSL_medido / 2 - 7
-    # Fuente: Lavergne J, Petrovic A (1979-1982), confirmado bibliográficamente
-    #         (Saccomanno 2018, actaitalica.it) y verificado en 3 casos OrthoTP:
-    #   Mia:    calc=12.38°  PDF=12.38° ✅
-    #   Nicolás: calc=9.31°  PDF=9.31°  ✅
-    # CORRIGE el bug Fix C anterior (0.198*SNA-4.39 era incorrecto).
-    # Ahora T2 para Nicolás da -2.14° → R1 NDB ✅ (antes daba -0.27° → R1 NN)
-    NL_NSLc = round(f["ML_NSL"] / 2 - 7, 2)
+    # ── Fix C: NL/NSLc NO validado contra OrthoTP ──────────────
+    # La fórmula 0.198*SNA - 4.39 NO reproduce OrthoTP (Nicolás: 11.18 vs 9.31).
+    # NL/NSLc NO es función lineal solo de SNA. Se expone marcado como no validado.
+    # No afecta el diagnóstico: T1 usa ML/NSLc, y T2 usa NL/NSL MEDIDO (no NL/NSLc).
+    NL_NSLc = round(0.198 * f["SNA"] - 4.39, 2)
     T1 = round(ML_NSLc - f["ML_NSL"], 2)
     T2 = round(NL_NSLc - f["NL_NSL"], 2)
     T3 = f["ANB"]
@@ -302,8 +298,10 @@ async def sugerir_puntos(request: Request):
     try:
         body      = await request.json()
         image_b64 = body.get("image", "")
-        img_w     = body.get("width", 1000)
-        img_h     = body.get("height", 800)
+        # img_w/h son las dimensiones de la imagen comprimida que Claude ve
+        # orig_w/h son las dimensiones originales (para escalar de vuelta en el frontend)
+        img_w     = body.get("width",  1000)   # dim comprimida = lo que Claude ve
+        img_h     = body.get("height",  800)   # dim comprimida = lo que Claude ve
 
         if not image_b64:
             return {"success": False, "detail": "No se recibió imagen"}
@@ -517,9 +515,9 @@ async def analizar(request: Request):
                 "ML_NSLc": ML_NSLc,
                 "NL_NSLc": NL_NSLc,
                 # Fix C: NL/NSLc no validado contra OrthoTP
-                "nslc_validado": True,
-                "nslc_nota": "NL/NSLc = ML/NSL/2 - 7 (Lavergne-Petrovic, Estrasburgo). "
-                             "Verificado en casos Mia y Nicolás contra OrthoTP.",
+                "nslc_validado": False,
+                "nslc_nota": "NL/NSLc (0.198*SNA-4.39) NO reproduce OrthoTP y NO es función "
+                             "lineal solo de SNA. No afecta el diagnóstico (T2 usa NL/NSL medido).",
             },
             "diagnostico": {
                 "grupo": grupo, "categoria": categoria,
@@ -535,7 +533,7 @@ async def analizar(request: Request):
 
 @app.get("/api/health")
 async def health():
-    return {"status": "ok", "version": "2.5",
+    return {"status": "ok", "version": "2.4",
             "grupos_rotacionales": 27,
             "factores_bimler": 8,
             "casos_validados": 3}
