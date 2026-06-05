@@ -36,7 +36,9 @@
   .header-right { margin-left: auto; display: flex; align-items: center; gap: 10px; color: var(--text-dim); font-size: 11px; }
 
   /* LEFT PANEL */
-  .left-panel { grid-area: left; background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+  .left-panel { grid-area: left; background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow-y: auto; overflow-x: hidden; }
+  .left-panel::-webkit-scrollbar { width: 3px; }
+  .left-panel::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 2px; }
   .panel-section { padding: 14px; border-bottom: 1px solid var(--border); }
   .section-title { font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-dim); margin-bottom: 10px; }
   .upload-zone { border: 1px dashed var(--border-bright); border-radius: 4px; padding: 16px; text-align: center; cursor: pointer; transition: all .2s; background: var(--bg); }
@@ -64,7 +66,7 @@
   .point-desc { font-size: 9px; color: var(--text-dim); margin-top: 1px; }
   .point-coords { margin-left: auto; font-size: 9px; color: var(--accent); white-space: nowrap; text-align: right; }
   .point-coords .coord-xy { font-size: 8px; color: var(--text-dim); display: block; }
-  .panel-bottom { padding: 12px 14px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 6px; }
+  .panel-bottom { padding: 8px 10px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 4px; }
   .btn { padding: 9px 14px; border-radius: 4px; font-family: var(--mono); font-size: 11px; font-weight: 600; cursor: pointer; border: 1px solid transparent; transition: all .15s; text-align: center; letter-spacing: .5px; }
   .btn-primary { background: var(--accent); color: var(--bg); }
   .btn-primary:hover { background: #00e07a; }
@@ -79,7 +81,7 @@
   .btn-autofix:disabled { opacity:.3; cursor:not-allowed; }
 
   /* AI Guide Box */
-  .ai-guide-box { background: rgba(0,200,255,.04); border: 1px solid rgba(0,200,255,.12); border-radius:4px; padding:8px 10px; margin-bottom:2px; }
+  .ai-guide-box { background: rgba(0,200,255,.04); border: 1px solid rgba(0,200,255,.12); border-radius:4px; padding:5px 8px; margin-bottom:2px; }
   .ai-guide-title { font-size:9px; font-weight:700; color:var(--accent2); text-transform:uppercase; letter-spacing:1.2px; margin-bottom:4px; }
   .ai-guide-text { font-size:9px; color:var(--text-dim); line-height:1.5; }
   .ai-guide-text strong { color:var(--text); }
@@ -196,7 +198,7 @@
   background: var(--bg);
   border: 1px solid var(--border-bright);
   border-radius: 4px;
-  padding: 10px;
+  padding: 6px 8px;
   margin-bottom: 2px;
   min-width: 0;
   overflow: hidden;
@@ -216,8 +218,8 @@
   border-radius: 3px;
   color: var(--text-bright);
   font-family: var(--mono);
-  font-size: 11px;
-  padding: 6px 8px;
+  font-size: 10px;
+  padding: 4px 6px;
   outline: none;
   transition: border-color .15s;
 }
@@ -1543,19 +1545,7 @@ actualizarListaPuntos = function() {
   if (btn) btn.disabled = count < 6; // necesitamos al menos S,N,B,Po,Or
 };
 
-// 3) JAVASCRIPT — EXPORTAR PDF  (+ helpers de norma compartidos)
-//
-//   a) Agrega el CDN de jsPDF UNA vez, antes de tu <script> principal:
-//      (justo después de <body> o antes de tu <script> grande; cualquiera sirve)
-//
-//      <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-//
-//   b) Pega TODO este bloque dentro de tu <script> principal
-//      (p. ej. justo después de obtenerNota(), ~línea 1122).
-//
-//   Requiere: state.ultimoAnalisis (lo setea mostrarResultados — ver sección 5)
-//             y el canvas id="main-canvas" ya dibujado.
-// ════════════════════════════════════════════════════════════════
+// ── exportarPDF + helpers ──
 
 // [NORMAS moved to top]
 
