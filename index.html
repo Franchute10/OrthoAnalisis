@@ -453,21 +453,23 @@ function onTouchEnd(e) {
 }
 
 function init() {
-  renderListaPuntos();
-  resizeCanvas();
+  try { renderListaPuntos(); } catch(e) { console.error('renderListaPuntos:', e); }
+  try { resizeCanvas();       } catch(e) { console.error('resizeCanvas:', e); }
   window.addEventListener('resize', resizeCanvas);
-  canvas.addEventListener('wheel',       onWheel,      { passive: false });
-  canvas.addEventListener('mousedown',   onMouseDown);
-  canvas.addEventListener('mousemove',   onMouseMove);
-  canvas.addEventListener('mouseup',     onMouseUp);
-  // Touch events for tablet/mobile
-  canvas.addEventListener('touchstart',  onTouchStart, { passive: false });
-  canvas.addEventListener('touchmove',   onTouchMove,  { passive: false });
-  canvas.addEventListener('touchend',    onTouchEnd,   { passive: false });
-  canvas.addEventListener('mouseleave',  onMouseLeave);
-  canvas.addEventListener('click',       onCanvasClick);
-  canvas.addEventListener('contextmenu', e => e.preventDefault());
 }
+
+// ── Registrar eventos del canvas a nivel global ──────────────
+// (fuera de init para que funcionen aunque init falle)
+canvas.addEventListener('wheel',       onWheel,      { passive: false });
+canvas.addEventListener('mousedown',   onMouseDown);
+canvas.addEventListener('mousemove',   onMouseMove);
+canvas.addEventListener('mouseup',     onMouseUp);
+canvas.addEventListener('touchstart',  onTouchStart, { passive: false });
+canvas.addEventListener('touchmove',   onTouchMove,  { passive: false });
+canvas.addEventListener('touchend',    onTouchEnd,   { passive: false });
+canvas.addEventListener('mouseleave',  onMouseLeave);
+canvas.addEventListener('click',       onCanvasClick);
+canvas.addEventListener('contextmenu', e => e.preventDefault());
 
 function getCanvasDimensions() {
   // Usar valores FIJOS del grid CSS (grid-template-columns: 280px 1fr 300px)
