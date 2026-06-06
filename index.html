@@ -210,7 +210,7 @@ input[type=range]::-webkit-slider-thumb {
     linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
   background-size: 32px 32px;
 }
-#main-canvas { position: absolute; top: 0; left: 0; cursor: crosshair; }
+#main-canvas { position: absolute; top: 0; left: 0; cursor: crosshair; pointer-events: none; }
 
 /* Methodology overlay (top-left of canvas like Stitch) */
 .canvas-method-card {
@@ -689,14 +689,14 @@ input[type=range]::-webkit-slider-thumb {
     <div class="method-sub">27 grupos · 8 factores · Motor validado</div>
   </div>
 
-  <!-- No image state -->
-  <div class="no-image" id="no-image">
+  <!-- No image state — click anywhere here to upload -->
+  <div class="no-image" id="no-image" style="cursor:pointer;z-index:5;position:absolute;inset:0"
+       onclick="document.getElementById('file-input').click()">
     <div class="no-image-icon">🦷</div>
-    <p style="font-size:13px;color:rgba(255,255,255,.4)">Carga una radiografía lateral</p>
-    <label style="cursor:pointer;margin-top:4px;padding:8px 20px;background:rgba(245,130,32,.15);border:1px solid rgba(245,130,32,.4);border-radius:8px;font-size:12px;color:var(--orange)">
+    <p style="font-size:13px;color:rgba(255,255,255,.4)">Clic aquí para cargar radiografía</p>
+    <div style="margin-top:8px;padding:9px 22px;background:rgba(245,130,32,.18);border:1px solid rgba(245,130,32,.45);border-radius:8px;font-size:12px;color:var(--orange);pointer-events:none">
       ⬆ Cargar radiografía
-      <input type="file" id="file-input" accept="image/*" style="display:none" onchange="cargarImagen(event)"/>
-    </label>
+    </div>
   </div>
 
   <canvas id="main-canvas"></canvas>
@@ -928,6 +928,7 @@ function cargarImagen(event) {
   const img = new Image();
   img.onload = () => {
     state.imagen = img;
+    canvas.style.pointerEvents = 'auto'; // enable after image loaded
     // Forzar redimensionado usando medición directa de paneles
     const { w: _w, h: _h } = getCanvasDimensions();
     canvas.width  = _w;
@@ -2166,7 +2167,7 @@ function exportarPDF() {
 
   // ---- PIE ----
   doc.setFontSize(7); doc.setTextColor(150, 158, 170);
-  doc.text('Generado por OrthoAnalysis · Cefalometría Digital · APOFI',
+  doc.text('Generado por OrthoAnalysis · Cefalometría Digital',
            PW / 2, 290, { align: 'center' });
 
   // ---- GUARDAR ----
@@ -2193,6 +2194,14 @@ init();
 
 
 // ── Post-init enhancements ────────────────────────────────
+// Auto-set today's date
+(function() {
+  const fechaInput = document.getElementById('pac-fecha');
+  if (fechaInput && !fechaInput.value) {
+    fechaInput.value = new Date().toISOString().split('T')[0];
+  }
+})();
+
 // Sync orthodontist → header
 (function() {
   const orto = document.getElementById('pac-orto');
@@ -2219,5 +2228,6 @@ actualizarListaPuntos = function() {
 
 init();
 </script>
+<input type="file" id="file-input" accept="image/*" style="display:none" onchange="cargarImagen(event)"/>
 </body>
 </html>
