@@ -1021,11 +1021,21 @@ async function sugerirPuntosIA() {
 
     // Guardar sugerencias
     state.sugeridos = {};
+    state.confianzaIA = data.confianza || {};
     for (const [key, coords] of Object.entries(data.puntos)) {
       state.sugeridos[key] = {
         x: coords.x * scaleX_ai,
-        y: coords.y * scaleY_ai
+        y: coords.y * scaleY_ai,
+        conf: state.confianzaIA[key] ?? null
       };
+    }
+    // Avisar puntos con baja confianza (< 0.55) para revisión manual
+    const dudosos = Object.entries(state.confianzaIA)
+      .filter(([, v]) => v !== null && v < 0.55)
+      .map(([k]) => k);
+    if (dudosos.length) {
+      document.getElementById('ai-status-text').textContent =
+        '✓ Listo — revisa: ' + dudosos.join(', ') + ' (baja confianza IA)';
     }
 
     state.modoSugerido = true;
@@ -1610,12 +1620,17 @@ function resetPuntos() {
 
 function resetTodo() {
   state.imagen = null; state.zoom = 1; state.offsetX = 0; state.offsetY = 0;
+  // Limpiar canvas y restaurar estado inicial
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  canvas.style.pointerEvents = 'none'; // regresar a no-image clickeable
   document.getElementById('no-image').style.display    = 'flex';
   document.getElementById('zoom-indicator').style.display = 'none';
   document.getElementById('canvas-hint').style.display    = 'none';
+  document.getElementById('drag-indicator').style.display = 'none';
   document.getElementById('btn-ia').disabled = true;
-  document.getElementById('fileInput').value = '';
+  const fi = document.getElementById('file-input'); if (fi) fi.value = '';
   resetPuntos();
+  redraw(); // limpia el canvas completamente
 }
 
 function mostrarEmptyState() {
