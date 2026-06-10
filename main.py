@@ -26,6 +26,8 @@ app = FastAPI(title="OrthoAnalysis - Motor Cefalométrico v2.4")
 def calcular_angulo_3_puntos(p1, vertice, p2):
     v1 = (p1[0] - vertice[0], vertice[1] - p1[1])
     v2 = (p2[0] - vertice[0], vertice[1] - p2[1])
+    if math.sqrt(v1[0]**2+v1[1]**2) < 1 or math.sqrt(v2[0]**2+v2[1]**2) < 1:
+        return None  # línea degenerada
     ang_v1 = math.atan2(v1[1], v1[0])
     ang_v2 = math.atan2(v2[1], v2[0])
     angulo = math.degrees(ang_v1 - ang_v2)
@@ -37,6 +39,8 @@ def calcular_angulo_entre_lineas(p1, p2, p3, p4):
     """Ángulo sin signo entre dos líneas (0-90°)"""
     v1 = (p2[0]-p1[0], p1[1]-p2[1])
     v2 = (p4[0]-p3[0], p3[1]-p4[1])
+    if math.sqrt(v1[0]**2+v1[1]**2) < 1 or math.sqrt(v2[0]**2+v2[1]**2) < 1:
+        return None  # línea degenerada
     ang_v1 = math.atan2(v1[1], v1[0])
     ang_v2 = math.atan2(v2[1], v2[0])
     angulo = math.degrees(abs(ang_v1 - ang_v2))
@@ -141,9 +145,9 @@ def calcular_factores_bimler(pts, escala_mm_px=None):
 
     # ── Ángulos derivados ──────────────────────────────────────
     perfil = round(F1 + F2, 2)                     # Ángulo de Perfil NAB
-    ABS    = round(abs(F4) + (F5 or 0), 2)         # Basal Superior F4+F5
+    ABS    = round(abs(F4) + F5, 2) if F5 is not None else None  # None si clivus no medido
     ABI    = round(F3 - abs(F4), 2)                # Basal Inferior F3-|F4|
-    ABT    = round(F3 + (F5 or 0), 2)              # Basal Total F3+F5
+    ABT    = round(F3 + F5, 2) if F5 is not None else None  # None si clivus no medido
 
     # ── Fix B: AG = F3 - F8 + 90 (F8 con signo) ────────────────
     # Antes: F3 + |F8| + 90 (Mia daba 128.83 vs 118.07 real).
@@ -197,7 +201,7 @@ def calcular_indicadores_T(f):
     # La fórmula 0.198*SNA - 4.39 NO reproduce OrthoTP (Nicolás: 11.18 vs 9.31).
     # NL/NSLc NO es función lineal solo de SNA. Se expone marcado como no validado.
     # No afecta el diagnóstico: T1 usa ML/NSLc, y T2 usa NL/NSL MEDIDO (no NL/NSLc).
-    NL_NSLc = round(0.198 * f["SNA"] - 4.39, 2)
+    NL_NSLc = round(f["ML_NSL"] / 2 - 7, 2)  # Petrovic-Lavergne validado: ML/NSL÷2-7
     T1 = round(ML_NSLc - f["ML_NSL"], 2)
     T2 = round(NL_NSLc - f["NL_NSL"], 2)
     T3 = f["ANB"]
@@ -276,6 +280,22 @@ GRUPOS_33 = {
     "P3 MOB": 6,  "P3 MN":  6,  "P3 MDB": 6,
 }
 
+def margenes_borde(T1, T2, T3, tol=0.5):
+    """Hallazgo 1: avisa si algún indicador está cerca de un umbral del árbol.
+    Un caso limítrofe puede cambiar de categoría con mínima variación de marcado."""
+    avisos = []
+    for nombre, val, umbrales in [
+        ("T1", T1, [0, 9]), ("T2", T2, [-1, 3]), ("T3", T3, [0, 5]),
+    ]:
+        for u in umbrales:
+            if val is not None and abs(val - u) <= tol:
+                avisos.append(
+                    f"{nombre}={val} está a {abs(val-u):.2f}° del umbral {u} "
+                    f"— el grupo puede cambiar con mínima variación de marcado."
+                )
+    return avisos
+
+
 def determinar_categoria(grupo):
     """
     Busca el grupo en la tabla de grupos alcanzables de Petrovic-Lavergne.
@@ -312,81 +332,118 @@ async def sugerir_puntos(request: Request):
 
         prompt = f"""Eres un especialista en cefalometría de Bimler-Lavergne-Petrovic. Analiza esta telerradiografía lateral de cráneo e identifica con MÁXIMA PRECISIÓN los 13 puntos cefalométricos.
 
-Dimensiones de imagen: {img_w}px ancho × {img_h}px alto. Eje Y crece hacia ABAJO.
+SISTEMA DE COORDENADAS:
+• Reporta cada punto como PORCENTAJE de las dimensiones de la imagen, NO en píxeles.
+• x_pct = (posición horizontal / ancho total) × 100   → 0 = borde izquierdo, 100 = borde derecho
+• y_pct = (posición vertical  / alto total)  × 100    → 0 = borde superior, 100 = borde inferior
+• Usa decimales (ej. 47.3). El eje Y crece hacia ABAJO.
+• Trabajar en % te hace independiente de la resolución de la radiografía.
+
+ORIENTACIÓN: perfil lateral. Asume cara mirando a la DERECHA (anterior = mayor x_pct).
+Si la cara mira a la izquierda, razona en consecuencia pero mantén la convención anatómica.
 
 ═══════════════════════════════════════
-ADVERTENCIA GLOBAL — LEE ANTES DE MARCAR
+OBJETOS A IGNORAR (NO son anatomía)
 ═══════════════════════════════════════
-⚠️ OBJETOS A IGNORAR COMPLETAMENTE:
-• RULERO / ESCALA METÁLICA: objeto rectangular con marcas de mm visible en las esquinas. NO es anatomía.
-• SOPORTE DE CABEZA / CEFALOSTATO: estructura metálica que sujeta la cabeza. NO es anatomía.
-• ARTEFACTOS METÁLICOS: cualquier objeto brillante/rectangular fuera del contorno óseo del cráneo.
-Todos los puntos deben estar DENTRO del contorno óseo del cráneo y la mandíbula.
-
-═══════════════════════════════════════
-INSTRUCCIONES CRÍTICAS PUNTO POR PUNTO
-═══════════════════════════════════════
-
-S — SELLA TURCA:
-• Centro geométrico de la fosa pituitaria (concavidad ósea en la base del cráneo)
-• Debe estar bien POSTERIOR, aproximadamente sobre la vertical del CAE
-• ERROR: marcarlo demasiado anterior. Verificar: S debe estar claramente a la izquierda de N en imagen lateral derecha
-
-N — NASION:
-• Intersección de la sutura frontonasal — en la CONCAVIDAD entre frente y nariz
-• Debe estar DENTRO del cráneo, en la depresión ósea frente-nariz
-• ERROR CRÍTICO: confundirlo con el RULERO METÁLICO de la esquina de la radiografía
-• Si ves escala/rulero en esquina superior derecha → N NO va allí, va en la sutura ósea frente-nariz
-
-Or — ORBITARIO:
-• Punto MÁS INFERIOR del reborde orbitario óseo
-• CRÍTICO: Or.y debe ser > Po.y + 15px (Or claramente más bajo que Po)
-• La línea Frankfurt (Po→Or) tiene ~7-10° de inclinación respecto a S-N
-• Si Or y Po tienen la misma altura → POSICIÓN INCORRECTA
-
-Po — PORION:
-• Punto más SUPERIOR del conducto auditivo externo óseo
-
-A — Punto A (Subespinal): máxima concavidad del perfil anterior del maxilar superior
-B — Punto B (Supramental): máxima concavidad del perfil anterior mandibular
-Me — Mentón: punto más INFERIOR de la sínfisis
-Go — Gonion: ángulo mandibular postero-inferior (bisectriz de tangentes)
-ENA — Espina Nasal Anterior: extremo más anterior del paladar
-ENP — Espina Nasal Posterior: extremo posterior del paladar óseo
-Co — Condylion: punto más postero-superior del cóndilo mandibular
-
-Cls — CLIVUS SUPERIOR:
-• Punto en el clivus (superficie posterior de la silla turca / cuerpo del esfenoides)
-• Se ubica aproximadamente 10mm POR DEBAJO del centro de la silla turca (S)
-• Es la parte superior del plano inclinado posterior de la base craneal
-
-Cli — CLIVUS INFERIOR:
-• Punto inferior del clivus, aproximadamente 10mm POR ENCIMA del Basion
-• El Basion es la punta más inferior y anterior del hueso occipital (donde termina el clivus)
+• RULERO / ESCALA METÁLICA: rectángulo con marcas de mm, normalmente en una esquina.
+• CEFALOSTATO / OLIVAS AURICULARES: piezas metálicas simétricas que sujetan la cabeza.
+• Cualquier objeto brillante/recto FUERA del contorno óseo.
+TODOS los puntos deben caer DENTRO del contorno óseo del cráneo y la mandíbula.
 
 ═══════════════════════════════════════
-VALIDACIÓN ANTES DE RESPONDER:
+LANDMARKS — con referencias RELATIVAS entre sí
 ═══════════════════════════════════════
-1. ¿Or.y > Po.y + 15? → Si no, corrige Or hacia abajo
-2. ¿N está en sutura ósea frente-nariz (NO en el rulero metálico)? → Si está en el rulero, corrígelo
-3. ¿S está bien posterior en la base del cráneo? → Si está muy anterior, muévelo hacia atrás
-4. ¿Cls está entre S y Cli, en la cara posterior de la silla turca? → Verificar secuencia S→Cls→Cli
+Ubica primero los 4 de referencia (S, N, Po, Or) y usa su geometría para situar el resto.
 
-Responde ÚNICAMENTE con JSON válido:
+S — SELLA: centro de la silla turca (concavidad en la base craneal media).
+   • Referencia: es el punto MÁS POSTERIOR del grupo superior; x_pct(S) < x_pct(N).
+   • Está aprox. a la misma altura o ligeramente por encima de Po.
+
+N — NASION: sutura frontonasal, en la concavidad ósea entre frente y nariz.
+   • Referencia: ANTERIOR y SUPERIOR respecto a S → x_pct(N) > x_pct(S), y_pct(N) < y_pct(Po).
+   • La línea S–N (base craneal anterior) baja suavemente hacia adelante (~5-10° bajo la horizontal).
+   • ERROR FRECUENTE: marcarlo sobre el RULERO metálico de la esquina. N va en HUESO, nunca en metal.
+
+Po — PORION: borde más SUPERIOR del conducto auditivo externo óseo.
+   • Referencia: punto posterior; aprox. bajo S. Define con Or el plano de Frankfurt.
+
+Or — ORBITARIO: borde más INFERIOR del reborde orbitario.
+   • Referencia OBLIGATORIA: Or está MÁS ABAJO que Po → y_pct(Or) > y_pct(Po) + ~1.5.
+   • El plano Po→Or (Frankfurt) tiene ~7-10° respecto a S–N. Si Po y Or quedan a la misma
+     altura, está MAL: baja Or.
+
+A — SUBESPINAL: máxima concavidad del perfil anterior del maxilar, bajo ENA.
+   • Referencia: x_pct(A) alto (anterior); por debajo de N, por encima de B.
+
+B — SUPRAMENTAL: máxima concavidad del perfil anterior mandibular.
+   • Referencia: por debajo de A; A y B casi en la misma vertical (x_pct similar, ±pocos %).
+
+Me — MENTÓN: punto más INFERIOR de la sínfisis mandibular.
+   • Referencia: el de mayor y_pct de la mandíbula anterior; por debajo de B.
+
+Go — GONION: vértice del ÁNGULO mandibular postero-inferior.
+   • Definición: intersección de la tangente al borde posterior de la rama con la tangente
+     al borde inferior del cuerpo (bisectriz del ángulo). Es la ESQUINA, NO un punto en mitad
+     de la rama.
+   • Referencia: punto POSTERO-INFERIOR de la mandíbula → x_pct(Go) < x_pct(Me), y_pct(Go) alto.
+   • ERROR FRECUENTE: colocarlo subido sobre la rama. Debe estar en el codo del ángulo, lo más
+     posterior e inferior posible de la mandíbula.
+
+ENA — ESPINA NASAL ANTERIOR: extremo más ANTERIOR del paladar óseo (espícula).
+ENP — ESPINA NASAL POSTERIOR: extremo POSTERIOR del paladar óseo.
+   • Referencia: ENA y ENP definen el plano palatino; x_pct(ENA) > x_pct(ENP), y a altura similar.
+
+Co — CONDYLION: punto más POSTERO-SUPERIOR del cóndilo mandibular.
+   • Referencia: por encima y detrás de Go; cerca de la región articular.
+
+Cls — CLIVUS SUPERIOR: parte superior del plano inclinado del clivus (cara posterior
+   del cuerpo del esfenoides), por DEBAJO de la silla turca.
+   • Referencia RELATIVA: justo por debajo de S → x_pct(Cls) ≈ x_pct(S)±3, y_pct(Cls) > y_pct(S).
+   • Secuencia vertical correcta: S (arriba) → Cls → Cli (abajo), casi alineados.
+
+Cli — CLIVUS INFERIOR: extremo inferior del clivus, próximo al Basion (borde anterior
+   del agujero magno).
+   • Referencia RELATIVA: por debajo de Cls, continuando la misma línea → y_pct(Cli) > y_pct(Cls).
+   • Cls y Cli forman una recta corta y posterior; si quedan muy separados horizontalmente, revisa.
+
+═══════════════════════════════════════
+AUTO-VERIFICACIÓN OBLIGATORIA (hazla ANTES de responder)
+═══════════════════════════════════════
+Revisa estas proporciones y CORRIGE si alguna falla:
+1. y_pct(Or) > y_pct(Po) + 1.5         (Frankfurt inclinado, Or más bajo que Po)
+2. x_pct(N)  > x_pct(S)                 (Nasion anterior a Sella)
+3. y_pct(Me) > y_pct(B) > y_pct(A)      (orden vertical mentón→B→A)
+4. x_pct(Go) < x_pct(Me)               (Gonion posterior al mentón)
+5. y_pct(S) < y_pct(Cls) < y_pct(Cli)  (secuencia del clivus de arriba a abajo)
+6. x_pct(ENA) > x_pct(ENP)             (espina anterior por delante de la posterior)
+7. Ningún punto sobre el rulero/metal: todos dentro del hueso.
+Si un punto no cumple su referencia y no puedes resolverlo con seguridad, BÁJALE la confianza.
+
+═══════════════════════════════════════
+CONFIANZA POR PUNTO (0.0 - 1.0)
+═══════════════════════════════════════
+Asigna a cada punto un valor de "confianza":
+• 0.9-1.0 → landmark nítido y sin ambigüedad.
+• 0.6-0.8 → visible pero con algo de incertidumbre.
+• 0.3-0.5 → difícil (típico en Cls, Cli, Go con poca calidad de imagen).
+• 0.0-0.2 → no distinguible; igual da tu mejor estimación.
+Sé honesto: una confianza baja le indica al clínico que verifique ese punto.
+
+Responde ÚNICAMENTE con JSON válido (sin texto antes ni después), con x_pct, y_pct y confianza:
 {{
-  "S":   {{"x": 0, "y": 0}},
-  "N":   {{"x": 0, "y": 0}},
-  "A":   {{"x": 0, "y": 0}},
-  "B":   {{"x": 0, "y": 0}},
-  "Me":  {{"x": 0, "y": 0}},
-  "Go":  {{"x": 0, "y": 0}},
-  "ENA": {{"x": 0, "y": 0}},
-  "ENP": {{"x": 0, "y": 0}},
-  "Po":  {{"x": 0, "y": 0}},
-  "Or":  {{"x": 0, "y": 0}},
-  "Co":  {{"x": 0, "y": 0}},
-  "Cls": {{"x": 0, "y": 0}},
-  "Cli": {{"x": 0, "y": 0}}
+  "S":   {{"x_pct": 0.0, "y_pct": 0.0, "confianza": 0.0}},
+  "N":   {{"x_pct": 0.0, "y_pct": 0.0, "confianza": 0.0}},
+  "A":   {{"x_pct": 0.0, "y_pct": 0.0, "confianza": 0.0}},
+  "B":   {{"x_pct": 0.0, "y_pct": 0.0, "confianza": 0.0}},
+  "Me":  {{"x_pct": 0.0, "y_pct": 0.0, "confianza": 0.0}},
+  "Go":  {{"x_pct": 0.0, "y_pct": 0.0, "confianza": 0.0}},
+  "ENA": {{"x_pct": 0.0, "y_pct": 0.0, "confianza": 0.0}},
+  "ENP": {{"x_pct": 0.0, "y_pct": 0.0, "confianza": 0.0}},
+  "Po":  {{"x_pct": 0.0, "y_pct": 0.0, "confianza": 0.0}},
+  "Or":  {{"x_pct": 0.0, "y_pct": 0.0, "confianza": 0.0}},
+  "Co":  {{"x_pct": 0.0, "y_pct": 0.0, "confianza": 0.0}},
+  "Cls": {{"x_pct": 0.0, "y_pct": 0.0, "confianza": 0.0}},
+  "Cli": {{"x_pct": 0.0, "y_pct": 0.0, "confianza": 0.0}}
 }}"""
 
         payload = json.dumps({
@@ -415,8 +472,27 @@ Responde ÚNICAMENTE con JSON válido:
             texto = texto.split("```")[1]
             if texto.startswith("json"): texto = texto[4:]
 
-        puntos = json.loads(texto)
-        return {"success": True, "puntos": puntos}
+        crudo = json.loads(texto)
+
+        # Convertir % → px del espacio comprimido + extraer confianza
+        puntos = {}
+        confianzas = {}
+        for key, v in crudo.items():
+            if "x_pct" in v and "y_pct" in v:
+                x = round(float(v["x_pct"]) / 100.0 * img_w, 1)
+                y = round(float(v["y_pct"]) / 100.0 * img_h, 1)
+            else:
+                x = float(v.get("x", 0))
+                y = float(v.get("y", 0))
+            puntos[key] = {"x": max(0.0, min(x, float(img_w))),
+                           "y": max(0.0, min(y, float(img_h)))}
+            if "confianza" in v:
+                try:
+                    confianzas[key] = round(max(0.0, min(1.0, float(v["confianza"]))), 2)
+                except (TypeError, ValueError):
+                    confianzas[key] = None
+
+        return {"success": True, "puntos": puntos, "confianza": confianzas}
 
     except json.JSONDecodeError as e:
         return {"success": False, "detail": f"Respuesta IA no válida: {str(e)}"}
@@ -519,6 +595,7 @@ async def analizar(request: Request):
                 "nslc_nota": "NL/NSLc (0.198*SNA-4.39) NO reproduce OrthoTP y NO es función "
                              "lineal solo de SNA. No afecta el diagnóstico (T2 usa NL/NSL medido).",
             },
+            "avisos_limite": margenes_borde(T1, T2, T3),
             "diagnostico": {
                 "grupo": grupo, "categoria": categoria,
                 "categoria_advertencia": advertencia,   # Fix E: None si mapea OK
