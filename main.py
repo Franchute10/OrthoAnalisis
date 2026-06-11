@@ -418,6 +418,8 @@ async def sugerir_puntos(request: Request):
 
         # ── Detección real del contorno del cráneo con OpenCV (opcional) ──
         cv_skull = detectar_craneo_opencv(image_b64, img_w, img_h)
+        print(f"[OpenCV] skull={'detectado' if cv_skull else 'fallback-Claude'}"
+              + (f" bbox=({cv_skull['skull_left']},{cv_skull['skull_top']})-({cv_skull['skull_right']},{cv_skull['skull_bottom']})" if cv_skull else ""))
         if cv_skull:
             contorno_ctx = f"""
 ════════════════════════════════════════════════════
@@ -614,9 +616,14 @@ Responde ÚNICAMENTE con JSON válido (sin texto), con esta estructura exacta:
             else:
                 x = float(v.get("x", 0))
                 y = float(v.get("y", 0))
+            # Clamp to skull bbox (not just image bounds)
+            x_min = left_px if (right_px - left_px) > 50 else 0.0
+            y_min = top_px  if (bottom_px - top_px) > 50 else 0.0
+            x_max = right_px if (right_px - left_px) > 50 else float(img_w)
+            y_max = bottom_px if (bottom_px - top_px) > 50 else float(img_h)
             puntos[key] = {
-                "x": round(max(0.0, min(x, float(img_w))), 1),
-                "y": round(max(0.0, min(y, float(img_h))), 1)
+                "x": round(max(x_min, min(x, x_max)), 1),
+                "y": round(max(y_min, min(y, y_max)), 1)
             }
             if "confianza" in v:
                 try:
