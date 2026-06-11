@@ -7,6 +7,18 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 import uvicorn
 
+# Visión por computador para detectar el contorno del cráneo (opcional).
+# Si no están instalados, el sistema sigue funcionando con el bbox que estima Claude.
+try:
+    import base64 as _b64
+    import io as _io
+    import numpy as _np
+    import cv2 as _cv2
+    from PIL import Image as _PILImage
+    _OPENCV_OK = True
+except Exception:
+    _OPENCV_OK = False
+
 app = FastAPI(title="OrthoAnalysis - Motor Cefalométrico v2.4")
 
 # =================================================================
@@ -27,7 +39,7 @@ def calcular_angulo_3_puntos(p1, vertice, p2):
     v1 = (p1[0] - vertice[0], vertice[1] - p1[1])
     v2 = (p2[0] - vertice[0], vertice[1] - p2[1])
     if math.sqrt(v1[0]**2+v1[1]**2) < 1 or math.sqrt(v2[0]**2+v2[1]**2) < 1:
-        return None  # línea degenerada
+        return None
     ang_v1 = math.atan2(v1[1], v1[0])
     ang_v2 = math.atan2(v2[1], v2[0])
     angulo = math.degrees(ang_v1 - ang_v2)
@@ -40,7 +52,7 @@ def calcular_angulo_entre_lineas(p1, p2, p3, p4):
     v1 = (p2[0]-p1[0], p1[1]-p2[1])
     v2 = (p4[0]-p3[0], p3[1]-p4[1])
     if math.sqrt(v1[0]**2+v1[1]**2) < 1 or math.sqrt(v2[0]**2+v2[1]**2) < 1:
-        return None  # línea degenerada
+        return None
     ang_v1 = math.atan2(v1[1], v1[0])
     ang_v2 = math.atan2(v2[1], v2[0])
     angulo = math.degrees(abs(ang_v1 - ang_v2))
@@ -145,9 +157,9 @@ def calcular_factores_bimler(pts, escala_mm_px=None):
 
     # ── Ángulos derivados ──────────────────────────────────────
     perfil = round(F1 + F2, 2)                     # Ángulo de Perfil NAB
-    ABS    = round(abs(F4) + F5, 2) if F5 is not None else None  # None si clivus no medido
+    ABS    = round(abs(F4) + F5, 2) if F5 is not None else None
     ABI    = round(F3 - abs(F4), 2)                # Basal Inferior F3-|F4|
-    ABT    = round(F3 + F5, 2) if F5 is not None else None  # None si clivus no medido
+    ABT    = round(F3 + F5, 2) if F5 is not None else None
 
     # ── Fix B: AG = F3 - F8 + 90 (F8 con signo) ────────────────
     # Antes: F3 + |F8| + 90 (Mia daba 128.83 vs 118.07 real).
@@ -195,13 +207,25 @@ def calcular_factores_bimler(pts, escala_mm_px=None):
     }
     return result
 
+def margenes_borde(T1, T2, T3, tol=0.5):
+    """Avisa si T1/T2/T3 están cerca de un umbral del árbol (±0.5°)."""
+    avisos = []
+    for nombre, val, umbrales in [
+        ("T1", T1, [0, 9]), ("T2", T2, [-1, 3]), ("T3", T3, [0, 5]),
+    ]:
+        for u in umbrales:
+            if val is not None and abs(val - u) <= tol:
+                avisos.append(f"{nombre}={val} a {abs(val-u):.2f}° del umbral {u} — grupo puede cambiar con variación mínima de marcado.")
+    return avisos
+
+
 def calcular_indicadores_T(f):
     ML_NSLc = round(192 - (2 * f["SNB"]), 2)
     # ── Fix C: NL/NSLc NO validado contra OrthoTP ──────────────
     # La fórmula 0.198*SNA - 4.39 NO reproduce OrthoTP (Nicolás: 11.18 vs 9.31).
     # NL/NSLc NO es función lineal solo de SNA. Se expone marcado como no validado.
     # No afecta el diagnóstico: T1 usa ML/NSLc, y T2 usa NL/NSL MEDIDO (no NL/NSLc).
-    NL_NSLc = round(f["ML_NSL"] / 2 - 7, 2)  # Petrovic-Lavergne validado: ML/NSL÷2-7
+    NL_NSLc = round(f["ML_NSL"] / 2 - 7, 2)  # Petrovic-Lavergne validado
     T1 = round(ML_NSLc - f["ML_NSL"], 2)
     T2 = round(NL_NSLc - f["NL_NSL"], 2)
     T3 = f["ANB"]
@@ -280,22 +304,6 @@ GRUPOS_33 = {
     "P3 MOB": 6,  "P3 MN":  6,  "P3 MDB": 6,
 }
 
-def margenes_borde(T1, T2, T3, tol=0.5):
-    """Hallazgo 1: avisa si algún indicador está cerca de un umbral del árbol.
-    Un caso limítrofe puede cambiar de categoría con mínima variación de marcado."""
-    avisos = []
-    for nombre, val, umbrales in [
-        ("T1", T1, [0, 9]), ("T2", T2, [-1, 3]), ("T3", T3, [0, 5]),
-    ]:
-        for u in umbrales:
-            if val is not None and abs(val - u) <= tol:
-                avisos.append(
-                    f"{nombre}={val} está a {abs(val-u):.2f}° del umbral {u} "
-                    f"— el grupo puede cambiar con mínima variación de marcado."
-                )
-    return avisos
-
-
 def determinar_categoria(grupo):
     """
     Busca el grupo en la tabla de grupos alcanzables de Petrovic-Lavergne.
@@ -313,6 +321,84 @@ def determinar_categoria(grupo):
 # -----------------------------------------------------------------
 # ENDPOINT: SUGERIR PUNTOS CON IA
 # -----------------------------------------------------------------
+
+def detectar_craneo_opencv(image_b64, img_w, img_h):
+    """
+    Detecta el contorno externo del cráneo con OpenCV y devuelve medidas en
+    PÍXELES del espacio comprimido (img_w x img_h). Devuelve None ante cualquier
+    fallo o si el resultado no es fiable (fallback silencioso al bbox de Claude).
+    """
+    if not _OPENCV_OK:
+        return None
+    try:
+        raw = _b64.b64decode(image_b64)
+        pil = _PILImage.open(_io.BytesIO(raw)).convert("RGB")
+        if pil.size != (img_w, img_h):
+            pil = pil.resize((img_w, img_h))
+        gray = _cv2.cvtColor(_np.array(pil), _cv2.COLOR_RGB2GRAY)
+
+        if gray.shape[0] < 100 or gray.shape[1] < 100:
+            return None
+
+        blur = _cv2.GaussianBlur(gray, (5, 5), 0)
+
+        # Umbrales Canny adaptativos por mediana
+        med = float(_np.median(blur))
+        lo = int(max(0, 0.66 * med)); hi = int(min(255, 1.33 * med))
+        if hi <= lo:
+            lo, hi = 50, 150
+        edges = _cv2.Canny(blur, lo, hi)
+
+        # Cerrar bordes para un contorno externo continuo
+        kernel = _cv2.getStructuringElement(_cv2.MORPH_ELLIPSE, (7, 7))
+        closed = _cv2.morphologyEx(edges, _cv2.MORPH_CLOSE, kernel, iterations=2)
+        closed = _cv2.dilate(closed, kernel, iterations=1)
+
+        cnts, _h = _cv2.findContours(closed, _cv2.RETR_EXTERNAL, _cv2.CHAIN_APPROX_SIMPLE)
+        if not cnts:
+            return None
+
+        biggest = max(cnts, key=_cv2.contourArea)
+        x, y, w, h = _cv2.boundingRect(biggest)
+        img_area  = float(img_w * img_h)
+        bbox_area = float(w * h)
+
+        # Robustez: el cráneo (bbox) debe ocupar >= 25% del frame
+        if bbox_area < 0.25 * img_area:
+            return None
+        # Robustez: si el 2º contorno tiene bbox de tamaño similar, es ambiguo
+        bboxes = sorted((_cv2.boundingRect(cc) for cc in cnts),
+                        key=lambda b: b[2] * b[3], reverse=True)
+        if len(bboxes) >= 2:
+            a0 = bboxes[0][2] * bboxes[0][3]; a1 = bboxes[1][2] * bboxes[1][3]
+            if a1 > 0.85 * a0:
+                return None
+        # Robustez: bbox degenerado o el frame entero (marco/borde)
+        if w < 0.35 * img_w or h < 0.35 * img_h:
+            return None
+        if w >= 0.985 * img_w and h >= 0.985 * img_h and bbox_area >= 0.985 * img_area:
+            return None
+
+        pts = biggest.reshape(-1, 2)
+        skull_left, skull_right  = int(x), int(x + w)
+        skull_top,  skull_bottom = int(y), int(y + h)
+        lower = pts[pts[:, 1] >= (img_h * 2 / 3)]
+        profile_anterior_x  = int(lower[:, 0].max()) if len(lower) else skull_right
+        profile_posterior_x = int(pts[:, 0].min())
+        cranium_top_y = int(pts[:, 1].min())
+        chin_y        = int(pts[:, 1].max())
+
+        return {
+            "skull_left": skull_left, "skull_right": skull_right,
+            "skull_top": skull_top,   "skull_bottom": skull_bottom,
+            "skull_width_px": int(w), "skull_height_px": int(h),
+            "profile_anterior_x": profile_anterior_x,
+            "profile_posterior_x": profile_posterior_x,
+            "cranium_top_y": cranium_top_y, "chin_y": chin_y,
+        }
+    except Exception:
+        return None
+
 @app.post("/api/sugerir-puntos")
 async def sugerir_puntos(request: Request):
     try:
@@ -330,120 +416,142 @@ async def sugerir_puntos(request: Request):
         if not api_key:
             return {"success": False, "detail": "ANTHROPIC_API_KEY no configurada en el servidor"}
 
+        # ── Detección real del contorno del cráneo con OpenCV (opcional) ──
+        cv_skull = detectar_craneo_opencv(image_b64, img_w, img_h)
+        if cv_skull:
+            contorno_ctx = f"""
+════════════════════════════════════════════════════
+CONTORNO REAL DEL CRÁNEO detectado por OpenCV
+════════════════════════════════════════════════════
+Bounding box: x=[{cv_skull['skull_left']}-{cv_skull['skull_right']}], y=[{cv_skull['skull_top']}-{cv_skull['skull_bottom']}]
+Ancho del cráneo: {cv_skull['skull_width_px']}px, Alto: {cv_skull['skull_height_px']}px
+Perfil anterior (nariz/mentón): x≈{cv_skull['profile_anterior_x']}px
+Occipital posterior: x≈{cv_skull['profile_posterior_x']}px
+Bóveda craneal: y≈{cv_skull['cranium_top_y']}px
+Mentón inferior: y≈{cv_skull['chin_y']}px
+
+Usa estas coordenadas reales como referencia para ubicar los landmarks. Los puntos
+de referencia del contorno son medidas reales en píxeles del espacio comprimido.
+El bounding box de arriba ES el cráneo: ancla tus x_skull/y_skull a ESE rectángulo.
+"""
+        else:
+            contorno_ctx = ""
+
         prompt = f"""Eres un especialista en cefalometría de Bimler-Lavergne-Petrovic. Analiza esta telerradiografía lateral de cráneo e identifica con MÁXIMA PRECISIÓN los 13 puntos cefalométricos.
+{{contorno_ctx}}
+════════════════════════════════════════════════════
+PASO 1 — BOUNDING BOX DEL CRÁNEO (hazlo PRIMERO)
+════════════════════════════════════════════════════
+Antes de colocar cualquier punto, detecta el rectángulo mínimo que contiene
+completamente el cráneo óseo (desde la bóveda craneal hasta el mentón,
+desde el perfil anterior de la nariz hasta el occipital posterior).
+NO incluyas el cuello, el rulero metálico ni las olivas del cefalostato.
 
-SISTEMA DE COORDENADAS:
-• Reporta cada punto como PORCENTAJE de las dimensiones de la imagen, NO en píxeles.
-• x_pct = (posición horizontal / ancho total) × 100   → 0 = borde izquierdo, 100 = borde derecho
-• y_pct = (posición vertical  / alto total)  × 100    → 0 = borde superior, 100 = borde inferior
-• Usa decimales (ej. 47.3). El eje Y crece hacia ABAJO.
-• Trabajar en % te hace independiente de la resolución de la radiografía.
+Expresa estas 4 coordenadas como PORCENTAJE (%) de las dimensiones de la imagen:
+- left_pct  : borde izquierdo del cráneo  (% del ancho)
+- right_pct : borde derecho del cráneo    (% del ancho)
+- top_pct   : borde superior del cráneo   (% del alto)
+- bottom_pct: borde inferior del cráneo   (% del alto, incluye el mentón)
 
-ORIENTACIÓN: perfil lateral. Asume cara mirando a la DERECHA (anterior = mayor x_pct).
-Si la cara mira a la izquierda, razona en consecuencia pero mantén la convención anatómica.
+════════════════════════════════════════════════════
+PASO 2 — LANDMARKS (relativo al bounding box del cráneo)
+════════════════════════════════════════════════════
+Ahora coloca cada landmark como porcentaje DENTRO del bounding box del cráneo:
+  x_skull = 0  → borde izquierdo del cráneo
+  x_skull = 100 → borde derecho del cráneo
+  y_skull = 0  → borde superior del cráneo (bóveda)
+  y_skull = 100 → borde inferior del cráneo (mentón)
 
-═══════════════════════════════════════
-OBJETOS A IGNORAR (NO son anatomía)
-═══════════════════════════════════════
-• RULERO / ESCALA METÁLICA: rectángulo con marcas de mm, normalmente en una esquina.
-• CEFALOSTATO / OLIVAS AURICULARES: piezas metálicas simétricas que sujetan la cabeza.
-• Cualquier objeto brillante/recto FUERA del contorno óseo.
-TODOS los puntos deben caer DENTRO del contorno óseo del cráneo y la mandíbula.
+Esto hace que las proporciones sean consistentes sin importar el zoom de la radiografía.
 
-═══════════════════════════════════════
-LANDMARKS — con referencias RELATIVAS entre sí
-═══════════════════════════════════════
-Ubica primero los 4 de referencia (S, N, Po, Or) y usa su geometría para situar el resto.
+════════════════════════════════════════════════════
+OBJETOS A IGNORAR
+════════════════════════════════════════════════════
+• RULERO / ESCALA METÁLICA: rectángulo con marcas de mm en una esquina.
+• CEFALOSTATO / OLIVAS AURICULARES: piezas metálicas simétricas.
+Todos los puntos deben caer DENTRO del contorno óseo del cráneo y la mandíbula.
 
-S — SELLA: centro de la silla turca (concavidad en la base craneal media).
-   • Referencia: es el punto MÁS POSTERIOR del grupo superior; x_pct(S) < x_pct(N).
-   • Está aprox. a la misma altura o ligeramente por encima de Po.
+════════════════════════════════════════════════════
+DEFINICIÓN DE LANDMARKS (con referencias relativas)
+════════════════════════════════════════════════════
+Cara mirando a la DERECHA (anterior = mayor x_skull).
 
-N — NASION: sutura frontonasal, en la concavidad ósea entre frente y nariz.
-   • Referencia: ANTERIOR y SUPERIOR respecto a S → x_pct(N) > x_pct(S), y_pct(N) < y_pct(Po).
-   • La línea S–N (base craneal anterior) baja suavemente hacia adelante (~5-10° bajo la horizontal).
-   • ERROR FRECUENTE: marcarlo sobre el RULERO metálico de la esquina. N va en HUESO, nunca en metal.
+S — SELLA: centro de la silla turca (concavidad base craneal media).
+   x_skull≈28-35, y_skull≈18-28. POSTERIOR respecto a N.
+
+N — NASION: sutura frontonasal, concavidad ósea frente-nariz.
+   x_skull≈52-62, y_skull≈8-18. ANTERIOR y más ARRIBA que Po.
+   ERROR FRECUENTE: confundirlo con el rulero. N va en hueso, nunca en metal.
 
 Po — PORION: borde más SUPERIOR del conducto auditivo externo óseo.
-   • Referencia: punto posterior; aprox. bajo S. Define con Or el plano de Frankfurt.
+   x_skull≈25-35, y_skull≈30-42. Define con Or el plano de Frankfurt.
 
 Or — ORBITARIO: borde más INFERIOR del reborde orbitario.
-   • Referencia OBLIGATORIA: Or está MÁS ABAJO que Po → y_pct(Or) > y_pct(Po) + ~1.5.
-   • El plano Po→Or (Frankfurt) tiene ~7-10° respecto a S–N. Si Po y Or quedan a la misma
-     altura, está MAL: baja Or.
+   x_skull≈52-65, y_skull≈28-40. SIEMPRE más abajo que Po (y_skull(Or) > y_skull(Po)+2).
 
-A — SUBESPINAL: máxima concavidad del perfil anterior del maxilar, bajo ENA.
-   • Referencia: x_pct(A) alto (anterior); por debajo de N, por encima de B.
+A — SUBESPINAL: máxima concavidad perfil anterior del maxilar.
+   x_skull≈72-85, y_skull≈42-55.
 
-B — SUPRAMENTAL: máxima concavidad del perfil anterior mandibular.
-   • Referencia: por debajo de A; A y B casi en la misma vertical (x_pct similar, ±pocos %).
+B — SUPRAMENTAL: máxima concavidad perfil anterior mandibular.
+   x_skull≈68-82, y_skull≈58-72. Debajo de A, encima de Me.
 
 Me — MENTÓN: punto más INFERIOR de la sínfisis mandibular.
-   • Referencia: el de mayor y_pct de la mandíbula anterior; por debajo de B.
+   x_skull≈62-75, y_skull≈88-98. El de mayor y_skull del grupo anterior.
 
-Go — GONION: vértice del ÁNGULO mandibular postero-inferior.
-   • Definición: intersección de la tangente al borde posterior de la rama con la tangente
-     al borde inferior del cuerpo (bisectriz del ángulo). Es la ESQUINA, NO un punto en mitad
-     de la rama.
-   • Referencia: punto POSTERO-INFERIOR de la mandíbula → x_pct(Go) < x_pct(Me), y_pct(Go) alto.
-   • ERROR FRECUENTE: colocarlo subido sobre la rama. Debe estar en el codo del ángulo, lo más
-     posterior e inferior posible de la mandíbula.
+Go — GONION: ESQUINA del ángulo mandibular postero-inferior (bisectriz del ángulo).
+   x_skull≈10-25, y_skull≈68-82. NO en mitad de la rama — en el codo del ángulo.
+   ERROR FRECUENTE: subirlo sobre la rama. Debe estar en la esquina más postero-inferior.
 
-ENA — ESPINA NASAL ANTERIOR: extremo más ANTERIOR del paladar óseo (espícula).
-ENP — ESPINA NASAL POSTERIOR: extremo POSTERIOR del paladar óseo.
-   • Referencia: ENA y ENP definen el plano palatino; x_pct(ENA) > x_pct(ENP), y a altura similar.
+ENA — ESPINA NASAL ANTERIOR: extremo anterior del paladar óseo.
+   x_skull≈70-82, y_skull≈48-58. x_skull(ENA) > x_skull(ENP).
 
-Co — CONDYLION: punto más POSTERO-SUPERIOR del cóndilo mandibular.
-   • Referencia: por encima y detrás de Go; cerca de la región articular.
+ENP — ESPINA NASAL POSTERIOR: extremo posterior del paladar óseo.
+   x_skull≈42-55, y_skull≈48-58.
 
-Cls — CLIVUS SUPERIOR: parte superior del plano inclinado del clivus (cara posterior
-   del cuerpo del esfenoides), por DEBAJO de la silla turca.
-   • Referencia RELATIVA: justo por debajo de S → x_pct(Cls) ≈ x_pct(S)±3, y_pct(Cls) > y_pct(S).
-   • Secuencia vertical correcta: S (arriba) → Cls → Cli (abajo), casi alineados.
+Co — CONDYLION: punto más postero-superior del cóndilo mandibular.
+   x_skull≈15-28, y_skull≈28-42. Por encima y detrás de Go.
 
-Cli — CLIVUS INFERIOR: extremo inferior del clivus, próximo al Basion (borde anterior
-   del agujero magno).
-   • Referencia RELATIVA: por debajo de Cls, continuando la misma línea → y_pct(Cli) > y_pct(Cls).
-   • Cls y Cli forman una recta corta y posterior; si quedan muy separados horizontalmente, revisa.
+Cls — CLIVUS SUPERIOR: parte superior del clivus, justo debajo de S.
+   x_skull≈22-32, y_skull≈28-38. Casi alineado verticalmente con S.
 
-═══════════════════════════════════════
-AUTO-VERIFICACIÓN OBLIGATORIA (hazla ANTES de responder)
-═══════════════════════════════════════
-Revisa estas proporciones y CORRIGE si alguna falla:
-1. y_pct(Or) > y_pct(Po) + 1.5         (Frankfurt inclinado, Or más bajo que Po)
-2. x_pct(N)  > x_pct(S)                 (Nasion anterior a Sella)
-3. y_pct(Me) > y_pct(B) > y_pct(A)      (orden vertical mentón→B→A)
-4. x_pct(Go) < x_pct(Me)               (Gonion posterior al mentón)
-5. y_pct(S) < y_pct(Cls) < y_pct(Cli)  (secuencia del clivus de arriba a abajo)
-6. x_pct(ENA) > x_pct(ENP)             (espina anterior por delante de la posterior)
-7. Ningún punto sobre el rulero/metal: todos dentro del hueso.
-Si un punto no cumple su referencia y no puedes resolverlo con seguridad, BÁJALE la confianza.
+Cli — CLIVUS INFERIOR: extremo inferior del clivus (hacia el Basion).
+   x_skull≈18-30, y_skull≈38-50. Debajo de Cls en la misma línea.
 
-═══════════════════════════════════════
-CONFIANZA POR PUNTO (0.0 - 1.0)
-═══════════════════════════════════════
-Asigna a cada punto un valor de "confianza":
-• 0.9-1.0 → landmark nítido y sin ambigüedad.
-• 0.6-0.8 → visible pero con algo de incertidumbre.
-• 0.3-0.5 → difícil (típico en Cls, Cli, Go con poca calidad de imagen).
-• 0.0-0.2 → no distinguible; igual da tu mejor estimación.
-Sé honesto: una confianza baja le indica al clínico que verifique ese punto.
+════════════════════════════════════════════════════
+AUTO-VERIFICACIÓN OBLIGATORIA (antes de responder)
+════════════════════════════════════════════════════
+Verifica y corrige si alguna falla:
+1. y_skull(Or) > y_skull(Po) + 2          (Or más bajo que Po)
+2. x_skull(N)  > x_skull(S)               (Nasion anterior a Sella)
+3. y_skull(Me) > y_skull(B) > y_skull(A)  (orden vertical Me > B > A)
+4. x_skull(Go) < x_skull(Me)              (Go posterior al mentón)
+5. y_skull(Cls) < y_skull(Cli)            (clivus de arriba a abajo)
+6. x_skull(ENA) > x_skull(ENP)            (espina anterior por delante)
+7. x_skull(N) > x_skull(S)               (nasion más anterior que sella)
 
-Responde ÚNICAMENTE con JSON válido (sin texto antes ni después), con x_pct, y_pct y confianza:
+CONFIANZA por punto: 0.9-1.0=nítido, 0.6-0.8=incierto, 0.3-0.5=difícil (típico Cls/Cli/Go).
+
+Responde ÚNICAMENTE con JSON válido (sin texto), con esta estructura exacta:
 {{
-  "S":   {{"x_pct": 0.0, "y_pct": 0.0, "confianza": 0.0}},
-  "N":   {{"x_pct": 0.0, "y_pct": 0.0, "confianza": 0.0}},
-  "A":   {{"x_pct": 0.0, "y_pct": 0.0, "confianza": 0.0}},
-  "B":   {{"x_pct": 0.0, "y_pct": 0.0, "confianza": 0.0}},
-  "Me":  {{"x_pct": 0.0, "y_pct": 0.0, "confianza": 0.0}},
-  "Go":  {{"x_pct": 0.0, "y_pct": 0.0, "confianza": 0.0}},
-  "ENA": {{"x_pct": 0.0, "y_pct": 0.0, "confianza": 0.0}},
-  "ENP": {{"x_pct": 0.0, "y_pct": 0.0, "confianza": 0.0}},
-  "Po":  {{"x_pct": 0.0, "y_pct": 0.0, "confianza": 0.0}},
-  "Or":  {{"x_pct": 0.0, "y_pct": 0.0, "confianza": 0.0}},
-  "Co":  {{"x_pct": 0.0, "y_pct": 0.0, "confianza": 0.0}},
-  "Cls": {{"x_pct": 0.0, "y_pct": 0.0, "confianza": 0.0}},
-  "Cli": {{"x_pct": 0.0, "y_pct": 0.0, "confianza": 0.0}}
+  "skull_bbox": {{
+    "left_pct": 0.0, "right_pct": 0.0,
+    "top_pct":  0.0, "bottom_pct": 0.0
+  }},
+  "landmarks": {{
+    "S":   {{"x_skull": 0.0, "y_skull": 0.0, "confianza": 0.0}},
+    "N":   {{"x_skull": 0.0, "y_skull": 0.0, "confianza": 0.0}},
+    "A":   {{"x_skull": 0.0, "y_skull": 0.0, "confianza": 0.0}},
+    "B":   {{"x_skull": 0.0, "y_skull": 0.0, "confianza": 0.0}},
+    "Me":  {{"x_skull": 0.0, "y_skull": 0.0, "confianza": 0.0}},
+    "Go":  {{"x_skull": 0.0, "y_skull": 0.0, "confianza": 0.0}},
+    "ENA": {{"x_skull": 0.0, "y_skull": 0.0, "confianza": 0.0}},
+    "ENP": {{"x_skull": 0.0, "y_skull": 0.0, "confianza": 0.0}},
+    "Po":  {{"x_skull": 0.0, "y_skull": 0.0, "confianza": 0.0}},
+    "Or":  {{"x_skull": 0.0, "y_skull": 0.0, "confianza": 0.0}},
+    "Co":  {{"x_skull": 0.0, "y_skull": 0.0, "confianza": 0.0}},
+    "Cls": {{"x_skull": 0.0, "y_skull": 0.0, "confianza": 0.0}},
+    "Cli": {{"x_skull": 0.0, "y_skull": 0.0, "confianza": 0.0}}
+  }}
 }}"""
 
         payload = json.dumps({
@@ -474,18 +582,42 @@ Responde ÚNICAMENTE con JSON válido (sin texto antes ni después), con x_pct, 
 
         crudo = json.loads(texto)
 
-        # Convertir % → px del espacio comprimido + extraer confianza
-        puntos = {}
+        # Extraer bounding box del cráneo
+        bbox = crudo.get("skull_bbox", {})
+        lm   = crudo.get("landmarks",  crudo)  # fallback si no tiene estructura nueva
+
+        # Fuente de verdad del bbox: OpenCV si detectó; si no, el que estimó Claude.
+        if cv_skull:
+            left_px   = float(cv_skull["skull_left"])
+            right_px  = float(cv_skull["skull_right"])
+            top_px    = float(cv_skull["skull_top"])
+            bottom_px = float(cv_skull["skull_bottom"])
+        else:
+            left_px   = bbox.get("left_pct",   5)  / 100.0 * img_w
+            right_px  = bbox.get("right_pct",  95) / 100.0 * img_w
+            top_px    = bbox.get("top_pct",    5)  / 100.0 * img_h
+            bottom_px = bbox.get("bottom_pct", 95) / 100.0 * img_h
+        skull_w   = max(right_px  - left_px,  50)  # mínimo 50px para evitar div/0
+        skull_h   = max(bottom_px - top_px,   50)
+
+        puntos     = {}
         confianzas = {}
-        for key, v in crudo.items():
-            if "x_pct" in v and "y_pct" in v:
-                x = round(float(v["x_pct"]) / 100.0 * img_w, 1)
-                y = round(float(v["y_pct"]) / 100.0 * img_h, 1)
+        for key, v in lm.items():
+            if "x_skull" in v and "y_skull" in v:
+                # Coordenadas relativas al cráneo → píxeles imagen comprimida
+                x = left_px + (float(v["x_skull"]) / 100.0) * skull_w
+                y = top_px  + (float(v["y_skull"]) / 100.0) * skull_h
+            elif "x_pct" in v and "y_pct" in v:
+                # Compatibilidad con formato anterior (% de imagen)
+                x = float(v["x_pct"]) / 100.0 * img_w
+                y = float(v["y_pct"]) / 100.0 * img_h
             else:
                 x = float(v.get("x", 0))
                 y = float(v.get("y", 0))
-            puntos[key] = {"x": max(0.0, min(x, float(img_w))),
-                           "y": max(0.0, min(y, float(img_h)))}
+            puntos[key] = {
+                "x": round(max(0.0, min(x, float(img_w))), 1),
+                "y": round(max(0.0, min(y, float(img_h))), 1)
+            }
             if "confianza" in v:
                 try:
                     confianzas[key] = round(max(0.0, min(1.0, float(v["confianza"]))), 2)
