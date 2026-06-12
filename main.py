@@ -486,101 +486,172 @@ PROPORCIONES CEFALOMÉTRICAS NORMATIVAS (dentro del bbox del cráneo):
         else:
             contorno_ctx = ""
 
-        prompt = f"""Eres un especialista en cefalometría de Bimler-Lavergne-Petrovic. Analiza esta telerradiografía lateral de cráneo e identifica con MÁXIMA PRECISIÓN los 13 puntos cefalométricos.
-{{contorno_ctx}}
-════════════════════════════════════════════════════
-PASO 1 — BOUNDING BOX DEL CRÁNEO (hazlo PRIMERO)
-════════════════════════════════════════════════════
-Antes de colocar cualquier punto, detecta el rectángulo mínimo que contiene
-completamente el cráneo óseo (desde la bóveda craneal hasta el mentón,
-desde el perfil anterior de la nariz hasta el occipital posterior).
-NO incluyas el cuello, el rulero metálico ni las olivas del cefalostato.
+        prompt = f"""Eres un especialista en cefalometría radiológica de Bimler-Lavergne-Petrovic. Vas a analizar una telerradiografía lateral de cráneo e identificar con MÁXIMA PRECISIÓN los 13 puntos cefalométricos. Trabaja en TRES FASES y respóndelas en orden.
+{contorno_ctx}
+████████████████████████████████████████████████████
+FASE 0 — ORIENTACIÓN ANATÓMICA (construye tu mapa mental)
+████████████████████████████████████████████████████
+Antes de colocar un solo punto, realiza este protocolo. NO incluyas el resultado de
+la Fase 0 en el JSON final: es solo para que ancles correctamente los landmarks.
 
-Expresa estas 4 coordenadas como PORCENTAJE (%) de las dimensiones de la imagen:
-- left_pct  : borde izquierdo del cráneo  (% del ancho)
-- right_pct : borde derecho del cráneo    (% del ancho)
-- top_pct   : borde superior del cráneo   (% del alto)
-- bottom_pct: borde inferior del cráneo   (% del alto, incluye el mentón)
+0.1 LATERALIDAD: determina si la cara mira a la DERECHA o IZQUIERDA.
+    - Anterior = donde está la nariz (perfil del tercio medio facial).
+    - Posterior = donde está el occipital (curva convexa del cráneo).
+    - Convención OrthoAnalysis: la cara mira a la DERECHA → x mayor = anterior.
 
-════════════════════════════════════════════════════
-PASO 2 — LANDMARKS (relativo al bounding box del cráneo)
-════════════════════════════════════════════════════
-Ahora coloca cada landmark como porcentaje DENTRO del bounding box del cráneo:
-  x_skull = 0  → borde izquierdo del cráneo
-  x_skull = 100 → borde derecho del cráneo
-  y_skull = 0  → borde superior del cráneo (bóveda)
-  y_skull = 100 → borde inferior del cráneo (mentón)
+0.2 IDENTIFICA Y UBICA LAS 8 ESTRUCTURAS DE REFERENCIA (mentalmente, con su
+    x_skull/y_skull aproximado en % del bounding box del cráneo):
 
-Esto hace que las proporciones sean consistentes sin importar el zoom de la radiografía.
+  E1 · Bóveda craneal: curva convexa brillante, techo del cráneo. Es la curva más
+       superior y exterior. Su punto más alto = límite superior del bbox.
+  E2 · Base craneal anterior (plano NSL): línea casi recta de la silla turca hacia
+       el nasion, inclinada ~7° hacia abajo en dirección anterior. Es la columna
+       vertebral del análisis: S y N son sus extremos.
+  E3 · Silla turca: cavidad oval con paredes brillantes y centro oscuro, en la base
+       craneal media. Pared posterior = dorsum sellae. Contiene a S. (~x32%,y22%)
+  E4 · Conducto auditivo externo (CAE): anillo/semicírculo brillante postero-medio.
+       Su borde más superior = Po. (~x28%,y36%)
+  E5 · Cavidad orbital: ventana oscura rectangular antero-superior, bordes brillantes.
+       Su borde inferior = Or. (~x58%,y34%)
+  E6 · Paladar óseo y fosa nasal: línea horizontal brillante de ENA (anterior) a ENP
+       (posterior); por encima, la fosa nasal oscura. (~y52%)
+  E7 · Mandíbula (cuerpo + rama): arco inferior; el ángulo gonial es la esquina
+       postero-inferior donde el cuerpo horizontal se une con la rama vertical.
+       Contiene Me, B y Go.
+  E8 · Cóndilo mandibular: masa ovoide brillante postero-superior, extremo superior
+       de la rama. Contiene Co. (~x22%,y34%)
 
-════════════════════════════════════════════════════
-OBJETOS A IGNORAR
-════════════════════════════════════════════════════
-• RULERO / ESCALA METÁLICA: rectángulo con marcas de mm en una esquina.
-• CEFALOSTATO / OLIVAS AURICULARES: piezas metálicas simétricas.
-Todos los puntos deben caer DENTRO del contorno óseo del cráneo y la mandíbula.
+0.3 SOLO tras ubicar las 8 estructuras, procede a las Fases 1 y 2.
 
-════════════════════════════════════════════════════
-DEFINICIÓN DE LANDMARKS (con referencias relativas)
-════════════════════════════════════════════════════
-Cara mirando a la DERECHA (anterior = mayor x_skull).
+████████████████████████████████████████████████████
+FASE 1 — BOUNDING BOX DEL CRÁNEO
+████████████████████████████████████████████████████
+Detecta el rectángulo mínimo que contiene el cráneo óseo completo (de la bóveda al
+mentón, del perfil anterior de la nariz al occipital posterior). NO incluyas cuello,
+rulero metálico ni olivas del cefalostato. Exprésalo como % de la imagen:
+- left_pct, right_pct : bordes izquierdo y derecho del cráneo (% del ancho)
+- top_pct, bottom_pct : bordes superior e inferior del cráneo (% del alto)
 
-S — SELLA: centro de la silla turca (concavidad base craneal media).
-   x_skull≈28-35, y_skull≈18-28. POSTERIOR respecto a N.
+████████████████████████████████████████████████████
+FASE 2 — LOS 13 LANDMARKS (relativos al bounding box del cráneo)
+████████████████████████████████████████████████████
+Coloca cada punto como porcentaje DENTRO del bounding box del cráneo:
+  x_skull = 0 → borde izquierdo del cráneo ; x_skull = 100 → borde derecho
+  y_skull = 0 → bóveda (arriba)            ; y_skull = 100 → mentón (abajo)
+Recuerda: Y crece hacia ABAJO. Cara a la derecha → anterior = x_skull mayor.
 
-N — NASION: sutura frontonasal, concavidad ósea frente-nariz.
-   x_skull≈52-62, y_skull≈8-18. ANTERIOR y más ARRIBA que Po.
-   ERROR FRECUENTE: confundirlo con el rulero. N va en hueso, nunca en metal.
+Para cada punto tienes: [Rx]=cómo se ve · [Ref]=estructura de referencia ·
+[Pos]=posición típica · [Err]=error a evitar.
 
-Po — PORION: borde más SUPERIOR del conducto auditivo externo óseo.
-   x_skull≈25-35, y_skull≈30-42. Define con Or el plano de Frankfurt.
+S — SELLA
+  [Rx] Centro geométrico de la cavidad oval de la silla turca (paredes brillantes,
+       centro oscuro), a media distancia entre tubérculo y dorsum sellae.
+  [Ref] Estructura 3 (silla turca), sobre el plano NSL.
+  [Pos] x_skull≈28-36, y_skull≈18-28. Posterior a N; misma altura que Po o algo más.
+  [Err] No ponerlo sobre el dorsum sellae ni confundirlo con el agujero oval.
 
-Or — ORBITARIO: borde más INFERIOR del reborde orbitario.
-   x_skull≈52-65, y_skull≈28-40. SIEMPRE más abajo que Po (y_skull(Or) > y_skull(Po)+2).
+N — NASION
+  [Rx] Concavidad más profunda del perfil entre la frente convexa y el dorso nasal.
+  [Ref] Extremo anterior de la base craneal anterior (Estructura 2).
+  [Pos] x_skull≈55-65, y_skull≈8-18. Anterior a S; en el tercio superior.
+  [Err] CRÍTICO: NO confundir con el RULERO METÁLICO (rectángulo brillante con marcas
+        en una esquina). N va en el hueso del perfil, jamás en metal. Tampoco en el
+        punto más prominente: va en el más cóncavo.
 
-A — SUBESPINAL: máxima concavidad perfil anterior del maxilar.
-   x_skull≈72-85, y_skull≈42-55.
+Po — PORION
+  [Rx] Borde más superior del anillo del conducto auditivo externo.
+  [Ref] Estructura 4 (CAE).
+  [Pos] x_skull≈22-32, y_skull≈32-42. Define Frankfurt con Or.
+  [Err] No usar el borde inferior del CAE; no confundir con fosa mandibular. Po es
+        anterior al borde posterior del cráneo y superior al nivel del cóndilo.
 
-B — SUPRAMENTAL: máxima concavidad perfil anterior mandibular.
-   x_skull≈68-82, y_skull≈58-72. Debajo de A, encima de Me.
+Or — ORBITALE
+  [Rx] Punto más inferior del reborde de la cavidad orbital (ventana oscura).
+  [Ref] Estructura 5 (órbita), borde inferior.
+  [Pos] x_skull≈52-65, y_skull≈28-38. SIEMPRE más abajo que Po: y_skull(Or) > y_skull(Po).
+  [Err] No usar el borde SUPERIOR de la órbita. Or nunca queda a la altura de Po ni por encima.
 
-Me — MENTÓN: punto más INFERIOR de la sínfisis mandibular.
-   x_skull≈62-75, y_skull≈88-98. El de mayor y_skull del grupo anterior.
+A — SUBESPINAL
+  [Rx] Concavidad más profunda de la cara anterior del maxilar, bajo ENA.
+  [Ref] Perfil anterior del maxilar (deriva de Estructura 6).
+  [Pos] x_skull≈72-85, y_skull≈42-55. Bajo ENA, sobre el borde incisal.
+  [Err] No confundir con el ápice del incisivo; no ponerlo en ENA.
 
-Go — GONION: ESQUINA del ángulo mandibular postero-inferior (bisectriz del ángulo).
-   x_skull≈10-25, y_skull≈68-82. NO en mitad de la rama — en el codo del ángulo.
-   ERROR FRECUENTE: subirlo sobre la rama. Debe estar en la esquina más postero-inferior.
+B — SUPRAMENTAL
+  [Rx] Concavidad más profunda de la cara anterior de la sínfisis, entre incisivos y mentón.
+  [Ref] Sínfisis mandibular (Estructura 7).
+  [Pos] x_skull≈68-82, y_skull≈58-72. Entre A (arriba) y Me (abajo).
+  [Err] No confundir con el ápice del incisivo inferior; no subirlo a la zona alveolar.
 
-ENA — ESPINA NASAL ANTERIOR: extremo anterior del paladar óseo.
-   x_skull≈70-82, y_skull≈48-58. x_skull(ENA) > x_skull(ENP).
+Me — MENTON
+  [Rx] Punto geométricamente más inferior del contorno de la sínfisis.
+  [Ref] Borde inferior de la sínfisis (Estructura 7).
+  [Pos] x_skull≈62-75, y_skull≈88-98. Mayor y_skull del grupo anterior.
+  [Err] No confundir con el pogonion (más anterior, no el más inferior).
 
-ENP — ESPINA NASAL POSTERIOR: extremo posterior del paladar óseo.
-   x_skull≈42-55, y_skull≈48-58.
+Go — GONION
+  [Rx] Vértice del ángulo mandibular: intersección de la tangente al borde posterior
+       de la rama con la tangente al borde inferior del cuerpo. La ESQUINA de la mandíbula.
+  [Ref] Ángulo de la Estructura 7.
+  [Pos] x_skull≈12-25, y_skull≈68-82. Postero-inferior. Posterior a Me; inferior a Co.
+  [Err] CRÍTICO: NO colocarlo a mitad de la rama. Va en la esquina más postero-inferior.
 
-Co — CONDYLION: punto más postero-superior del cóndilo mandibular.
-   x_skull≈15-28, y_skull≈28-42. Por encima y detrás de Go.
+ENA — ESPINA NASAL ANTERIOR
+  [Rx] Espícula puntiaguda que sobresale hacia adelante en el extremo anterior del paladar.
+  [Ref] Extremo anterior del paladar (Estructura 6).
+  [Pos] x_skull≈70-82, y_skull≈48-58. Anterior a ENP; misma altura que ENP.
+  [Err] No confundir con el cornete inferior; no llevarlo al tejido blando nasal.
 
-Cls — CLIVUS SUPERIOR: parte superior del clivus, justo debajo de S.
-   x_skull≈22-32, y_skull≈28-38. Casi alineado verticalmente con S.
+ENP — ESPINA NASAL POSTERIOR
+  [Rx] Proyección puntiaguda al final posterior del paladar óseo (unión con paladar blando).
+  [Ref] Extremo posterior del paladar (Estructura 6).
+  [Pos] x_skull≈42-55, y_skull≈48-58. Posterior a ENA: x_skull(ENP) < x_skull(ENA).
+  [Err] Puede verse tenue en Rx de baja calidad; mantenerlo a la altura de ENA.
 
-Cli — CLIVUS INFERIOR: extremo inferior del clivus (hacia el Basion).
-   x_skull≈18-30, y_skull≈38-50. Debajo de Cls en la misma línea.
+Co — CONDYLION
+  [Rx] Punto más postero-superior de la cabeza ovoide del cóndilo.
+  [Ref] Estructura 8 (cóndilo).
+  [Pos] x_skull≈18-28, y_skull≈28-40. Por arriba de Go; por debajo de S o a su altura.
+  [Err] No usar el punto más superior (sino el postero-superior); no confundir con la coronoides.
 
-════════════════════════════════════════════════════
-AUTO-VERIFICACIÓN OBLIGATORIA (antes de responder)
-════════════════════════════════════════════════════
-Verifica y corrige si alguna falla:
-1. y_skull(Or) > y_skull(Po) + 2          (Or más bajo que Po)
-2. x_skull(N)  > x_skull(S)               (Nasion anterior a Sella)
-3. y_skull(Me) > y_skull(B) > y_skull(A)  (orden vertical Me > B > A)
-4. x_skull(Go) < x_skull(Me)              (Go posterior al mentón)
-5. y_skull(Cls) < y_skull(Cli)            (clivus de arriba a abajo)
-6. x_skull(ENA) > x_skull(ENP)            (espina anterior por delante)
-7. x_skull(N) > x_skull(S)               (nasion más anterior que sella)
+Cls — CLIVUS SUPERIOR
+  [Rx] Extremo superior de la pendiente del clivus, adyacente al dorsum sellae.
+  [Ref] Cara posterior del esfenoides, bajo la silla turca (Estructura 3).
+  [Pos] x_skull≈24-34 (casi alineado con S), y_skull≈28-38 (algo bajo S).
+  [Err] No ponerlo encima de S; debe quedar por debajo. Confianza esperada 0.35-0.64.
 
-CONFIANZA por punto: 0.9-1.0=nítido, 0.6-0.8=incierto, 0.3-0.5=difícil (típico Cls/Cli/Go).
+Cli — CLIVUS INFERIOR
+  [Rx] Extremo inferior de la pendiente clivial, hacia el basion (borde anterior del foramen magno).
+  [Ref] Continuación inferior del clivus.
+  [Pos] x_skull≈18-30, y_skull≈38-50. Debajo de Cls en la misma línea.
+  [Err] CRÍTICO: no invertir con Cls (Cli va MÁS ABAJO). Es el más difícil; confianza 0.35-0.64.
 
-Responde ÚNICAMENTE con JSON válido (sin texto), con esta estructura exacta:
+────────────────────────────────────────────────────
+AUTO-VERIFICACIÓN ANATÓMICA (ejecútala ANTES de responder y corrige)
+────────────────────────────────────────────────────
+R1  y_skull(Or) > y_skull(Po)                    (Or más abajo que Po)
+R2  x_skull(N)  > x_skull(S)                     (N anterior a S)
+R3  y_skull(A)  < y_skull(B) < y_skull(Me)        (orden vertical A→B→Me)
+R4  x_skull(Go) < x_skull(Me)                    (Go posterior al mentón)
+R5  y_skull(Cls) < y_skull(Cli)                  (Cls arriba, Cli abajo)
+R6  x_skull(ENA) > x_skull(ENP)                  (ENA anterior a ENP)
+R7  x_skull(N)  > x_skull(S) y S bajo la bóveda
+R8  Ningún punto sobre el rulero/escala metálica
+R9  y_skull(Co) < y_skull(Go)                    (cóndilo sobre el ángulo)
+R10 y_skull(Cls) > y_skull(S)                    (Cls bajo S)
+
+CONFIANZA esperada: ALTA 0.85-1.0: N,Me,S,ENA,ENP,Or,Go · MEDIA 0.65-0.84: A,B,Po,Co · BAJA 0.35-0.64: Cls,Cli
+Prioriza SIEMPRE lo que ves en la imagen sobre las cifras de referencia.
+
+PROPORCIONES NORMATIVAS (media±DE, % del bbox; úsalas si la estructura no es nítida):
+  S x32±4/y22±3 · N x60±4/y12±3 · Po x28±4/y36±4 · Or x58±4/y34±3 · A x78±5/y50±4
+  B x74±5/y63±5 · Me x68±4/y94±3 · Go x18±5/y76±5 · ENA x76±4/y52±3 · ENP x48±4/y52±3
+  Co x22±4/y34±4 · Cls x28±4/y30±4 · Cli x24±5/y42±5
+
+────────────────────────────────────────────────────
+RESPUESTA — SOLO JSON válido (sin texto antes ni después)
+────────────────────────────────────────────────────
+No incluyas las estructuras de la Fase 0 en el JSON. Devuelve exactamente:
 {{
   "skull_bbox": {{
     "left_pct": 0.0, "right_pct": 0.0,
