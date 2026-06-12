@@ -324,9 +324,9 @@ def determinar_categoria(grupo):
 
 def detectar_craneo_opencv(image_b64, img_w, img_h):
     """
-    Detecta el contorno externo del cráneo con OpenCV y devuelve medidas en
-    PÍXELES del espacio comprimido (img_w x img_h). Devuelve None ante cualquier
-    fallo o si el resultado no es fiable (fallback silencioso al bbox de Claude).
+    Detecta el CRÁNEO como la SILUETA BRILLANTE más grande (hueso = blanco) mediante
+    CLAHE + umbralización de Otsu, no por bordes Canny. Devuelve medidas en PÍXELES
+    del espacio comprimido. None ante cualquier fallo (fallback silencioso).
     """
     if not _OPENCV_OK:
         return None
@@ -336,68 +336,90 @@ def detectar_craneo_opencv(image_b64, img_w, img_h):
         if pil.size != (img_w, img_h):
             pil = pil.resize((img_w, img_h))
         gray = _cv2.cvtColor(_np.array(pil), _cv2.COLOR_RGB2GRAY)
-
         if gray.shape[0] < 100 or gray.shape[1] < 100:
             return None
 
-        blur = _cv2.GaussianBlur(gray, (5, 5), 0)
+        # ── PASO 1: CLAHE normaliza contraste según el equipo de rayos X ──
+        clahe = _cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+        eq = clahe.apply(gray)
 
-        # Umbrales Canny adaptativos por mediana
-        med = float(_np.median(blur))
-        lo = int(max(0, 0.66 * med)); hi = int(min(255, 1.33 * med))
-        if hi <= lo:
-            lo, hi = 50, 150
-        edges = _cv2.Canny(blur, lo, hi)
+        # ── PASO 2: masa ósea brillante (Otsu, con respaldo por percentil) ──
+        sm = _cv2.GaussianBlur(eq, (15, 15), 0)
+        _t, binimg = _cv2.threshold(sm, 0, 255, _cv2.THRESH_BINARY + _cv2.THRESH_OTSU)
+        frac = float((binimg > 0).sum()) / float(img_w * img_h)
+        if frac < 0.15 or frac > 0.60:
+            p65 = float(_np.percentile(sm, 65))
+            _t2, binimg = _cv2.threshold(sm, p65, 255, _cv2.THRESH_BINARY)
 
-        # Cerrar bordes para un contorno externo continuo
-        kernel = _cv2.getStructuringElement(_cv2.MORPH_ELLIPSE, (7, 7))
-        closed = _cv2.morphologyEx(edges, _cv2.MORPH_CLOSE, kernel, iterations=2)
-        closed = _cv2.dilate(closed, kernel, iterations=1)
+        k15 = _cv2.getStructuringElement(_cv2.MORPH_ELLIPSE, (15, 15))
+        k5  = _cv2.getStructuringElement(_cv2.MORPH_ELLIPSE, (5, 5))
+        binimg = _cv2.morphologyEx(binimg, _cv2.MORPH_CLOSE, k15, iterations=3)
+        binimg = _cv2.morphologyEx(binimg, _cv2.MORPH_OPEN,  k5,  iterations=1)
 
-        cnts, _h = _cv2.findContours(closed, _cv2.RETR_EXTERNAL, _cv2.CHAIN_APPROX_SIMPLE)
+        # ── PASO 3: seleccionar el cráneo (blob de mayor área) ──
+        n, labels, stats, _cent = _cv2.connectedComponentsWithStats(binimg, connectivity=8)
+        if n <= 1:
+            return None
+        idx = 1 + int(_np.argmax(stats[1:, _cv2.CC_STAT_AREA]))
+        area = int(stats[idx, _cv2.CC_STAT_AREA])
+        img_area = float(img_w * img_h)
+        if area < 0.20 * img_area:
+            return None
+
+        x = int(stats[idx, _cv2.CC_STAT_LEFT]);  y = int(stats[idx, _cv2.CC_STAT_TOP])
+        w = int(stats[idx, _cv2.CC_STAT_WIDTH]); h = int(stats[idx, _cv2.CC_STAT_HEIGHT])
+        # Excluir si toca los 4 bordes (es el fondo invertido, no el cráneo)
+        if x <= 1 and y <= 1 and (x + w) >= img_w - 1 and (y + h) >= img_h - 1:
+            return None
+
+        mask = (labels == idx).astype(_np.uint8) * 255
+        cnts, _hh = _cv2.findContours(mask, _cv2.RETR_EXTERNAL, _cv2.CHAIN_APPROX_SIMPLE)
         if not cnts:
             return None
+        cnt = max(cnts, key=_cv2.contourArea)
+        pts = cnt.reshape(-1, 2)
 
-        biggest = max(cnts, key=_cv2.contourArea)
-        x, y, w, h = _cv2.boundingRect(biggest)
-        img_area  = float(img_w * img_h)
-        bbox_area = float(w * h)
-
-        # Robustez: el cráneo (bbox) debe ocupar >= 25% del frame
-        if bbox_area < 0.25 * img_area:
-            return None
-        # Robustez: si el 2º contorno tiene bbox de tamaño similar, es ambiguo
-        bboxes = sorted((_cv2.boundingRect(cc) for cc in cnts),
-                        key=lambda b: b[2] * b[3], reverse=True)
-        if len(bboxes) >= 2:
-            a0 = bboxes[0][2] * bboxes[0][3]; a1 = bboxes[1][2] * bboxes[1][3]
-            if a1 > 0.85 * a0:
-                return None
-        # Robustez: bbox degenerado o el frame entero (marco/borde)
-        if w < 0.35 * img_w or h < 0.35 * img_h:
-            return None
-        if w >= 0.985 * img_w and h >= 0.985 * img_h and bbox_area >= 0.985 * img_area:
-            return None
-
-        pts = biggest.reshape(-1, 2)
         skull_left, skull_right  = int(x), int(x + w)
         skull_top,  skull_bottom = int(y), int(y + h)
-        lower = pts[pts[:, 1] >= (img_h * 2 / 3)]
-        profile_anterior_x  = int(lower[:, 0].max()) if len(lower) else skull_right
+        skull_w, skull_h = int(w), int(h)
+
+        # ── PASO 4: puntos anatómicos del contorno ──
+        ax_thr = skull_left + skull_w * 0.55
+        anterior = pts[pts[:, 0] > ax_thr]
+        if len(anterior) < 3:
+            return None
+        i_top = int(_np.argmin(anterior[:, 1]))
+        profile_top_x, profile_top_y = int(anterior[i_top, 0]), int(anterior[i_top, 1])
+        upper_third_y = skull_top + skull_h / 3.0
+        nasal_zone = anterior[anterior[:, 1] <= upper_third_y]
+        if len(nasal_zone):
+            i_nasal = int(_np.argmax(nasal_zone[:, 0]))
+            profile_nasal_x = int(nasal_zone[i_nasal, 0])
+            profile_nasal_y = int(nasal_zone[i_nasal, 1])
+        else:
+            profile_nasal_x, profile_nasal_y = profile_top_x, profile_top_y
+        i_chin = int(_np.argmax(anterior[:, 1]))
+        chin_anterior_x, chin_y = int(anterior[i_chin, 0]), int(anterior[i_chin, 1])
+
         profile_posterior_x = int(pts[:, 0].min())
-        cranium_top_y = int(pts[:, 1].min())
-        chin_y        = int(pts[:, 1].max())
+        cranium_top_y       = int(pts[:, 1].min())
+        frankfurt_y_approx  = int(skull_top + skull_h * 0.38)
 
         return {
             "skull_left": skull_left, "skull_right": skull_right,
             "skull_top": skull_top,   "skull_bottom": skull_bottom,
-            "skull_width_px": int(w), "skull_height_px": int(h),
-            "profile_anterior_x": profile_anterior_x,
+            "skull_width_px": skull_w, "skull_height_px": skull_h,
+            "profile_top_x": profile_top_x, "profile_top_y": profile_top_y,
+            "profile_nasal_x": profile_nasal_x, "profile_nasal_y": profile_nasal_y,
+            "chin_anterior_x": chin_anterior_x, "chin_y": chin_y,
             "profile_posterior_x": profile_posterior_x,
-            "cranium_top_y": cranium_top_y, "chin_y": chin_y,
+            "cranium_top_y": cranium_top_y,
+            "frankfurt_y_approx": frankfurt_y_approx,
         }
     except Exception:
         return None
+
+
 
 @app.post("/api/sugerir-puntos")
 async def sugerir_puntos(request: Request):
@@ -418,23 +440,48 @@ async def sugerir_puntos(request: Request):
 
         # ── Detección real del contorno del cráneo con OpenCV (opcional) ──
         cv_skull = detectar_craneo_opencv(image_b64, img_w, img_h)
-        print(f"[OpenCV] skull={'detectado' if cv_skull else 'fallback-Claude'}"
+        print(f"[OpenCV] skull={'detectado(Otsu+CLAHE)' if cv_skull else 'fallback-Claude'}"
               + (f" bbox=({cv_skull['skull_left']},{cv_skull['skull_top']})-({cv_skull['skull_right']},{cv_skull['skull_bottom']})" if cv_skull else ""))
         if cv_skull:
             contorno_ctx = f"""
 ════════════════════════════════════════════════════
-CONTORNO REAL DEL CRÁNEO detectado por OpenCV
+SILUETA DEL CRÁNEO (blob óseo detectado por umbralización Otsu+CLAHE)
 ════════════════════════════════════════════════════
 Bounding box: x=[{cv_skull['skull_left']}-{cv_skull['skull_right']}], y=[{cv_skull['skull_top']}-{cv_skull['skull_bottom']}]
-Ancho del cráneo: {cv_skull['skull_width_px']}px, Alto: {cv_skull['skull_height_px']}px
-Perfil anterior (nariz/mentón): x≈{cv_skull['profile_anterior_x']}px
-Occipital posterior: x≈{cv_skull['profile_posterior_x']}px
-Bóveda craneal: y≈{cv_skull['cranium_top_y']}px
-Mentón inferior: y≈{cv_skull['chin_y']}px
+Dimensiones: {cv_skull['skull_width_px']}px ancho x {cv_skull['skull_height_px']}px alto
 
-Usa estas coordenadas reales como referencia para ubicar los landmarks. Los puntos
-de referencia del contorno son medidas reales en píxeles del espacio comprimido.
-El bounding box de arriba ES el cráneo: ancla tus x_skull/y_skull a ESE rectángulo.
+Perfil anterior derecho:
+  Punto más superior (zona frente/nasion): x≈{cv_skull['profile_top_x']}, y≈{cv_skull['profile_top_y']}
+  Punto más anterior nasal (zona N): x≈{cv_skull['profile_nasal_x']}, y≈{cv_skull['profile_nasal_y']}
+  Mentón inferior (zona Me): x≈{cv_skull['chin_anterior_x']}, y≈{cv_skull['chin_y']}
+
+Perfil posterior:
+  Occipital (más posterior): x≈{cv_skull['profile_posterior_x']}
+  Bóveda craneal (más superior): y≈{cv_skull['cranium_top_y']}
+
+Frankfurt aproximado: y≈{cv_skull['frankfurt_y_approx']}px
+
+IMPORTANTE: estos son puntos reales del contorno óseo medidos por OpenCV.
+Úsalos como anclas geométricas. N debe estar CERCA de profile_nasal.
+Me debe estar CERCA de chin_anterior. S/Co están en la zona posterior-media.
+
+PROPORCIONES CEFALOMÉTRICAS NORMATIVAS (dentro del bbox del cráneo):
+ S:   x_skull≈32%, y_skull≈22%   (centro silla turca)
+ N:   x_skull≈60%, y_skull≈12%   (sutura frontonasal)
+ Po:  x_skull≈28%, y_skull≈36%   (conducto auditivo)
+ Or:  x_skull≈58%, y_skull≈34%   (reborde orbitario inf)
+ A:   x_skull≈78%, y_skull≈50%   (subespinal)
+ B:   x_skull≈74%, y_skull≈63%   (supramental)
+ Me:  x_skull≈68%, y_skull≈94%   (mentón inferior)
+ Go:  x_skull≈18%, y_skull≈76%   (ángulo mandibular)
+ ENA: x_skull≈76%, y_skull≈52%   (espina nasal ant)
+ ENP: x_skull≈48%, y_skull≈52%   (espina nasal post)
+ Co:  x_skull≈22%, y_skull≈34%   (cóndilo)
+ Cls: x_skull≈28%, y_skull≈30%   (clivus sup)
+ Cli: x_skull≈24%, y_skull≈42%   (clivus inf)
+
+ Úsalas como REFERENCIA cuando un punto no es claramente visible.
+ Prioriza siempre lo que ves en la imagen sobre estas proporciones.
 """
         else:
             contorno_ctx = ""
