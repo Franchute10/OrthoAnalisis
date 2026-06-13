@@ -430,6 +430,9 @@ async def sugerir_puntos(request: Request):
         # orig_w/h son las dimensiones originales (para escalar de vuelta en el frontend)
         img_w     = body.get("width",  1000)   # dim comprimida = lo que Claude ve
         img_h     = body.get("height",  800)   # dim comprimida = lo que Claude ve
+        orig_w    = body.get("orig_width",  img_w)   # original (px de las anclas)
+        orig_h    = body.get("orig_height", img_h)
+        anchors   = body.get("anchors")              # opcional: {S,N,Me,Go} en px original
 
         if not image_b64:
             return {"success": False, "detail": "No se recibió imagen"}
@@ -442,6 +445,40 @@ async def sugerir_puntos(request: Request):
         cv_skull = detectar_craneo_opencv(image_b64, img_w, img_h)
         print(f"[OpenCV] skull={'detectado(Otsu+CLAHE)' if cv_skull else 'fallback-Claude'}"
               + (f" bbox=({cv_skull['skull_left']},{cv_skull['skull_top']})-({cv_skull['skull_right']},{cv_skull['skull_bottom']})" if cv_skull else ""))
+
+        # ── Bounding box antes del prompt: fuente de verdad para anclas ──
+        if cv_skull:
+            bbox_left   = float(cv_skull["skull_left"])
+            bbox_right  = float(cv_skull["skull_right"])
+            bbox_top    = float(cv_skull["skull_top"])
+            bbox_bottom = float(cv_skull["skull_bottom"])
+        else:
+            bbox_left   = 0.05 * img_w
+            bbox_right  = 0.95 * img_w
+            bbox_top    = 0.05 * img_h
+            bbox_bottom = 0.95 * img_h
+        bbox_w = max(bbox_right - bbox_left, 50.0)
+        bbox_h = max(bbox_bottom - bbox_top, 50.0)
+
+        # ── Convertir anclas px ORIGINAL → x_skull/y_skull ──
+        anclas_xs = {}
+        anclas_px = {}
+        if anchors:
+            sx = img_w / float(orig_w or img_w)
+            sy = img_h / float(orig_h or img_h)
+            for k in ("S", "N", "Me", "Go"):
+                a = anchors.get(k)
+                if not a:
+                    continue
+                try:
+                    xc = float(a["x"]) * sx
+                    yc = float(a["y"]) * sy
+                except (KeyError, TypeError, ValueError):
+                    continue
+                anclas_px[k] = (round(xc, 1), round(yc, 1))
+                anclas_xs[k] = (round((xc - bbox_left) / bbox_w * 100.0, 1),
+                                round((yc - bbox_top)  / bbox_h * 100.0, 1))
+
         if cv_skull:
             contorno_ctx = f"""
 ════════════════════════════════════════════════════
@@ -485,6 +522,39 @@ PROPORCIONES CEFALOMÉTRICAS NORMATIVAS (dentro del bbox del cráneo):
 """
         else:
             contorno_ctx = ""
+
+        # ── Bloque de ANCLAS marcadas por el doctor (si vienen) ──
+        if anclas_xs:
+            def _xs(k):
+                return anclas_xs.get(k, (0.0, 0.0))
+            s_xs, s_ys   = _xs("S")
+            n_xs, n_ys   = _xs("N")
+            me_xs, me_ys = _xs("Me")
+            go_xs, go_ys = _xs("Go")
+            anclas_ctx = f"""
+════════════════════════════════════════════════════
+ANCLAS MARCADAS POR EL ORTODONCISTA (coordenadas exactas)
+════════════════════════════════════════════════════
+Estas posiciones son VERDAD ABSOLUTA — el doctor las marcó con precisión clínica.
+NO las muevas.
+
+S  → x_skull={s_xs:.1f}, y_skull={s_ys:.1f}
+N  → x_skull={n_xs:.1f}, y_skull={n_ys:.1f}
+Me → x_skull={me_xs:.1f}, y_skull={me_ys:.1f}
+Go → x_skull={go_xs:.1f}, y_skull={go_ys:.1f}
+
+Usando estas anclas, coloca los 9 puntos restantes (A, B, Po, Or, ENA, ENP, Co, Cls, Cli).
+
+Referencias geométricas a partir de las anclas:
+- La línea S→N define la base craneal anterior (NSL)
+- Po está ~14% del ancho craneal a la derecha de S, y ~14% del alto por debajo de S
+- Or está a la misma altura que Po o ligeramente más bajo, en zona anterior (x_skull≈58%)
+- ENA/ENP están al ~52% del alto craneal (mitad entre N y Me aproximadamente)
+- Cls está inmediatamente adyacente a S hacia abajo
+- Cli continúa la línea S-Cls hacia inferior
+"""
+            contorno_ctx = contorno_ctx + anclas_ctx
+
 
         prompt = f"""Eres un especialista en cefalometría radiológica de Bimler-Lavergne-Petrovic. Vas a analizar una telerradiografía lateral de cráneo e identificar con MÁXIMA PRECISIÓN los 13 puntos cefalométricos. Trabaja en TRES FASES y respóndelas en orden.
 {contorno_ctx}
@@ -748,6 +818,12 @@ No incluyas las estructuras de la Fase 0 en el JSON. Devuelve exactamente:
                     confianzas[key] = round(max(0.0, min(1.0, float(v["confianza"]))), 2)
                 except (TypeError, ValueError):
                     confianzas[key] = None
+
+        # ── Anclas del doctor: SOBRESCRIBEN lo que diga la IA (verdad absoluta) ──
+        if anclas_px:
+            for k, (xc, yc) in anclas_px.items():
+                puntos[k] = {"x": round(xc, 1), "y": round(yc, 1)}
+                confianzas[k] = 1.0
 
         return {"success": True, "puntos": puntos, "confianza": confianzas}
 

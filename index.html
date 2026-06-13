@@ -563,6 +563,12 @@ input[type=range]::-webkit-slider-thumb {
 .result-val.info     { color: var(--navy); }
 .result-val.accent   { color: var(--orange); }
 .norm-dot { display:inline-block; width:6px; height:6px; border-radius:50%; margin-right:4px; vertical-align:middle; }
+/* ── Anclas (4 puntos primero) ── */
+.anchor-hint { font-size:10px; color:var(--accent); letter-spacing:.5px; text-transform:uppercase; padding:4px 8px 6px; opacity:.9; }
+.point-item.is-anchor { border-left:2px solid var(--accent); background:rgba(0,255,135,.04); }
+.point-item.is-anchor .point-num { background:rgba(0,255,135,.15); color:var(--accent); }
+.anchor-badge { display:inline-block; font-size:8px; font-weight:700; letter-spacing:1px; background:var(--accent); color:#06210f; padding:1px 5px; border-radius:3px; vertical-align:middle; margin-left:4px; }
+.anchor-divider { height:1px; background:var(--border); margin:6px 8px 8px; }
 .norm-dot.in-norma { background:var(--green); }
 .norm-dot.leve     { background:#e67e22; }
 .norm-dot.fuera    { background:var(--red); }
@@ -822,12 +828,14 @@ const NORMAS = {
 // CONFIG PUNTOS
 // ============================================================
 const PUNTOS_CONFIG = [
-  { key:"S",   nombre:"Sella",     desc:"Centro de la Silla Turca",         color:"#00ff87" },
-  { key:"N",   nombre:"Nasion",    desc:"Sutura frontonasal",                color:"#00c8ff" },
+  // ── 4 ANCLAS: el doctor las marca primero; la IA ubica las otras 9 ──
+  { key:"S",   nombre:"Sella",     desc:"Centro de la Silla Turca",         color:"#00ff87", ancla:true },
+  { key:"N",   nombre:"Nasion",    desc:"Sutura frontonasal",                color:"#00c8ff", ancla:true },
+  { key:"Me",  nombre:"Mentón",    desc:"Inferior de la sínfisis",           color:"#ff6b6b", ancla:true },
+  { key:"Go",  nombre:"Gonion",    desc:"Ángulo mandibular inf-posterior",   color:"#c77dff", ancla:true },
+  // ── 9 restantes ──
   { key:"A",   nombre:"Punto A",   desc:"Subspinale — maxilar superior",     color:"#ffdd00" },
   { key:"B",   nombre:"Punto B",   desc:"Supramentale — mandíbula",          color:"#ff8c42" },
-  { key:"Me",  nombre:"Mentón",    desc:"Inferior de la sínfisis",           color:"#ff6b6b" },
-  { key:"Go",  nombre:"Gonion",    desc:"Ángulo mandibular inf-posterior",   color:"#c77dff" },
   { key:"ENA", nombre:"ENA",       desc:"Espina Nasal Anterior",             color:"#48cae4" },
   { key:"ENP", nombre:"ENP",       desc:"Espina Nasal Posterior",            color:"#0096c7" },
   { key:"Po",  nombre:"Porion",    desc:"Borde SUPERIOR del CAE óseo",       color:"#f72585" },
@@ -836,6 +844,11 @@ const PUNTOS_CONFIG = [
   { key:"Cls", nombre:"Clivus Sup", desc:"Clivus superior — 10mm bajo Sella",    color:"#0ea5e9" },
   { key:"Cli", nombre:"Clivus Inf", desc:"Clivus inferior — sobre el Basion",    color:"#0284c7" },
 ];
+
+// Claves de las 4 anclas (orden fijo)
+const ANCLAS = ["S","N","Me","Go"];
+function anclasMarcadas() { return ANCLAS.filter(k => state.puntos[k]).length; }
+function todasAnclasMarcadas() { return anclasMarcadas() === ANCLAS.length; }
 
 // ============================================================
 // ESTADO
@@ -936,7 +949,7 @@ function cargarImagen(event) {
     document.getElementById('no-image').style.display    = 'none';
     document.getElementById('zoom-indicator').style.display = 'block';
     document.getElementById('canvas-hint').style.display    = 'block';
-    document.getElementById('btn-ia').disabled = false;
+    if (typeof actualizarBotonIA === 'function') actualizarBotonIA();
     const scaleX = canvas.width  / img.width;
     const scaleY = canvas.height / img.height;
     state.zoom    = Math.min(scaleX, scaleY) * 0.9;
@@ -1008,7 +1021,13 @@ async function sugerirPuntosIA() {
         width:  sendW,           // dimensión de la imagen que Claude ve
         height: sendH,
         orig_width:  state.imagen.width,   // original para escalar de vuelta
-        orig_height: state.imagen.height
+        orig_height: state.imagen.height,
+        anchors: (typeof todasAnclasMarcadas === 'function' && todasAnclasMarcadas()) ? {
+          S:  { x: state.puntos.S.x,  y: state.puntos.S.y  },
+          N:  { x: state.puntos.N.x,  y: state.puntos.N.y  },
+          Me: { x: state.puntos.Me.x, y: state.puntos.Me.y },
+          Go: { x: state.puntos.Go.x, y: state.puntos.Go.y }
+        } : undefined
       })
     });
 
@@ -1021,21 +1040,11 @@ async function sugerirPuntosIA() {
 
     // Guardar sugerencias
     state.sugeridos = {};
-    state.confianzaIA = data.confianza || {};
     for (const [key, coords] of Object.entries(data.puntos)) {
       state.sugeridos[key] = {
         x: coords.x * scaleX_ai,
-        y: coords.y * scaleY_ai,
-        conf: state.confianzaIA[key] ?? null
+        y: coords.y * scaleY_ai
       };
-    }
-    // Avisar puntos con baja confianza (< 0.55) para revisión manual
-    const dudosos = Object.entries(state.confianzaIA)
-      .filter(([, v]) => v !== null && v < 0.55)
-      .map(([k]) => k);
-    if (dudosos.length) {
-      document.getElementById('ai-status-text').textContent =
-        '✓ Listo — revisa: ' + dudosos.join(', ') + ' (baja confianza IA)';
     }
 
     state.modoSugerido = true;
@@ -1487,14 +1496,16 @@ function onCanvasClick(e) {
 function renderListaPuntos() {
   const container = document.getElementById('points-list');
   container.innerHTML = PUNTOS_CONFIG.map((p, i) => `
-    <div class="point-item" id="pt-item-${i}" onclick="irAPunto(${i})">
-      <div class="point-num">${i+1}</div>
+    ${i === 0 ? '<div class="anchor-hint">⚓ Marca estos 4 primero</div>' : ''}
+    <div class="point-item${p.ancla ? ' is-anchor' : ''}" id="pt-item-${i}" onclick="irAPunto(${i})">
+      <div class="point-num">${p.ancla ? '⚓' : (i+1)}</div>
       <div style="flex:1;min-width:0">
-        <div class="point-name">${p.key} — ${p.nombre}</div>
+        <div class="point-name">${p.key} — ${p.nombre}${p.ancla ? ' <span class="anchor-badge">ANCLA</span>' : ''}</div>
         <div class="point-desc">${p.desc}</div>
       </div>
       <div class="point-coords" id="pt-coords-${i}"></div>
     </div>
+    ${i === ANCLAS.length - 1 ? '<div class="anchor-divider"></div>' : ''}
   `).join('');
   actualizarListaPuntos();
 }
@@ -1526,6 +1537,19 @@ function actualizarListaPuntos() {
     }
   });
   if (typeof actualizarBotonesUX === 'function') actualizarBotonesUX();  // ⟵ HOOK
+  actualizarHintAnclas();
+}
+
+// Mensaje del canvas: progreso de anclas hasta activar la IA
+function actualizarHintAnclas() {
+  const hint = document.getElementById('canvas-hint');
+  if (!hint || !state.imagen || state.modoSugerido) return;
+  if (typeof todasAnclasMarcadas === 'function' && !todasAnclasMarcadas()) {
+    const n = anclasMarcadas();
+    hint.innerHTML = `Marca <strong>S, N, Me, Go</strong> para activar la IA (${n}/4) · luego ✦ sugiere los 9 restantes`;
+  } else {
+    hint.innerHTML = 'Clic para marcar · Rueda para zoom · Clic derecho para mover';
+  }
 }
 
 function actualizarZoomIndicator() {
@@ -1565,7 +1589,25 @@ function scrollPuntoActivoAVista() {
   }
 }
 
+function actualizarBotonIA() {
+  const btn = document.getElementById('btn-ia');
+  if (!btn) return;
+  if (state.modoSugerido) return;
+  const n = (typeof anclasMarcadas === 'function') ? anclasMarcadas() : 0;
+  if (!state.imagen) {
+    btn.disabled = true;
+    btn.textContent = '✦ Carga una radiografía';
+  } else if (n < ANCLAS.length) {
+    btn.disabled = true;
+    btn.textContent = '✦ Marca S, N, Me y Go primero';
+  } else {
+    btn.disabled = false;
+    btn.textContent = '✦ Sugerir 9 puntos restantes (IA)';
+  }
+}
+
 function actualizarBotonesUX() {
+  if (typeof actualizarBotonIA === 'function') actualizarBotonIA();
   const total    = PUNTOS_CONFIG.length;
   const marcados = Object.keys(state.puntos).length;
   const btnUndo  = document.getElementById('btn-undo');
@@ -1620,17 +1662,12 @@ function resetPuntos() {
 
 function resetTodo() {
   state.imagen = null; state.zoom = 1; state.offsetX = 0; state.offsetY = 0;
-  // Limpiar canvas y restaurar estado inicial
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  canvas.style.pointerEvents = 'none'; // regresar a no-image clickeable
   document.getElementById('no-image').style.display    = 'flex';
   document.getElementById('zoom-indicator').style.display = 'none';
   document.getElementById('canvas-hint').style.display    = 'none';
-  document.getElementById('drag-indicator').style.display = 'none';
   document.getElementById('btn-ia').disabled = true;
-  const fi = document.getElementById('file-input'); if (fi) fi.value = '';
+  document.getElementById('fileInput').value = '';
   resetPuntos();
-  redraw(); // limpia el canvas completamente
 }
 
 function mostrarEmptyState() {
