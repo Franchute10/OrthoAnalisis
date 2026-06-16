@@ -107,6 +107,128 @@ def distancia(p1, p2):
 # -----------------------------------------------------------------
 # MOTOR PRINCIPAL
 # -----------------------------------------------------------------
+# ─────────────────────────────────────────────────────────────────────────────
+# MEDIDAS LINEALES DE BIMLER (requieren calibración px→mm)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _dist(p1, p2):
+    """Distancia euclidiana entre dos puntos."""
+    return math.sqrt((p2[0]-p1[0])**2 + (p2[1]-p1[1])**2)
+
+def _dist_perp(pt, l1, l2):
+    """Distancia perpendicular de pt a la línea l1-l2."""
+    dx, dy = l2[0]-l1[0], l2[1]-l1[1]
+    llen = math.sqrt(dx*dx + dy*dy)
+    if llen < 1: return 0.0
+    cross = abs(dx*(l1[1]-pt[1]) - (l1[0]-pt[0])*dy)
+    return cross / llen
+
+def calcular_medidas_lineales(pts, px_per_mm):
+    """Calcula medidas lineales de Bimler en mm. Requiere px_per_mm válido."""
+    if not px_per_mm or px_per_mm <= 0:
+        return None
+    def mm(px): return round(px / px_per_mm, 1)
+
+    po, or_ = pts.get("Po"), pts.get("Or")
+
+    result = {
+        "NS":    mm(_dist(pts["N"], pts["S"])),
+        "CoGo":  mm(_dist(pts["Co"], pts["Go"])),
+        "NMe":   mm(_dist(pts["N"],  pts["Me"])),
+        "AB":    mm(_dist(pts["A"],  pts["B"])),
+        "MeCo":  mm(_dist(pts["Me"], pts["Co"])),  # aprox Gn-Co
+    }
+    if po and or_:
+        result["NFH"]  = mm(_dist_perp(pts["N"],  po, or_))
+        result["SFH"]  = mm(_dist_perp(pts["S"],  po, or_))
+        result["FHMe"] = mm(_dist_perp(pts["Me"], po, or_))
+    return result
+
+
+def _clasif(val, norma, tol, etiquetas=("Pequeño","Medio","Grande")):
+    """Clasifica un valor linear respecto a su norma."""
+    if val is None: return "—"
+    d = val - norma
+    if   d < -tol: return etiquetas[0]
+    elif d >  tol: return etiquetas[1 if len(etiquetas)==2 else 2]
+    else:          return etiquetas[1]
+
+def generar_resumen_narrativo(f, indicadores_T, medidas_lineales, grupo, categoria):
+    """Genera lista de frases diagnósticas estilo OrthoTP."""
+    T1  = indicadores_T.get("T1")
+    T2  = indicadores_T.get("T2")
+    T3  = indicadores_T.get("T3")
+    F3  = f.get("F3")
+    F4  = f.get("F4")
+    F5  = f.get("F5")
+    ANB = f.get("ANB")
+
+    frases = []
+
+    # Rotación de crecimiento
+    rot = grupo[0] if grupo else "?"
+    rot_desc = {"R":"Neutro (R)", "A":"Anterior (A)", "P":"Posterior (P)"}
+    frases.append(f"Rotación de crecimiento tipo {rot_desc.get(rot, rot)}")
+
+    # Relación basal maxilo-mandibular (T3/ANB)
+    if ANB is not None:
+        if   ANB >  5: frases.append("Mandíbulo-maxilar dolicognático (DISTAL)")
+        elif ANB <  0: frases.append("Mandíbulo-maxilar mesognático (MESIAL)")
+        else:          frases.append("Mandíbulo-maxilar mesoprosópico = Neutro")
+
+    # Inclinación plano mandibular (F3)
+    if F3 is not None:
+        if   F3 > 30: frases.append("Inclinación del plano mandibular – Hiperdivergente")
+        elif F3 < 20: frases.append("Inclinación del plano mandibular – Hipodivergente")
+        else:         frases.append("Inclinación del plano mandibular – Neutra")
+
+    # Inclinación maxilar (F4)
+    if F4 is not None:
+        if   F4 > 2:  frases.append("Inclinación maxilar – Arriba=Positivo")
+        elif F4 < -2: frases.append("Inclinación maxilar – Arriba=Negativo")
+        else:         frases.append("Inclinación maxilar – Horizontal")
+
+    # Inclinación clivus (F5)
+    if F5 is not None:
+        if   F5 > 70: frases.append("Inclinación del clivus = V = Vertical (profundo)")
+        elif F5 < 60: frases.append("Inclinación del clivus = D = Horizontal (bajo)")
+        else:         frases.append("Inclinación del clivus = M = Medio")
+        # Clivo maxilar profundidad
+        if F5 > 68:   frases.append("Clivo maxilar – PROFUNDO")
+        elif F5 < 62: frases.append("Clivo maxilar (horizontal) – BAJO (DEEP)")
+        else:         frases.append("Clivo maxilar – MEDIO")
+
+    # Grupo y categoría
+    frases.append(f"Grupo {grupo}")
+    frases.append(f"Categoría de crecimiento auxológico = {categoria}")
+
+    # Medidas lineales (si disponibles)
+    if medidas_lineales:
+        ns = medidas_lineales.get("NS")
+        if ns:
+            c = _clasif(ns, 70, 4, ("Corto","Medio","Largo"))
+            frases.append(f"Base craneal anterior (N-S) – {c} ({ns} mm)")
+
+        gn = medidas_lineales.get("MeCo")
+        if gn:
+            c = _clasif(gn, 110, 10, ("Pequeño","Medio","Grande"))
+            frases.append(f"Diagonal mandibular (Me-Co) – {c} ({gn} mm)")
+
+        nme = medidas_lineales.get("NMe")
+        if nme:
+            c = _clasif(nme, 120, 5, ("Pequeño","Medio","Grande"))
+            frases.append(f"Altura anterior de la cara (N-Me) – {c} ({nme} mm)")
+
+        ab = medidas_lineales.get("AB")
+        if ab is not None:
+            if   ab > 5:   c = "Clase II"
+            elif ab < 0:   c = "Clase III"
+            else:          c = "Clase I"
+            frases.append(f"Resalte esquelético (A-B) – {c} ({ab} mm)")
+
+    return frases
+
+
 def calcular_factores_bimler(pts, escala_mm_px=None):
     """
     Calcula todos los factores de Bimler y medidas derivadas.
@@ -845,6 +967,7 @@ async def root():
 async def analizar(request: Request):
     try:
         body = await request.json()
+        px_per_mm = body.pop("px_per_mm", None)  # calibración px→mm
         pts  = {}
         for nombre, coords in body.items():
             if isinstance(coords, dict):   pts[nombre] = (coords["x"], coords["y"])
@@ -929,6 +1052,12 @@ async def analizar(request: Request):
                              "lineal solo de SNA. No afecta el diagnóstico (T2 usa NL/NSL medido).",
             },
             "avisos_limite": margenes_borde(T1, T2, T3),
+            "medidas_lineales": calcular_medidas_lineales(pts, px_per_mm),
+            "resumen_narrativo": generar_resumen_narrativo(
+                factores, {"T1":T1,"T2":T2,"T3":T3},
+                calcular_medidas_lineales(pts, px_per_mm),
+                grupo, str(categoria)
+            ),
             "diagnostico": {
                 "grupo": grupo, "categoria": categoria,
                 "categoria_advertencia": advertencia,   # Fix E: None si mapea OK

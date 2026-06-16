@@ -569,6 +569,10 @@ input[type=range]::-webkit-slider-thumb {
 .point-item.is-anchor .point-num { background:rgba(0,255,135,.15); color:var(--accent); }
 .anchor-badge { display:inline-block; font-size:8px; font-weight:700; letter-spacing:1px; background:var(--accent); color:#06210f; padding:1px 5px; border-radius:3px; vertical-align:middle; margin-left:4px; }
 .anchor-divider { height:1px; background:var(--border); margin:6px 8px 8px; }
+/* ── Calibración ── */
+.calib-status { font-size:10px; color:var(--accent2); padding:6px 8px; background:rgba(0,200,255,.06); border:1px solid rgba(0,200,255,.2); border-radius:6px; margin-top:4px; }
+.calib-scale  { font-size:11px; font-weight:700; color:var(--accent2); }
+.tool-btn.calib-active { background:rgba(0,200,255,.15); color:var(--accent2); border:1px solid rgba(0,200,255,.4); }
 .norm-dot.in-norma { background:var(--green); }
 .norm-dot.leve     { background:#e67e22; }
 .norm-dot.fuera    { background:var(--red); }
@@ -681,6 +685,9 @@ input[type=range]::-webkit-slider-thumb {
     <button class="tool-btn" id="btn-fit" onclick="encajarImagen()" disabled title="Encajar imagen">⤢</button>
     <!-- Undo -->
     <button class="tool-btn" id="btn-undo" onclick="deshacerUltimoPunto()" disabled title="Deshacer punto">↶</button>
+    <!-- Calibrar (rulero) -->
+    <button class="tool-btn" id="btn-calib" onclick="toggleModoCalib()" title="Calibrar escala (marcar rulero)">📏</button>
+
     <!-- Autofix -->
     <button class="tool-btn" id="btn-autofix" onclick="autoCorregirPuntos()" disabled title="Auto-corregir geometría" style="font-size:14px">🔧</button>
   </div>
@@ -765,6 +772,16 @@ input[type=range]::-webkit-slider-thumb {
       <button class="btn btn-confirm-ai" id="btn-confirm-ai" onclick="confirmarSugerencias()" style="display:none">
         ✓ Usar estas posiciones como base
       </button>
+    </div>
+
+    <div class="sidebar-divider"></div>
+
+    <!-- Calibración -->
+    <div id="calib-panel" style="padding:0 2px">
+      <div class="sec-title" style="margin-bottom:6px"><span class="sec-icon">📏</span> Calibración</div>
+      <div id="calib-status-txt" class="calib-status">
+        Sin calibrar — marca el rulero para medidas en mm
+      </div>
     </div>
 
     <div class="sidebar-divider"></div>
@@ -854,6 +871,10 @@ function todasAnclasMarcadas() { return anclasMarcadas() === ANCLAS.length; }
 // ESTADO
 // ============================================================
 let state = {
+  calibPts: [],      // puntos del rulero [{x,y},{x,y}] en coords originales
+  px_per_mm: null,   // factor de calibración
+  mm_rulero: 10,     // mm del segmento marcado (default 10mm = línea larga a larga)
+  modoCalib: false,  // cuando true, clics marcan el rulero
   imagen: null, puntos: {}, sugeridos: {},
   puntoActivo: 0, zoom: 1.0, offsetX: 0, offsetY: 0,
   isDragging: false, isLeftDragging: false,
@@ -893,6 +914,101 @@ function onTouchEnd(e) {
   const t = e.changedTouches[0];
   onMouseUp({ button: 0, clientX: t.clientX, clientY: t.clientY });
 }
+
+// ═══════════════════════════════════════════════════════════
+// CALIBRACIÓN — marcado del rulero para medidas en mm
+// ═══════════════════════════════════════════════════════════
+function toggleModoCalib() {
+  state.modoCalib = !state.modoCalib;
+  const btn = document.getElementById('btn-calib');
+  if (state.modoCalib) {
+    state.calibPts = [];
+    btn.classList.add('calib-active');
+    btn.title = 'Calibrando... haz clic en los extremos del rulero';
+    mostrarHint('Haz clic en el <strong>extremo izquierdo</strong> del rulero');
+    document.getElementById('calib-status-txt').textContent = 'Haz clic en extremo 1 del rulero...';
+  } else {
+    btn.classList.remove('calib-active');
+    btn.title = 'Calibrar escala (marcar rulero)';
+    actualizarCalibPanel();
+    redraw();
+  }
+}
+
+function handleCalibClick(x, y) {
+  state.calibPts.push({x, y});
+  redraw();
+  if (state.calibPts.length === 1) {
+    mostrarHint('Ahora haz clic en el <strong>extremo derecho</strong> del rulero');
+    document.getElementById('calib-status-txt').textContent = 'Haz clic en extremo 2 del rulero...';
+  } else if (state.calibPts.length >= 2) {
+    // Pedir distancia en mm
+    const mm = parseFloat(prompt('¿Cuántos mm hay entre los dos puntos que marcaste?\n· Línea larga a línea larga = 10 mm\n· Línea mediana a mediana = 5 mm\n· Puedes usar cualquier distancia conocida', state.mm_rulero));
+    if (!isNaN(mm) && mm > 0) {
+      state.mm_rulero = mm;
+      const dx = state.calibPts[1].x - state.calibPts[0].x;
+      const dy = state.calibPts[1].y - state.calibPts[0].y;
+      const px_dist = Math.sqrt(dx*dx + dy*dy);
+      state.px_per_mm = px_dist / mm;
+    }
+    state.modoCalib = false;
+    const btn = document.getElementById('btn-calib');
+    btn.classList.remove('calib-active');
+    actualizarCalibPanel();
+    redraw();
+  }
+}
+
+function actualizarCalibPanel() {
+  const el = document.getElementById('calib-status-txt');
+  if (!el) return;
+  if (state.px_per_mm) {
+    el.innerHTML = `<span class="calib-scale">✓ ${state.px_per_mm.toFixed(2)} px/mm</span><br>Rulero: ${state.mm_rulero} mm · Escala calibrada`;
+    el.style.borderColor = 'rgba(0,255,135,.3)';
+    el.style.color = 'var(--accent)';
+  } else {
+    el.textContent = 'Sin calibrar — marca el rulero para medidas en mm';
+    el.style.borderColor = '';
+    el.style.color = '';
+  }
+}
+
+function dibujarCalibLine(ctx2) {
+  if (state.calibPts.length === 0) return;
+  const zoom = state.zoom, ox = state.offsetX, oy = state.offsetY;
+  ctx2.save();
+  ctx2.strokeStyle = '#00c8ff';
+  ctx2.lineWidth = 2;
+  ctx2.setLineDash([6, 3]);
+  if (state.calibPts.length >= 1) {
+    const p1 = state.calibPts[0];
+    const cx1 = p1.x * zoom + ox, cy1 = p1.y * zoom + oy;
+    ctx2.beginPath();
+    ctx2.arc(cx1, cy1, 5, 0, Math.PI*2);
+    ctx2.strokeStyle = '#00c8ff';
+    ctx2.setLineDash([]);
+    ctx2.stroke();
+    if (state.calibPts.length >= 2) {
+      const p2 = state.calibPts[1];
+      const cx2 = p2.x * zoom + ox, cy2 = p2.y * zoom + oy;
+      ctx2.setLineDash([6,3]);
+      ctx2.beginPath();
+      ctx2.moveTo(cx1, cy1);
+      ctx2.lineTo(cx2, cy2);
+      ctx2.stroke();
+      ctx2.beginPath();
+      ctx2.arc(cx2, cy2, 5, 0, Math.PI*2);
+      ctx2.setLineDash([]);
+      ctx2.stroke();
+      // Label
+      ctx2.fillStyle = '#00c8ff';
+      ctx2.font = '11px Inter, sans-serif';
+      ctx2.fillText(`${state.mm_rulero} mm`, (cx1+cx2)/2 - 20, (cy1+cy2)/2 - 8);
+    }
+  }
+  ctx2.restore();
+}
+
 
 function init() {
   try { renderListaPuntos(); } catch(e) { console.error('renderListaPuntos:', e); }
@@ -1172,6 +1288,7 @@ function redraw() {
   ctx.drawImage(state.imagen, 0, 0);
   ctx.restore();
 
+  dibujarCalibLine(ctx);
   dibujarLineas();
 
   Object.entries(state.puntos).forEach(([key, pos]) => {
@@ -1460,6 +1577,13 @@ function onMouseLeave() {
 }
 
 function onCanvasClick(e) {
+  if (state.modoCalib) {
+    const rect = canvas.getBoundingClientRect();
+    const rawX = (e.clientX - rect.left - state.offsetX) / state.zoom;
+    const rawY = (e.clientY - rect.top  - state.offsetY) / state.zoom;
+    handleCalibClick(rawX, rawY);
+    return;
+  }
   if (!state.imagen || state.modoSugerido) return;
   if (state.puntoActivo >= PUNTOS_CONFIG.length) return;
   if (e.button !== 0) return;
@@ -1692,7 +1816,10 @@ async function analizarPuntos() {
   try {
     const resp = await fetch('/api/analizar', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(state.puntos)
+      body: JSON.stringify({
+        ...state.puntos,
+        ...(state.px_per_mm ? { px_per_mm: state.px_per_mm } : {})
+      })
     });
     const data = await resp.json();
     if (!data.success) throw new Error(data.detail || 'Error');
@@ -1803,7 +1930,37 @@ function mostrarResultados(data) {
         onmouseout="this.style.background='transparent'">
         ⬇  Exportar PDF del reporte
       </button>
-    </div>`;
+    </div>
+    ${data.resumen_narrativo && data.resumen_narrativo.length ? buildNarrativo(data.resumen_narrativo) : ''}
+    ${data.medidas_lineales ? buildLinearTable(data.medidas_lineales) : (state.px_per_mm ? '' : '<div style="margin-top:8px;font-size:9px;color:var(--text-dim);text-align:center;opacity:.6">📏 Calibra el rulero para ver medidas en mm</div>')}
+    `;
+}
+
+function buildNarrativo(frases) {
+  return '<div style="margin-top:10px;background:rgba(0,200,255,.04);border:1px solid rgba(0,200,255,.15);border-radius:6px;padding:10px">'
+    + '<div style="font-size:9px;color:var(--accent2);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Resumen Diagnóstico</div>'
+    + frases.map(f => '<div style="font-size:10px;color:var(--text-dim);padding:2px 0;border-bottom:1px solid rgba(255,255,255,.04)">· ' + f + '</div>').join('')
+    + '</div>';
+}
+
+function buildLinearTable(ml) {
+  const items = [
+    ['NS','Base craneal (N-S)',70],['CoGo','Rama ascendente (Co-Go)',55],
+    ['NMe','Altura ant. cara (N-Me)',120],['AB','Resalte esquel. (A-B)',5],
+    ['MeCo','Diagonal mand. (Me-Co)',110],['NFH','Altura nasion (N-FH)',28],
+    ['SFH','Altura sella (S-FH)',20],['FHMe','Altura suborbital (FH-Me)',80],
+  ];
+  const rows = items.filter(([k]) => ml[k] != null).map(([k,label,norma]) => {
+    const v = ml[k], diff = Math.abs(v - norma);
+    const col = diff < norma*0.07 ? '#00ff87' : diff < norma*0.15 ? '#ff8c42' : '#ff6b6b';
+    return '<div style="display:flex;justify-content:space-between;font-size:10px;padding:2px 0;border-bottom:1px solid rgba(255,255,255,.04)">'
+      + '<span style="color:var(--text-dim)">' + label + '</span>'
+      + '<span style="color:' + col + ';font-weight:700">' + v + ' mm</span></div>';
+  });
+  if (!rows.length) return '';
+  return '<div style="margin-top:10px;background:rgba(0,255,135,.04);border:1px solid rgba(0,255,135,.1);border-radius:6px;padding:10px">'
+    + '<div style="font-size:9px;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Medidas Lineales (mm)</div>'
+    + rows.join('') + '</div>';
 }
 
 
@@ -2217,10 +2374,182 @@ function exportarPDF() {
   doc.text(notaLines, M + 4, y + 10);
   y += notaH + 6;
 
+  // ---- RESUMEN NARRATIVO ----
+  if (data.resumen_narrativo && data.resumen_narrativo.length) {
+    if (y + 20 > 280) { doc.addPage(); y = M; }
+    doc.setFillColor(240, 248, 255); doc.setDrawColor(0, 150, 200); doc.setLineWidth(0.3);
+    const nFrases = data.resumen_narrativo.length;
+    const boxH = 8 + nFrases * 5.2;
+    doc.roundedRect(M, y, PW - M*2, boxH, 2, 2, 'FD');
+    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(0,120,160);
+    doc.text('RESUMEN DIAGNÓSTICO', M+4, y+5);
+    doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(50,60,72);
+    data.resumen_narrativo.forEach((f, i) => {
+      doc.text('· ' + f, M+6, y+10 + i*5.2);
+    });
+    y += boxH + 6;
+  }
+
+  // ---- MEDIDAS LINEALES ----
+  if (data.medidas_lineales) {
+    if (y + 40 > 280) { doc.addPage(); y = M; }
+    const linItems = [
+      ['NS','Base craneal anterior (N-S)',70,'mm'],
+      ['CoGo','Longitud rama ascendente (Co-Go)',55,'mm'],
+      ['NMe','Altura ant. de la cara (N-Me)',120,'mm'],
+      ['AB','Resalte esquelético (A-B)',5,'mm'],
+      ['MeCo','Diagonal mandibular (Me-Co)',110,'mm'],
+      ['NFH','Altura del nasion (N-FH)',28,'mm'],
+      ['SFH','Altura de la sella (S-FH)',20,'mm'],
+      ['FHMe','Altura suborbital (FH-Me)',80,'mm'],
+    ].filter(([k]) => data.medidas_lineales[k] != null);
+    if (linItems.length) {
+      const linH = 8 + linItems.length * 5.5;
+      doc.setFillColor(240, 255, 248); doc.setDrawColor(0,180,100); doc.setLineWidth(0.3);
+      doc.roundedRect(M, y, PW-M*2, linH, 2, 2, 'FD');
+      doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(0,140,80);
+      doc.text('MEDIDAS LINEALES DE BIMLER', M+4, y+5);
+      doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
+      linItems.forEach(([k,label,norma,unit], i) => {
+        const v = data.medidas_lineales[k];
+        const diff = Math.abs(v - norma);
+        const col = diff < norma*0.07 ? [0,160,80] : diff < norma*0.15 ? [210,100,10] : [200,30,30];
+        doc.setTextColor(60,70,80); doc.text(label, M+6, y+10+i*5.5);
+        doc.setTextColor(...col); doc.setFont('helvetica','bold');
+        doc.text(v+' '+unit, PW-M-4, y+10+i*5.5, {align:'right'});
+        doc.setFont('helvetica','normal');
+      });
+      y += linH + 6;
+    }
+  }
+
   // ---- PIE ----
   doc.setFontSize(7); doc.setTextColor(150, 158, 170);
   doc.text('Generado por OrthoAnalysis · Cefalometría Digital',
            PW / 2, 290, { align: 'center' });
+
+  // ════════════════════════════════════════════════════════════════
+  //  PÁGINA EXTRA — ÁRBOL DE DECISIÓN T1->T2->T3 (Lavergne-Petrovic)
+  // ════════════════════════════════════════════════════════════════
+  doc.addPage();
+  (function dibujarArbolDecision() {
+    const T1 = parseFloat(t.T1), T2 = parseFloat(t.T2), T3 = parseFloat(t.T3);
+    const grupoPac = (d.grupo || '').trim();
+
+    const ROT = [
+      { lbl:'A', cond:'T1 > 9',      hit: !isNaN(T1) && T1 > 9 },
+      { lbl:'R', cond:'0 <= T1 <= 9', hit: !isNaN(T1) && T1 >= 0 && T1 <= 9 },
+      { lbl:'P', cond:'T1 < 0',      hit: !isNaN(T1) && T1 < 0 }
+    ];
+    const VERT = [
+      { lbl:'OB', cond:'T2 > 3',        hit: !isNaN(T2) && T2 > 3 },
+      { lbl:'N',  cond:'-1 <= T2 <= 3', hit: !isNaN(T2) && T2 >= -1 && T2 <= 3 },
+      { lbl:'DB', cond:'T2 < -1',       hit: !isNaN(T2) && T2 < -1 }
+    ];
+    const SAG = [
+      { lbl:'D', cond:'T3 > 5',        basal:'2', hit: !isNaN(T3) && T3 > 5 },
+      { lbl:'N', cond:'0 <= T3 <= 5',  basal:'1', hit: !isNaN(T3) && T3 >= 0 && T3 <= 5 },
+      { lbl:'M', cond:'T3 < 0',        basal:'3', hit: !isNaN(T3) && T3 < 0 }
+    ];
+    const grupoDe = (r,s,v) => `${r.lbl}${s.basal} ${s.lbl}${v.lbl}`;
+
+    const NAR=[255,107,53], GRIS=[205,210,218], GTXT=[120,128,140], TINTA=[30,38,52];
+
+    doc.setFillColor(238,244,255); doc.rect(0,0,PW,22,'F');
+    doc.setTextColor(TINTA[0],TINTA[1],TINTA[2]);
+    doc.setFont('helvetica','bold'); doc.setFontSize(14);
+    doc.text('Árbol de decisión  T1 -> T2 -> T3', M, 14);
+    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(110,120,135);
+    doc.text('Clasificación rotacional de Lavergne-Petrovic', PW - M, 14, {align:'right'});
+
+    const xRoot=M, xT1=M+16, xT2=M+54, xT3=M+96, xLeaf=M+130;
+    const top=30, bottom=250, usableH=bottom-top;
+    const nLeaves=27, leafGap=usableH/nLeaves;
+    const yMid=top+usableH/2;
+
+    doc.setDrawColor(GRIS[0],GRIS[1],GRIS[2]); doc.setLineWidth(0.4);
+    doc.setFillColor(245,248,252);
+    doc.setTextColor(TINTA[0],TINTA[1],TINTA[2]); doc.setFontSize(7);
+    doc.rect(xRoot, yMid-5, 13, 10, 'S');
+    doc.text('T', xRoot+4, yMid-0.5);
+
+    function setStroke(a){ const c=a?NAR:GRIS; doc.setDrawColor(c[0],c[1],c[2]); doc.setLineWidth(a?0.9:0.4); }
+    function setText(a){ const c=a?NAR:GTXT; doc.setTextColor(c[0],c[1],c[2]); }
+
+    const leafYs=[];
+    for(let i=0;i<nLeaves;i++) leafYs.push(top+leafGap*(i+0.5));
+
+    let leafIdx=0;
+    ROT.forEach((r,ri)=>{
+      const s0=ri*9,s8=ri*9+8;
+      const yRot=(leafYs[s0]+leafYs[s8])/2;
+      const rA=r.hit;
+      setStroke(rA); doc.line(xRoot+13,yMid,xT1,yRot);
+      setStroke(rA); doc.setFillColor(rA?255:255,rA?245:255,rA?238:255);
+      doc.circle(xT1+3,yRot,3,rA?'FD':'S');
+      setText(rA); doc.setFont('helvetica','bold'); doc.setFontSize(8);
+      doc.text(r.lbl,xT1+1.6,yRot+1.4);
+      setText(rA); doc.setFont('helvetica','normal'); doc.setFontSize(5.2);
+      doc.text(r.cond,xT1+7,yRot-3.5);
+
+      VERT.forEach((v,vi)=>{
+        const vs=s0+vi*3,ve=vs+2;
+        const yV=(leafYs[vs]+leafYs[ve])/2;
+        const vA=rA&&v.hit;
+        setStroke(vA); doc.line(xT1+6,yRot,xT2,yV);
+        setStroke(vA); doc.circle(xT2+3,yV,2.6,vA?'FD':'S');
+        setText(vA); doc.setFont('helvetica','bold'); doc.setFontSize(6.5);
+        doc.text(v.lbl,xT2+0.7,yV+1.2);
+        setText(vA); doc.setFont('helvetica','normal'); doc.setFontSize(4.8);
+        doc.text(v.cond,xT2+7,yV-2.8);
+
+        SAG.forEach((s)=>{
+          const yL=leafYs[leafIdx];
+          const sA=vA&&s.hit;
+          setStroke(sA); doc.line(xT2+5.6,yV,xT3,yL);
+          setStroke(sA); doc.circle(xT3+2.4,yL,2.2,sA?'FD':'S');
+          setText(sA); doc.setFont('helvetica','bold'); doc.setFontSize(6);
+          doc.text(s.lbl,xT3+0.5,yL+1);
+          setStroke(sA); doc.line(xT3+4.8,yL,xLeaf-1,yL);
+          const grupo=grupoDe(r,s,v);
+          const isRes=grupo===grupoPac;
+          if(isRes){
+            doc.setFillColor(NAR[0],NAR[1],NAR[2]);
+            doc.rect(xLeaf,yL-3,26,6,'F');
+            doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(7);
+            doc.text(grupo,xLeaf+13,yL+1.3,{align:'center'});
+          } else {
+            setText(sA);
+            doc.setFont('helvetica',sA?'bold':'normal'); doc.setFontSize(6.4);
+            doc.text(grupo,xLeaf,yL+1.3);
+          }
+          leafIdx++;
+        });
+      });
+    });
+
+    let ly=bottom+8;
+    doc.setDrawColor(220); doc.setLineWidth(0.3); doc.line(M,ly-4,PW-M,ly-4);
+    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(TINTA[0],TINTA[1],TINTA[2]);
+    doc.text('Leyenda',M,ly);
+    doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(90,100,115);
+    doc.text('T1 = Rotación (A anterior / R neutral / P posterior)',M,ly+5);
+    doc.text('T2 = Vertical (OB abierta / N normal / DB profunda)',M,ly+9.5);
+    doc.text('T3 = Sagital (D distal / N normal / M mesial)',M,ly+14);
+    doc.setFillColor(NAR[0],NAR[1],NAR[2]); doc.circle(PW-M-52,ly+4,1.5,'F');
+    doc.setTextColor(90,100,115); doc.text('Recorrido del paciente',PW-M-48,ly+5);
+    doc.setFillColor(GRIS[0],GRIS[1],GRIS[2]); doc.circle(PW-M-52,ly+9,1.5,'F');
+    doc.text('Ramas no usadas',PW-M-48,ly+10);
+
+    const by=ly+20;
+    doc.setFillColor(245,248,252); doc.setDrawColor(NAR[0],NAR[1],NAR[2]); doc.setLineWidth(0.4);
+    doc.roundedRect(M,by,PW-M*2,16,2,2,'FD');
+    doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(TINTA[0],TINTA[1],TINTA[2]);
+    const fmt=x=>isNaN(parseFloat(x))?'—':parseFloat(x).toFixed(2);
+    doc.text(`T1 = ${fmt(T1)}°     T2 = ${fmt(T2)}°     T3 = ${fmt(T3)}°`,M+6,by+10);
+    doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(NAR[0],NAR[1],NAR[2]);
+    doc.text(`Grupo: ${grupoPac||'—'}`,PW-M-6,by+10,{align:'right'});
+  })();
 
   // ---- GUARDAR ----
   const safe = pac.nombre.replace(/[^\w\-]+/g, '_').replace(/^_+|_+$/g, '') || 'paciente';
