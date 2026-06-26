@@ -353,78 +353,312 @@ def calcular_indicadores_T(f):
     T3 = f["ANB"]
     return T1, T2, T3, ML_NSLc, NL_NSLc
 
-def arbol_decision(T1, T2, T3):
+def arbol_decision(T1, T2, T3, poblacion: str = "latam"):
     """
-    Árbol de decisión Lavergne-Petrovic.
-    Genera el grupo trinomial {rot}{basal} {sag}{vert}
+    Árbol de decisión EXACTO de Petrovic, Stutzmann, Lavergne (1996).
+    Fuente: Figura 14, tesis UNAM-León 2019 (Mateos González).
+    Produce los 33 grupos originales con sub-rangos numéricos de T3.
 
-    Rotación (T1):
-      A  si T1 > 9   (Anterior — cóndilo rota hacia adelante)
-      R  si 0≤T1≤9  (Neutra)
-      P  si T1 < 0   (Posterior — cóndilo rota hacia atrás)
+    T1 — Rotación mandibular:
+      A  si T1 > 6   (Anterior)
+      R  si 0≤T1≤6  (Neutra)
+      P  si T1 < 0   (Posterior)
 
-    Sagital (T3 = ANB):
-      D  si T3 > 5   (Distal — Clase II)
-      N  si 0≤T3≤5  (Normal — Clase I)
-      M  si T3 < 0   (Mesial — Clase III)
-
-    Basal (derivado de sagital — relación mandíbula/maxila):
-      2  si sag=D  (mandíbula < maxila → Clase II)
-      1  si sag=N  (iguales → equilibrio)
-      3  si sag=M  (mandíbula > maxila → Clase III)
-    ⚠ LIMITACIÓN CONOCIDA: el basal se deriva del sagital. En Lavergne-Petrovic
-      el basal es un eje independiente (diferencia de crecimiento basal real).
-      Por eso el árbol sólo alcanza 27 de los 33 grupos teóricos.
-
-    Vertical (T2):
+    T2 — Dimensión vertical:
       OB si T2 > 3   (Mordida Abierta)
-      DB si T2 < -1  (Mordida Profunda)
-      N  si -1≤T2≤3 (Normal)
+      N  si 0≤T2≤3  (Normal)
+      DB si T2 < 0   (Mordida Profunda)
+
+    T3 — Sub-rangos numéricos que determinan tipo rotacional y sagital:
+      Ver diagrama completo en documentación.
     """
-    if T1 > 9:    rot = "A"
-    elif T1 >= 0: rot = "R"
-    else:         rot = "P"
+    p = POBLACION_PARAMS.get(poblacion, POBLACION_PARAMS["latam"])
+    T1_ANT = p["T1_ant"]
+    T2_OB  = p["T2_ob"]
+    T2_N   = p["T2_n_inf"]
 
-    if T3 > 5:    sag = "D"
-    elif T3 >= 0: sag = "N"
-    else:         sag = "M"
+    if T1 > T1_ANT:      # ── ANTERIOR ──────────────────────────────────────
+        if T2 > T2_OB:                     # OB
+            if   T3 <= 1.5:  return "A3 MOB"
+            elif T3 <= 5.5:  return "A1 NOB"
+            elif T3 <= 8.5:  return "A1 DOB"
+            else:            return "A2 DOB"
+        elif T2 >= T2_N:                   # N
+            if   T3 <= 0:    return "A3 MN"
+            elif T3 <= 4:    return "A1 NN"
+            elif T3 <= 7:    return "A1 DN"
+            else:            return "A2 DN"
+        else:                               # DB (T2 < T2_N)
+            if   T3 <= -1.5: return "A3 MDB"
+            elif T3 <= 3:    return "A1 NDB"
+            elif T3 <= 6:    return "A1 DDB"
+            else:            return "A2 DDB"
 
-    # Basal determinado por la relación sagital
-    basal = "2" if sag == "D" else ("3" if sag == "M" else "1")
+    elif T1 >= 0:   # ── NEUTRAL  (T1 ≤ T1_ANT) ───────────────────────────────────────
+        if T2 > T2_OB:                     # OB
+            if   T3 <= 1:    return "R3 MOB"
+            elif T3 <= 5:    return "R1 NOB"
+            else:            return "R2 DOB"
+        elif T2 >= T2_N:                   # N
+            if   T3 <= 0:    return "R3 MN"
+            elif T3 <= 4:    return "R1 NN"
+            else:            return "R2 DN"
+        else:                               # DB (T2 < T2_N)
+            if   T3 <= -1:   return "R3 MDB"
+            elif T3 <= 3:    return "R1 NDB"
+            else:            return "R2 DDB"
 
-    if T2 > 3:    vert = "OB"
-    elif T2 < -1: vert = "DB"
-    else:         vert = "N"
+    else:           # ── POSTERIOR (T1 < 0) ─────────────────────────────────────
+        if T2 > T2_OB:                     # OB
+            if   T3 >= 5.5:  return "P2 DOB"
+            elif T3 >= 1:    return "P1 NOB"
+            elif T3 >= -6:   return "P1 MOB"
+            else:            return "P3 MOB"
+        elif T2 >= T2_N:                   # N
+            if   T3 >= 4:    return "P2 DN"
+            elif T3 >= 0:    return "P1 NN"
+            elif T3 >= -7:   return "P1 MN"
+            else:            return "P3 MN"
+        else:                               # DB (T2 < T2_N)
+            if   T3 >= 3:    return "P2 DDB"
+            elif T3 >= -1:   return "P1 NDB"
+            elif T3 >= -8:   return "P1 MDB"
+            else:            return "P3 MDB"
 
-    return f"{rot}{basal} {sag}{vert}"
 
-# ── Fix E: 27 grupos ALCANZABLES de Petrovic-Lavergne ─────────
-# Se eliminaron las 6 filas inalcanzables por el acoplamiento basal↔sagital:
-#   A1 DOB, A1 DN, A1 DDB  (sag=D fuerza basal=2, nunca 1)
-#   P1 MOB, P1 MN, P1 MDB  (sag=M fuerza basal=3, nunca 1)
-# Si en el futuro el basal se calcula de forma independiente, restituirlas.
+# ── 33 grupos de Petrovic-Lavergne 1996 ──────────────────────────────────
+# Fuente: diagrama de flujo original (Petrovic, Stutzmann, Lavergne, 1996)
 GRUPOS_33 = {
-    # Categoría 1 — Potencial Muy Bajo (P2D × 3)
-    "P2 DOB": 1,  "P2 DN":  1,  "P2 DDB": 1,
+    # Categoría 1 — Potencial Muy Bajo
+    "P2 DOB": 1,  "P2 DN": 1,  "P2 DDB": 1,
 
-    # Categoría 2 — Potencial Bajo (A2D × 3, P1N × 3)
-    "A2 DOB": 2,  "A2 DN":  2,  "A2 DDB": 2,
-    "P1 NOB": 2,  "P1 NN":  2,  "P1 NDB": 2,
+    # Categoría 2 — Potencial Bajo
+    "A2 DOB": 2,  "A2 DN": 2,  "A2 DDB": 2,
+    "P1 NOB": 2,  "P1 NN": 2,  "P1 NDB": 2,
 
-    # Categoría 3 — Potencial Moderado (R2D × 3)
-    "R2 DOB": 3,  "R2 DN":  3,  "R2 DDB": 3,
+    # Categoría 3 — Potencial Moderado
+    "R2 DOB": 3,  "R2 DN": 3,  "R2 DDB": 3,
 
-    # Categoría 4 — Potencial Neutro/Alto (R1N × 3)
-    "R1 NOB": 4,  "R1 NN":  4,  "R1 NDB": 4,
+    # Categoría 4 — Potencial Neutro
+    "R1 NOB": 4,  "R1 NN": 4,  "R1 NDB": 4,
 
-    # Categoría 5 — Potencial Muy Alto (A1N, R3M × 3) [A1D y P1M eliminados]
-    "A1 NOB": 5,  "A1 NN":  5,  "A1 NDB": 5,
-    "R3 MOB": 5,  "R3 MN":  5,  "R3 MDB": 5,
+    # Categoría 5 — Potencial Alto
+    "A1 DOB": 5,  "A1 DN": 5,  "A1 DDB": 5,
+    "A1 NOB": 5,  "A1 NN": 5,  "A1 NDB": 5,
+    "P1 MOB": 5,  "P1 MN": 5,  "P1 MDB": 5,
+    "R3 MOB": 5,  "R3 MN": 5,  "R3 MDB": 5,
 
-    # Categoría 6 — Potencial Excesivo (A3M, P3M × 3)
-    "A3 MOB": 6,  "A3 MN":  6,  "A3 MDB": 6,
-    "P3 MOB": 6,  "P3 MN":  6,  "P3 MDB": 6,
+    # Categoría 6 — Potencial Excesivo
+    "A3 MOB": 6,  "A3 MN": 6,  "A3 MDB": 6,
+    "P3 MOB": 6,  "P3 MN": 6,  "P3 MDB": 6,
 }
+
+
+# ── Parámetros por población ────────────────────────────────────────────────
+# Fuente: Petrovic (1996) para Latinoamérica; OrthoTP/Bjork-Skieller para Europa
+POBLACION_PARAMS = {
+    "latam": {
+        "nombre":      "Latinoamérica (Petrovic 1996)",
+        "T1_ant":      6,     # T1 > 6 → Anterior
+        "T1_neu":      0,     # 0 ≤ T1 ≤ 6 → Neutro
+        "T2_ob":       3,     # T2 > 3 → Mordida Abierta
+        "T2_n_inf":    0,     # T2 ≥ 0 → Normal (T2 < 0 → Profunda)
+        "fuente":      "Petrovic-Stutzmann-Lavergne (1996); Coba Moreno UCE (2019); UNAM-León (2019)"
+    },
+    "europa": {
+        "nombre":      "Europa / OrthoTP (calibración italiana)",
+        "T1_ant":      9,     # T1 > 9 → Anterior
+        "T1_neu":      0,     # 0 ≤ T1 ≤ 9 → Neutro
+        "T2_ob":       3,     # T2 > 3 → Mordida Abierta
+        "T2_n_inf":   -1,     # T2 ≥ -1 → Normal (T2 < -1 → Profunda)
+        "fuente":      "OrthoTP (italiano); Bjork-Skieller (1972); Guercio-Saccomanno (2009-2018)"
+    },
+}
+
+# ── Recomendaciones de aparatología por TIPO ROTACIONAL ────────────────────
+# Fuente principal: Petrovic-Stutzmann-Lavergne (via Simoes W., 2004;
+#   Tamayo Sendoya A., 2020; draclaude@gmail.com PPT docente Lavergne-Petrovic)
+# Indicadores de extracción: 0=contraindicada, +=frecuente, ++=inevitable
+APARATOS_POR_TIPO = {
+    # ── CATEGORÍA 1 — potencial mandibular muy bajo ──────────────────
+    "P2D": {
+        "cat": 1,
+        "pronostico": "⚠️ Desfavorable",
+        "desc_pronostico": (
+            "Mandíbula con potencial de crecimiento muy bajo comparado al maxilar. "
+            "Respuestas ortodóncicas y ortopédicas lentas. Tratamientos prolongados. "
+            "Mordidas abiertas frecuentes."
+        ),
+        "primera_linea": ["Ortodóncico convencional", "Elásticos Clase II (fuerzas leves e intermitentes)"],
+        "alternativo":   ["Aparatos fijos segmentados"],
+        "extraccion":    "+  (frecuentemente indicada)",
+        "cirugia":       False,
+        "timing":        "Iniciar lo antes posible; baja respuesta requiere mayor tiempo",
+    },
+    # ── CATEGORÍA 2 — potencial bajo ─────────────────────────────────
+    "A2D": {
+        "cat": 2,
+        "pronostico": "⚠️ Desfavorable",
+        "desc_pronostico": (
+            "Rotación anterior acorta el Comprimento Oclusal Relevante. "
+            "Distoclusión muy severa con mordida profunda. Alta probabilidad de extracciones. "
+            "Tratamientos largos con alta tendencia a recidiva."
+        ),
+        "primera_linea": ["Ortodóncico convencional"],
+        "alternativo":   ["Elásticos Clase II", "Extrusión premolares"],
+        "extraccion":    "++ (muy frecuentemente indicada)",
+        "cirugia":       False,
+        "timing":        "Sin ventana óptima; respuesta limitada independiente de la edad",
+    },
+    "P1N": {
+        "cat": 2,
+        "pronostico": "⚠️ Moderadamente desfavorable",
+        "desc_pronostico": (
+            "Potencial mandibular bajo; la rotación posterior 'alarga' la mandíbula dando una "
+            "relación sagital neutra aparente. Enzimas de osteosíntesis poco activas. "
+            "Frecuentes apiñamientos, mordidas profundas o abiertas."
+        ),
+        "primera_linea": ["Hiperpropulsor postural de la mandíbula*", "Elásticos Clase II"],
+        "alternativo":   ["Bionator*", "Activador LSU*"],
+        "extraccion":    "0  (contraindicada)",
+        "cirugia":       False,
+        "timing":        "Fase ascendente del pico puberal (CVM estadio 2-3)",
+    },
+    # ── CATEGORÍA 3 — potencial moderado ─────────────────────────────
+    "R2D": {
+        "cat": 3,
+        "pronostico": "🔶 Moderado",
+        "desc_pronostico": (
+            "Pequeña diferencia de potencial entre maxila y mandíbula. "
+            "Sin corrección espontánea de la distoclusión. Pronóstico mediano si se logra "
+            "cambiar la rotación mandibular de neutra a posterior."
+        ),
+        "primera_linea": ["Hiperpropulsor postural (objetivo: cambiar R→P)*", "Activador LSU*"],
+        "alternativo":   ["Bionator*", "Elásticos Clase II"],
+        "extraccion":    "+  (a evaluar según apiñamiento)",
+        "cirugia":       False,
+        "timing":        "Fase ascendente del pico puberal (CVM estadio 2-3); aprox. 18% de los pacientes",
+    },
+    # ── CATEGORÍA 4 — potencial neutro ───────────────────────────────
+    "R1N": {
+        "cat": 4,
+        "pronostico": "✅ Favorable",
+        "desc_pronostico": (
+            "Relaciones basales equilibradas. Potencial mandibular similar al maxilar. "
+            "Comparador oclusal funciona correctamente. Grupo más frecuente (~20% de casos)."
+        ),
+        "primera_linea": ["Ortodóncico convencional"],
+        "alternativo":   ["Aparatos funcionales suaves si se requiere corrección menor"],
+        "extraccion":    "según apiñamiento dental",
+        "cirugia":       False,
+        "timing":        "Flexible; buena respuesta en cualquier fase",
+    },
+    # ── CATEGORÍA 5 — potencial alto ─────────────────────────────────
+    "A1D": {
+        "cat": 5,
+        "pronostico": "✅✅ Muy favorable",
+        "desc_pronostico": (
+            "A pesar de la apariencia de Clase II severa, el potencial mandibular es mayor "
+            "que el maxilar. La rotación anterior es el factor determinante, no el potencial. "
+            "Cambiar la dirección de crecimiento es el objetivo principal."
+        ),
+        "primera_linea": ["Regulador de Función Fränkel (eficacia +++)*", "Hiperpropulsor postural*"],
+        "alternativo":   ["Activador LSU*", "Bionator*"],
+        "extraccion":    "0  (contraindicada — no extraer)",
+        "cirugia":       False,
+        "timing":        "Fase ascendente puberal (CVM 2-3); máxima efectividad tisular",
+    },
+    "A1N": {
+        "cat": 5,
+        "pronostico": "✅✅ Muy favorable",
+        "desc_pronostico": (
+            "Clase I con potencial mandibular mayor que el maxilar. "
+            "La rotación anterior compensatoria genera la relación neutra. "
+            "Excelente respuesta a aparatos funcionales."
+        ),
+        "primera_linea": ["Regulador de Función Fränkel*", "Ortodóncico convencional"],
+        "alternativo":   ["Bionator*"],
+        "extraccion":    "0  (contraindicada)",
+        "cirugia":       False,
+        "timing":        "Fase ascendente puberal; buena respuesta",
+    },
+    "P1M": {
+        "cat": 5,
+        "pronostico": "🔶 Moderado a desfavorable",
+        "desc_pronostico": (
+            "Alto potencial mandibular CON rotación posterior: doble factor mesializante. "
+            "Difícil inhibir el crecimiento mandibular. Iniciar lo más precozmente posible. "
+            "Con mordida profunda el tratamiento tiende a ser más favorable."
+        ),
+        "primera_linea": ["Tracción postero-anterior del maxilar (máscara facial)*", "Contención activa mandibular"],
+        "alternativo":   ["Tracción antero-posterior de la mandíbula (limitada)"],
+        "extraccion":    "0  (contraindicada)",
+        "cirugia":       False,
+        "timing":        "Iniciar PRECOZMENTE (dentición mixta temprana); ~1.2% de los pacientes",
+    },
+    "R3M": {
+        "cat": 5,
+        "pronostico": "🔶 Variable",
+        "desc_pronostico": (
+            "Potencial mandibular mayor que el maxilar con rotación neutra. "
+            "Comparador oclusal NO funciona normalmente. Mesioclusión con o sin mordida cruzada. "
+            "Con mordida profunda: mejor pronóstico. Seguimiento periódico hasta fin del crecimiento."
+        ),
+        "primera_linea": ["Tracción postero-anterior del maxilar*", "Seguimiento periódico"],
+        "alternativo":   ["Máscara facial"],
+        "extraccion":    "0  (contraindicada)",
+        "cirugia":       False,
+        "timing":        "Inicio precoz; vigilar hasta fin de crecimiento (alta recidiva sin contención)",
+    },
+    # ── CATEGORÍA 6 — potencial extremo ──────────────────────────────
+    "A3M": {
+        "cat": 6,
+        "pronostico": "⛔ Muy desfavorable",
+        "desc_pronostico": (
+            "Menos del 1% de los pacientes. Potencial mandibular extremo con rotación anterior. "
+            "Mesioclusión con mordida cruzada anterior, frecuentemente asociada a mordida profunda. "
+            "Alta recidiva. Monitoreo hasta fin del crecimiento imprescindible."
+        ),
+        "primera_linea": ["Tracción postero-anterior del maxilar (inicio precoz)", "Evaluación para cirugía ortognática"],
+        "alternativo":   ["Máscara facial", "Mentón de contención"],
+        "extraccion":    "0  (contraindicada en fase de crecimiento)",
+        "cirugia":       True,
+        "timing":        "Inicio MUY precoz; alta probabilidad de cirugía al fin del crecimiento",
+    },
+    "P3M": {
+        "cat": 6,
+        "pronostico": "⛔ Sombrio — CIRUGÍA",
+        "desc_pronostico": (
+            "Potencial mandibular altísimo CON rotación posterior: mesioclusión severa. "
+            "P3MN y P3MOB pertenecen a cirugía ortognática. "
+            "Tratamiento ortopédico precoz puede reducir la magnitud quirúrgica. "
+            "Alta tendencia a recidiva incluso post-quirúrgica."
+        ),
+        "primera_linea": ["⚠️ CIRUGÍA ORTOGNÁTICA (indicación principal)",
+                          "Tracción postero-anterior del maxilar (preparación pre-quirúrgica)"],
+        "alternativo":   ["Aparatos funcionales para reducir magnitud quirúrgica"],
+        "extraccion":    "+  (frecuente en fase pre-quirúrgica)",
+        "cirugia":       True,
+        "timing":        "Cirugía diferida hasta fin del crecimiento; ortopedia desde dentición mixta",
+    },
+}
+
+def obtener_recomendacion(grupo: str) -> dict:
+    """Devuelve la recomendación de aparatología para un grupo rotacional.
+    El tipo base (sin vertical) se extrae del grupo (ej. 'A1 DN' → 'A1D').
+    """
+    # Extraer tipo base: rot + basal + sag (sin OB/N/DB)
+    partes = grupo.strip().split()
+    if len(partes) < 2:
+        return {}
+    tipo = partes[0]                    # 'A1', 'P2', 'R1', etc.
+    # sag está en partes[1][0] o partes[1]: 'DOB', 'DN', 'NOB', etc.
+    sag_raw = partes[1]
+    sag = sag_raw[0] if sag_raw else ''  # 'D', 'N', 'M'
+    tipo_base = tipo + sag              # 'A1D', 'P2N', 'R1N', etc.
+    rec = APARATOS_POR_TIPO.get(tipo_base, {})
+    return rec
+
 
 def determinar_categoria(grupo):
     """
@@ -435,9 +669,7 @@ def determinar_categoria(grupo):
     """
     cat = GRUPOS_33.get(grupo.strip())
     if cat is None:
-        return None, (f"Grupo '{grupo}' no está en la tabla de 27 grupos "
-                      f"alcanzables de Petrovic-Lavergne. Revise los puntos "
-                      f"o considere que el basal puede requerir cálculo independiente.")
+        return None, (f"Grupo '{grupo}' no está en los 33 grupos de Petrovic-Lavergne 1996. Revise los puntos.")
     return cat, None
 
 # -----------------------------------------------------------------
@@ -967,7 +1199,8 @@ async def root():
 async def analizar(request: Request):
     try:
         body = await request.json()
-        px_per_mm = body.pop("px_per_mm", None)  # calibración px→mm
+        px_per_mm = body.pop("px_per_mm", None)      # calibración px→mm
+        poblacion  = body.pop("poblacion", "latam")  # latam | europa
         pts  = {}
         for nombre, coords in body.items():
             if isinstance(coords, dict):   pts[nombre] = (coords["x"], coords["y"])
@@ -981,7 +1214,7 @@ async def analizar(request: Request):
 
         factores            = calcular_factores_bimler(pts)
         T1, T2, T3, ML_NSLc, NL_NSLc = calcular_indicadores_T(factores)
-        grupo               = arbol_decision(T1, T2, T3)
+        grupo               = arbol_decision(T1, T2, T3, poblacion)
         categoria, advertencia = determinar_categoria(grupo)   # Fix E
 
         rot_letra  = grupo[0]
@@ -1060,11 +1293,17 @@ async def analizar(request: Request):
             ),
             "diagnostico": {
                 "grupo": grupo, "categoria": categoria,
-                "categoria_advertencia": advertencia,   # Fix E: None si mapea OK
+                "categoria_advertencia": advertencia,
                 "rotacion": rot_letra, "desc_rotacion": rot_map.get(rot_letra,"—"),
                 "basal":    basal_num,  "desc_basal":    basal_map.get(basal_num,"—"),
                 "sagital":  sag_letra,  "desc_sagital":  sag_map.get(sag_letra,"—"),
                 "vertical": vert_letra, "desc_vertical": vert_map.get(vert_letra,"—"),
+            },
+            "recomendacion": obtener_recomendacion(grupo),
+            "poblacion": {
+                "clave":   poblacion,
+                "nombre":  POBLACION_PARAMS.get(poblacion, POBLACION_PARAMS["latam"])["nombre"],
+                "fuente":  POBLACION_PARAMS.get(poblacion, POBLACION_PARAMS["latam"])["fuente"],
             }
         }
     except Exception as e:

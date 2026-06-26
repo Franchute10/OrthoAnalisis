@@ -823,7 +823,7 @@ input[type=range]::-webkit-slider-thumb {
   </div>
   <div class="bottom-right">
     <button class="btn-export" id="btn-pdf" onclick="exportarPDF()" disabled>⬇ Exportar PDF</button>
-    <button class="btn-calculate" id="btn-analizar" onclick="analizarPuntos()" disabled>⚡ Calcular Diagnóstico</button>
+    <button class="btn-calculate" id="btn-analizar" id="btn-reprocesar" onclick="analizarPuntos()" disabled>⚡ Calcular Diagnóstico</button>
   </div>
 </div>
 
@@ -872,6 +872,7 @@ function todasAnclasMarcadas() { return anclasMarcadas() === ANCLAS.length; }
 // ============================================================
 let state = {
   calibPts: [],      // puntos del rulero [{x,y},{x,y}] en coords originales
+  poblacion: 'latam',
   px_per_mm: null,   // factor de calibración
   mm_rulero: 10,     // mm del segmento marcado (default 10mm = línea larga a larga)
   modoCalib: false,  // cuando true, clics marcan el rulero
@@ -1818,7 +1819,8 @@ async function analizarPuntos() {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         ...state.puntos,
-        ...(state.px_per_mm ? { px_per_mm: state.px_per_mm } : {})
+        ...(state.px_per_mm ? { px_per_mm: state.px_per_mm } : {}),
+        poblacion: state.poblacion || 'latam'
       })
     });
     const data = await resp.json();
@@ -1832,6 +1834,64 @@ async function analizarPuntos() {
       <div style="color:var(--warn)">Error</div>
       <div style="font-size:10px">${err.message}</div></div>`;
   }
+}
+
+
+function buildAparatologia(data) {
+  const rec = data.recomendacion || {};
+  const pob = data.poblacion || {};
+  if (!rec.pronostico) return '';
+  const pronTxt = (rec.pronostico||'').replace(/[✅⚠️⛔🔶]/gu,'').trim();
+  const escirugia = rec.cirugia === true;
+
+  let html = '';
+  if (escirugia) {
+    html += '<div style="background:rgba(255,40,80,.1);border:1px solid rgba(255,40,80,.4);border-radius:6px;padding:10px 14px;margin:8px 0;display:flex;gap:10px;align-items:center">'
+          + '<span style="font-size:18px">⚠️</span>'
+          + '<div><div style="font-size:10px;color:#ff4466;font-weight:700;text-transform:uppercase;letter-spacing:1px">Considerar Cirugía Ortognática</div>'
+          + '<div style="font-size:9px;color:var(--text-dim);margin-top:3px">Evaluar al finalizar el crecimiento</div></div></div>';
+  }
+
+  const extColor = (rec.extraccion||'').startsWith('++') ? '#ff4466'
+                 : (rec.extraccion||'').startsWith('+') ? '#ffdd00' : '#00ff87';
+
+  const primeraTags = (rec.primera_linea||[]).map(a =>
+    '<div style="display:flex;gap:6px;align-items:flex-start;margin-bottom:4px">'
+    + '<span style="color:#00ff87;flex-shrink:0">▸</span>'
+    + '<span style="font-size:10px;color:var(--text)">' + a + '</span></div>'
+  ).join('');
+
+  const altTags = (rec.alternativo||[]).map(a =>
+    '<div style="display:flex;gap:6px;align-items:flex-start;margin-bottom:3px">'
+    + '<span style="color:var(--text-dim);flex-shrink:0">○</span>'
+    + '<span style="font-size:9px;color:var(--text-dim)">' + a + '</span></div>'
+  ).join('');
+
+  const pobSelector = '<select onchange="state.poblacion=this.value;analizarPuntos()" '
+    + 'style="font-size:8px;background:var(--bg-card);color:var(--text-dim);border:1px solid rgba(255,255,255,.15);border-radius:3px;padding:2px 4px;cursor:pointer">'
+    + '<option value="latam"' + ((state.poblacion||'latam')==='latam'?' selected':'') + '>🌎 Latinoamérica (T1>6)</option>'
+    + '<option value="europa"' + (state.poblacion==='europa'?' selected':'') + '>🇪🇺 Europa/OrthoTP (T1>9)</option>'
+    + '</select>';
+
+  html += '<div class="result-group" style="border-left:3px solid #00c8ff">'
+    + '<div class="result-group-title" style="display:flex;justify-content:space-between;align-items:center">'
+    + '<span>Recomendación Terapéutica <span style="font-size:8px;color:var(--text-dim);font-weight:400">(Petrovic-Simoes 2004*)</span></span>'
+    + '<span style="font-size:11px">' + pronTxt + '</span></div>'
+    + '<div style="font-size:9px;color:var(--text-dim);line-height:1.5;margin-bottom:10px;padding:8px;background:rgba(255,255,255,.03);border-radius:4px">' + (rec.desc_pronostico||'') + '</div>'
+    + '<div style="margin-bottom:8px"><div style="font-size:9px;color:#00c8ff;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px">Primera línea</div>' + primeraTags + '</div>'
+    + (altTags ? '<div style="margin-bottom:8px"><div style="font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px">Alternativo</div>' + altTags + '</div>' : '')
+    + '<div style="display:flex;gap:12px;margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.08)">'
+    + '<div><div style="font-size:8px;color:var(--text-dim)">Extracción</div><div style="font-size:10px;color:' + extColor + '">' + (rec.extraccion||'—') + '</div></div>'
+    + '<div style="flex:1"><div style="font-size:8px;color:var(--text-dim)">Timing</div><div style="font-size:9px;color:var(--text)">' + (rec.timing||'—') + '</div></div>'
+    + '</div>'
+    + '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:8px;justify-content:space-between">'
+    + '<div style="font-size:8px;color:var(--text-dim)">📊 Parámetros: <span style="color:#00c8ff">' + (pob.nombre||'Latinoamérica') + '</span></div>'
+    + pobSelector
+    + '</div></div>'
+    + '<div style="font-size:7.5px;color:var(--text-dim);line-height:1.5;padding:5px 4px;border-top:1px solid rgba(255,255,255,.06)">'
+    + '* Fuente: Petrovic-Stutzmann-Lavergne (1996) vía Simoes W. Ortopedia funcional de los maxilares (2004); Tamayo Sendoya A. (2020). '
+    + 'El asterisco (*) en el aparato indica primera acción. Selección final bajo criterio del especialista clínico.</div>';
+  return html;
 }
 
 function mostrarResultados(data) {
@@ -1931,7 +1991,8 @@ function mostrarResultados(data) {
         ⬇  Exportar PDF del reporte
       </button>
     </div>
-    ${data.resumen_narrativo && data.resumen_narrativo.length ? buildNarrativo(data.resumen_narrativo) : ''}
+    ${buildAparatologia(data)}
+        ${data.resumen_narrativo && data.resumen_narrativo.length ? buildNarrativo(data.resumen_narrativo) : ''}
     ${data.medidas_lineales ? buildLinearTable(data.medidas_lineales) : (state.px_per_mm ? '' : '<div style="margin-top:8px;font-size:9px;color:var(--text-dim);text-align:center;opacity:.6">📏 Calibra el rulero para ver medidas en mm</div>')}
     `;
 }
@@ -2219,8 +2280,10 @@ function exportarPDF() {
     alert('No se pudo cargar jsPDF (revisa el <script> del CDN).');
     return;
   }
-  const data = state.ultimoAnalisis;
-  if (!data) { alert('Primero calcula el diagnóstico.'); return; }
+  const data = Object.assign({}, state.ultimoAnalisis);
+  if (!data || !data.diagnostico) { alert('Primero calcula el diagnóstico.'); return; }
+  if (!data.recomendacion) data.recomendacion = {};
+  if (!data.poblacion) data.poblacion = {};
 
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
@@ -2436,120 +2499,250 @@ function exportarPDF() {
     const T1 = parseFloat(t.T1), T2 = parseFloat(t.T2), T3 = parseFloat(t.T3);
     const grupoPac = (d.grupo || '').trim();
 
-    const ROT = [
-      { lbl:'A', cond:'T1 > 9',      hit: !isNaN(T1) && T1 > 9 },
-      { lbl:'R', cond:'0 <= T1 <= 9', hit: !isNaN(T1) && T1 >= 0 && T1 <= 9 },
-      { lbl:'P', cond:'T1 < 0',      hit: !isNaN(T1) && T1 < 0 }
-    ];
-    const VERT = [
-      { lbl:'OB', cond:'T2 > 3',        hit: !isNaN(T2) && T2 > 3 },
-      { lbl:'N',  cond:'-1 <= T2 <= 3', hit: !isNaN(T2) && T2 >= -1 && T2 <= 3 },
-      { lbl:'DB', cond:'T2 < -1',       hit: !isNaN(T2) && T2 < -1 }
-    ];
-    const SAG = [
-      { lbl:'D', cond:'T3 > 5',        basal:'2', hit: !isNaN(T3) && T3 > 5 },
-      { lbl:'N', cond:'0 <= T3 <= 5',  basal:'1', hit: !isNaN(T3) && T3 >= 0 && T3 <= 5 },
-      { lbl:'M', cond:'T3 < 0',        basal:'3', hit: !isNaN(T3) && T3 < 0 }
-    ];
-    const grupoDe = (r,s,v) => `${r.lbl}${s.basal} ${s.lbl}${v.lbl}`;
-
+    // Petrovic 1996 — 33 grupos con sub-rangos de T3
     const NAR=[255,107,53], GRIS=[205,210,218], GTXT=[120,128,140], TINTA=[30,38,52];
 
+    // ---- Encabezado ----
     doc.setFillColor(238,244,255); doc.rect(0,0,PW,22,'F');
     doc.setTextColor(TINTA[0],TINTA[1],TINTA[2]);
-    doc.setFont('helvetica','bold'); doc.setFontSize(14);
-    doc.text('Árbol de decisión  T1 -> T2 -> T3', M, 14);
-    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(110,120,135);
-    doc.text('Clasificación rotacional de Lavergne-Petrovic', PW - M, 14, {align:'right'});
+    doc.setFont('helvetica','bold'); doc.setFontSize(13);
+    doc.text('Arbol de decision  T1 -> T2 -> T3  (Petrovic 1996)', M, 14);
+    doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(110,120,135);
+    doc.text('Clasificacion rotacional de Lavergne-Petrovic · 33 grupos', PW-M, 14, {align:'right'});
 
-    const xRoot=M, xT1=M+16, xT2=M+54, xT3=M+96, xLeaf=M+130;
-    const top=30, bottom=250, usableH=bottom-top;
-    const nLeaves=27, leafGap=usableH/nLeaves;
+    // ---- Geometria ----
+    const xRoot=M, xT1=M+14, xT2=M+50, xT3=M+88, xLeaf=M+118;
+    const top=26, bottom=265, usableH=bottom-top;
+    const nLeaves=33, leafH=usableH/nLeaves;
     const yMid=top+usableH/2;
 
+    // Raiz
     doc.setDrawColor(GRIS[0],GRIS[1],GRIS[2]); doc.setLineWidth(0.4);
-    doc.setFillColor(245,248,252);
-    doc.setTextColor(TINTA[0],TINTA[1],TINTA[2]); doc.setFontSize(7);
-    doc.rect(xRoot, yMid-5, 13, 10, 'S');
-    doc.text('T', xRoot+4, yMid-0.5);
+    doc.rect(xRoot,yMid-4,11,8,'S');
+    doc.setTextColor(TINTA[0],TINTA[1],TINTA[2]); doc.setFont('helvetica','bold'); doc.setFontSize(7);
+    doc.text('T1',xRoot+2,yMid+1.5);
 
-    function setStroke(a){ const c=a?NAR:GRIS; doc.setDrawColor(c[0],c[1],c[2]); doc.setLineWidth(a?0.9:0.4); }
-    function setText(a){ const c=a?NAR:GTXT; doc.setTextColor(c[0],c[1],c[2]); }
+    function setS(a){ const c=a?NAR:GRIS; doc.setDrawColor(c[0],c[1],c[2]); doc.setLineWidth(a?0.9:0.3); }
+    function setT(a){ doc.setTextColor(...(a?NAR:GTXT)); }
 
-    const leafYs=[];
-    for(let i=0;i<nLeaves;i++) leafYs.push(top+leafGap*(i+0.5));
+    // Definicion del arbol: [rot, t2label, t3label, grupo, rotHit, t2Hit, t3Hit]
+    function rotHit(r){ return !isNaN(T1)&&(r==='A'?T1>6:r==='R'?T1>=0&&T1<=6:T1<0); }
+    function vertHit(v){ return !isNaN(T2)&&(v==='OB'?T2>3:v==='N'?T2>=0&&T2<=3:T2<0); }
 
-    let leafIdx=0;
-    ROT.forEach((r,ri)=>{
-      const s0=ri*9,s8=ri*9+8;
-      const yRot=(leafYs[s0]+leafYs[s8])/2;
-      const rA=r.hit;
-      setStroke(rA); doc.line(xRoot+13,yMid,xT1,yRot);
-      setStroke(rA); doc.setFillColor(rA?255:255,rA?245:255,rA?238:255);
-      doc.circle(xT1+3,yRot,3,rA?'FD':'S');
-      setText(rA); doc.setFont('helvetica','bold'); doc.setFontSize(8);
-      doc.text(r.lbl,xT1+1.6,yRot+1.4);
-      setText(rA); doc.setFont('helvetica','normal'); doc.setFontSize(5.2);
-      doc.text(r.cond,xT1+7,yRot-3.5);
+    // Estructura: 3 ramas T1, cada una con 3 ramas T2, cada con 3-4 ramas T3
+    const RAMAS = [
+      { rot:'A', cond:'T1 > 6', verts:[
+        { v:'OB', cond:'T2 > 3', leaves:[
+          {c:'T3 <= 1.5', g:'A3 MOB', hit:T3<=1.5},
+          {c:'T3 <= 5.5', g:'A1 NOB', hit:T3>1.5&&T3<=5.5},
+          {c:'T3 <= 8.5', g:'A1 DOB', hit:T3>5.5&&T3<=8.5},
+          {c:'T3 > 8.5',  g:'A2 DOB', hit:T3>8.5}]},
+        { v:'N',  cond:'0<=T2<=3', leaves:[
+          {c:'T3 <= 0',   g:'A3 MN',  hit:T3<=0},
+          {c:'T3 <= 4',   g:'A1 NN',  hit:T3>0&&T3<=4},
+          {c:'T3 <= 7',   g:'A1 DN',  hit:T3>4&&T3<=7},
+          {c:'T3 > 7',    g:'A2 DN',  hit:T3>7}]},
+        { v:'DB', cond:'T2 < 0', leaves:[
+          {c:'T3 <=-1.5', g:'A3 MDB', hit:T3<=-1.5},
+          {c:'T3 <= 3',   g:'A1 NDB', hit:T3>-1.5&&T3<=3},
+          {c:'T3 <= 6',   g:'A1 DDB', hit:T3>3&&T3<=6},
+          {c:'T3 > 6',    g:'A2 DDB', hit:T3>6}]}]},
+      { rot:'R', cond:'0<=T1<=6', verts:[
+        { v:'OB', cond:'T2 > 3', leaves:[
+          {c:'T3 <= 1',   g:'R3 MOB', hit:T3<=1},
+          {c:'T3 <= 5',   g:'R1 NOB', hit:T3>1&&T3<=5},
+          {c:'T3 > 5',    g:'R2 DOB', hit:T3>5}]},
+        { v:'N',  cond:'0<=T2<=3', leaves:[
+          {c:'T3 <= 0',   g:'R3 MN',  hit:T3<=0},
+          {c:'T3 <= 4',   g:'R1 NN',  hit:T3>0&&T3<=4},
+          {c:'T3 > 4',    g:'R2 DN',  hit:T3>4}]},
+        { v:'DB', cond:'T2 < 0', leaves:[
+          {c:'T3 <=-1',   g:'R3 MDB', hit:T3<=-1},
+          {c:'T3 <= 3',   g:'R1 NDB', hit:T3>-1&&T3<=3},
+          {c:'T3 > 3',    g:'R2 DDB', hit:T3>3}]}]},
+      { rot:'P', cond:'T1 < 0', verts:[
+        { v:'OB', cond:'T2 > 3', leaves:[
+          {c:'T3 >= 5.5', g:'P2 DOB', hit:T3>=5.5},
+          {c:'T3 >= 1',   g:'P1 NOB', hit:T3>=1&&T3<5.5},
+          {c:'T3 >=-6',   g:'P1 MOB', hit:T3>=-6&&T3<1},
+          {c:'T3 < -6',   g:'P3 MOB', hit:T3<-6}]},
+        { v:'N',  cond:'0<=T2<=3', leaves:[
+          {c:'T3 >= 4',   g:'P2 DN',  hit:T3>=4},
+          {c:'T3 >= 0',   g:'P1 NN',  hit:T3>=0&&T3<4},
+          {c:'T3 >=-7',   g:'P1 MN',  hit:T3>=-7&&T3<0},
+          {c:'T3 < -7',   g:'P3 MN',  hit:T3<-7}]},
+        { v:'DB', cond:'T2 < 0', leaves:[
+          {c:'T3 >= 3',   g:'P2 DDB', hit:T3>=3},
+          {c:'T3 >=-1',   g:'P1 NDB', hit:T3>=-1&&T3<3},
+          {c:'T3 >=-8',   g:'P1 MDB', hit:T3>=-8&&T3<-1},
+          {c:'T3 < -8',   g:'P3 MDB', hit:T3<-8}]}]}
+    ];
 
-      VERT.forEach((v,vi)=>{
-        const vs=s0+vi*3,ve=vs+2;
-        const yV=(leafYs[vs]+leafYs[ve])/2;
-        const vA=rA&&v.hit;
-        setStroke(vA); doc.line(xT1+6,yRot,xT2,yV);
-        setStroke(vA); doc.circle(xT2+3,yV,2.6,vA?'FD':'S');
-        setText(vA); doc.setFont('helvetica','bold'); doc.setFontSize(6.5);
-        doc.text(v.lbl,xT2+0.7,yV+1.2);
-        setText(vA); doc.setFont('helvetica','normal'); doc.setFontSize(4.8);
-        doc.text(v.cond,xT2+7,yV-2.8);
+    // Contar hojas totales para calcular posiciones Y
+    let totalLeaves=0;
+    RAMAS.forEach(r=>r.verts.forEach(v=>totalLeaves+=v.leaves.length));
+    const leafGap = usableH/totalLeaves;
+    let leafYs=[]; for(let i=0;i<totalLeaves;i++) leafYs.push(top+leafGap*(i+0.5));
 
-        SAG.forEach((s)=>{
-          const yL=leafYs[leafIdx];
-          const sA=vA&&s.hit;
-          setStroke(sA); doc.line(xT2+5.6,yV,xT3,yL);
-          setStroke(sA); doc.circle(xT3+2.4,yL,2.2,sA?'FD':'S');
-          setText(sA); doc.setFont('helvetica','bold'); doc.setFontSize(6);
-          doc.text(s.lbl,xT3+0.5,yL+1);
-          setStroke(sA); doc.line(xT3+4.8,yL,xLeaf-1,yL);
-          const grupo=grupoDe(r,s,v);
-          const isRes=grupo===grupoPac;
+    let li=0;
+    RAMAS.forEach(rama=>{
+      // Calcular Y del nodo T1 (centrado sobre sus hojas)
+      const nLeavesRot = rama.verts.reduce((s,v)=>s+v.leaves.length,0);
+      const y1s = leafYs[li], y1e = leafYs[li+nLeavesRot-1];
+      const yRot = (y1s+y1e)/2;
+      const rA = rotHit(rama.rot);
+
+      // Linea raiz -> T1
+      setS(rA); doc.line(xRoot+11,yMid,xT1,yRot);
+      // Nodo T1
+      setS(rA); doc.setFillColor(rA?255:250,rA?245:250,rA?238:255);
+      doc.circle(xT1+3,yRot,3.5,rA?'FD':'S');
+      setT(rA); doc.setFont('helvetica','bold'); doc.setFontSize(8);
+      doc.text(rama.rot,xT1+1.4,yRot+1.6);
+      setT(rA); doc.setFont('helvetica','normal'); doc.setFontSize(4.5);
+      doc.text(rama.cond,xT1+7.5,yRot-2.5);
+
+      let vi2=li;
+      rama.verts.forEach(vert=>{
+        const nLV = vert.leaves.length;
+        const yVs=leafYs[vi2], yVe=leafYs[vi2+nLV-1];
+        const yVert=(yVs+yVe)/2;
+        const vA=rA&&vertHit(vert.v);
+
+        setS(vA); doc.line(xT1+6.5,yRot,xT2,yVert);
+        setS(vA); doc.circle(xT2+2.5,yVert,2.5,vA?'FD':'S');
+        setT(vA); doc.setFont('helvetica','bold'); doc.setFontSize(6.5);
+        doc.text(vert.v,xT2+0.5,yVert+1.2);
+        setT(vA); doc.setFont('helvetica','normal'); doc.setFontSize(4.2);
+        doc.text(vert.cond,xT2+6,yVert-2.5);
+
+        vert.leaves.forEach(leaf=>{
+          const yL=leafYs[li];
+          const lA=vA&&leaf.hit;
+          setS(lA); doc.line(xT2+5,yVert,xT3,yL);
+          // Condicion T3
+          setT(lA); doc.setFont('helvetica','normal'); doc.setFontSize(4.0);
+          doc.text(leaf.c,xT3,yL-0.8);
+          setS(lA); doc.line(xT3+22,yL,xLeaf-1,yL);
+          // Hoja (grupo)
+          const isRes=leaf.g===grupoPac;
           if(isRes){
             doc.setFillColor(NAR[0],NAR[1],NAR[2]);
-            doc.rect(xLeaf,yL-3,26,6,'F');
-            doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(7);
-            doc.text(grupo,xLeaf+13,yL+1.3,{align:'center'});
+            doc.rect(xLeaf,yL-2.8,24,5.8,'F');
+            doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(6.5);
+            doc.text(leaf.g,xLeaf+12,yL+1.2,{align:'center'});
           } else {
-            setText(sA);
-            doc.setFont('helvetica',sA?'bold':'normal'); doc.setFontSize(6.4);
-            doc.text(grupo,xLeaf,yL+1.3);
+            setT(lA); doc.setFont('helvetica',lA?'bold':'normal'); doc.setFontSize(6);
+            doc.text(leaf.g,xLeaf,yL+1.2);
           }
-          leafIdx++;
+          li++;
         });
+        vi2+=nLV;
       });
     });
 
-    let ly=bottom+8;
-    doc.setDrawColor(220); doc.setLineWidth(0.3); doc.line(M,ly-4,PW-M,ly-4);
-    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(TINTA[0],TINTA[1],TINTA[2]);
+    // ---- Leyenda ----
+    let ly=bottom+7;
+    doc.setDrawColor(220); doc.setLineWidth(0.3); doc.line(M,ly-3,PW-M,ly-3);
+    doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(TINTA[0],TINTA[1],TINTA[2]);
     doc.text('Leyenda',M,ly);
-    doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(90,100,115);
-    doc.text('T1 = Rotación (A anterior / R neutral / P posterior)',M,ly+5);
-    doc.text('T2 = Vertical (OB abierta / N normal / DB profunda)',M,ly+9.5);
-    doc.text('T3 = Sagital (D distal / N normal / M mesial)',M,ly+14);
-    doc.setFillColor(NAR[0],NAR[1],NAR[2]); doc.circle(PW-M-52,ly+4,1.5,'F');
-    doc.setTextColor(90,100,115); doc.text('Recorrido del paciente',PW-M-48,ly+5);
-    doc.setFillColor(GRIS[0],GRIS[1],GRIS[2]); doc.circle(PW-M-52,ly+9,1.5,'F');
-    doc.text('Ramas no usadas',PW-M-48,ly+10);
+    doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(90,100,115);
+    doc.text('T1 = Rotacion (A: >6 anterior / R: 0-6 neutral / P: <0 posterior)',M,ly+5);
+    doc.text('T2 = Vertical (OB: >3 abierta / N: 0-3 normal / DB: <0 profunda)',M,ly+9.5);
+    doc.text('T3 = ANB con sub-rangos numericos -> tipo rotacional y sagital',M,ly+14);
+    doc.setFillColor(NAR[0],NAR[1],NAR[2]); doc.circle(PW-M-50,ly+4,1.5,'F');
+    doc.setTextColor(90,100,115); doc.text('Recorrido del paciente',PW-M-46,ly+5);
+    doc.setFillColor(GRIS[0],GRIS[1],GRIS[2]); doc.circle(PW-M-50,ly+9,1.5,'F');
+    doc.text('Ramas no usadas',PW-M-46,ly+10);
 
+    // ---- Valores del paciente ----
     const by=ly+20;
     doc.setFillColor(245,248,252); doc.setDrawColor(NAR[0],NAR[1],NAR[2]); doc.setLineWidth(0.4);
     doc.roundedRect(M,by,PW-M*2,16,2,2,'FD');
     doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(TINTA[0],TINTA[1],TINTA[2]);
-    const fmt=x=>isNaN(parseFloat(x))?'—':parseFloat(x).toFixed(2);
-    doc.text(`T1 = ${fmt(T1)}°     T2 = ${fmt(T2)}°     T3 = ${fmt(T3)}°`,M+6,by+10);
+    const fmt=x=>isNaN(parseFloat(x))?'--':parseFloat(x).toFixed(2);
+    doc.text(`T1 = ${fmt(T1)}\u00B0     T2 = ${fmt(T2)}\u00B0     T3 = ${fmt(T3)}\u00B0`,M+6,by+10);
     doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(NAR[0],NAR[1],NAR[2]);
-    doc.text(`Grupo: ${grupoPac||'—'}`,PW-M-6,by+10,{align:'right'});
+    doc.text(`Grupo: ${grupoPac||'--'}`,PW-M-6,by+10,{align:'right'});
   })();
+
+  // ---- PÁGINA 4: RECOMENDACIÓN TERAPÉUTICA ----
+  const rec_pdf = t.recomendacion || {};
+  if (rec_pdf.pronostico) {
+    doc.addPage();
+    doc.setFillColor(238,244,255); doc.rect(0,0,PW,22,'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.setTextColor(30,38,52);
+    doc.text('Recomendacion Terapeutica (Lavergne-Petrovic)', M, 14);
+    doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(110,120,135);
+    const pobNombre = t.poblacion ? t.poblacion.nombre : 'Latinoamerica';
+    doc.text('Parametros: ' + pobNombre, PW-M, 14, {align:'right'});
+
+    let ry = 28;
+    const NAR=[255,107,53], TINTA=[30,38,52], GRIS=[200,210,220];
+
+    // Pronóstico banner
+    const escirugia = rec_pdf.cirugia === true;
+    if (escirugia) {
+      doc.setFillColor(255,40,80,0.12); doc.setDrawColor(255,40,80);
+      doc.setLineWidth(0.5); doc.roundedRect(M,ry,PW-M*2,10,2,2,'S');
+      doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(200,0,40);
+      doc.text('!! CONSIDERAR CIRUGIA ORTOGNATICA - Evaluar al finalizar el crecimiento', M+3, ry+7);
+      ry += 14;
+    }
+
+    // Pronóstico
+    const pronTxt = (rec_pdf.pronostico||'').replace(/[✅⚠️⛔🔶]/gu,'').trim();
+    doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(TINTA[0],TINTA[1],TINTA[2]);
+    doc.text('Pronostico: ' + pronTxt, M, ry); ry += 6;
+
+    // Descripción
+    const descLines = doc.splitTextToSize(rec_pdf.desc_pronostico||'', PW-M*2);
+    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(80,90,110);
+    doc.text(descLines.slice(0,4), M, ry); ry += descLines.slice(0,4).length*4+5;
+
+    // Primera línea
+    doc.setFillColor(0,200,255,0.08); doc.rect(M,ry-3,PW-M*2,6+(rec_pdf.primera_linea||[]).length*6,'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(0,150,200);
+    doc.text('PRIMERA LINEA *', M+2, ry+2); ry += 7;
+    (rec_pdf.primera_linea||[]).forEach(a=>{
+      doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(TINTA[0],TINTA[1],TINTA[2]);
+      doc.text('> ' + a.replace(/[*]/g,'').trim(), M+4, ry); ry += 6;
+    });
+    ry += 3;
+
+    // Alternativo
+    if ((rec_pdf.alternativo||[]).length) {
+      doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(GRIS[0],GRIS[1],GRIS[2]);
+      doc.text('ALTERNATIVO', M+2, ry); ry += 5;
+      (rec_pdf.alternativo||[]).forEach(a=>{
+        doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(100,115,130);
+        doc.text('o ' + a.replace(/[*]/g,'').trim(), M+4, ry); ry += 5;
+      });
+      ry += 3;
+    }
+
+    // Extracción + Timing
+    doc.setDrawColor(220); doc.setLineWidth(0.3); doc.line(M, ry, PW-M, ry); ry += 5;
+    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(TINTA[0],TINTA[1],TINTA[2]);
+    doc.text('Extraccion: ', M, ry);
+    doc.setFont('helvetica','normal');
+    doc.text((rec_pdf.extraccion||'—'), M+28, ry); ry += 5;
+    doc.setFont('helvetica','bold');
+    doc.text('Timing: ', M, ry);
+    doc.setFont('helvetica','normal');
+    const timingLines = doc.splitTextToSize(rec_pdf.timing||'—', PW-M*2-25);
+    doc.text(timingLines, M+20, ry); ry += timingLines.length*5 + 5;
+
+    // Nota bibliográfica con *
+    doc.setDrawColor(220); doc.setLineWidth(0.3); doc.line(M, ry, PW-M, ry); ry += 5;
+    doc.setFont('helvetica','italic'); doc.setFontSize(6.5); doc.setTextColor(130,140,155);
+    const nota = '* Fuente: Petrovic AG, Stutzmann JJ, Lavergne J (1996). Clasificacion auxologica de tipos ' +
+      'rotacionales. Via: Simoes W. Ortopedia funcional de los maxilares. Ed.3 (2004); ' +
+      'Tamayo Sendoya AM. Cefalometria de Petrovic (2020). ' +
+      'La seleccion final del aparato es responsabilidad del especialista clinico.';
+    const notaLines = doc.splitTextToSize(nota, PW-M*2);
+    doc.text(notaLines, M, ry);
+  }
 
   // ---- GUARDAR ----
   const safe = pac.nombre.replace(/[^\w\-]+/g, '_').replace(/^_+|_+$/g, '') || 'paciente';
