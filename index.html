@@ -2350,7 +2350,7 @@ function exportarPDF() {
   doc.text(meta, PW - M - 6, y + 8, { align: 'right' });
   if (d.categoria_advertencia) {
     doc.setTextColor(200, 50, 70); doc.setFontSize(7);
-    doc.text('⚠ ' + d.categoria_advertencia, PW - M - 6, y + 18,
+    doc.text('(!) ' + d.categoria_advertencia, PW - M - 6, y + 18,
              { align: 'right', maxWidth: 90 });
   }
   y += 28;
@@ -2526,12 +2526,14 @@ function exportarPDF() {
     function setT(a){ doc.setTextColor(...(a?NAR:GTXT)); }
 
     // Definicion del arbol: [rot, t2label, t3label, grupo, rotHit, t2Hit, t3Hit]
-    function rotHit(r){ return !isNaN(T1)&&(r==='A'?T1>6:r==='R'?T1>=0&&T1<=6:T1<0); }
-    function vertHit(v){ return !isNaN(T2)&&(v==='OB'?T2>3:v==='N'?T2>=0&&T2<=3:T2<0); }
+    const T1A = (data.poblacion && data.poblacion.clave === 'europa') ? 9 : 6;
+    const T2Ninf = (data.poblacion && data.poblacion.clave === 'europa') ? -1 : 0;
+    function rotHit(r){ return !isNaN(T1)&&(r==='A'?T1>T1A:r==='R'?T1>=0&&T1<=T1A:T1<0); }
+    function vertHit(v){ return !isNaN(T2)&&(v==='OB'?T2>3:v==='N'?T2>=T2Ninf&&T2<=3:T2<T2Ninf); }
 
     // Estructura: 3 ramas T1, cada una con 3 ramas T2, cada con 3-4 ramas T3
     const RAMAS = [
-      { rot:'A', cond:'T1 > 6', verts:[
+      { rot:'A', cond:'T1 > '+T1A, verts:[
         { v:'OB', cond:'T2 > 3', leaves:[
           {c:'T3 <= 1.5', g:'A3 MOB', hit:T3<=1.5},
           {c:'T3 <= 5.5', g:'A1 NOB', hit:T3>1.5&&T3<=5.5},
@@ -2547,7 +2549,7 @@ function exportarPDF() {
           {c:'T3 <= 3',   g:'A1 NDB', hit:T3>-1.5&&T3<=3},
           {c:'T3 <= 6',   g:'A1 DDB', hit:T3>3&&T3<=6},
           {c:'T3 > 6',    g:'A2 DDB', hit:T3>6}]}]},
-      { rot:'R', cond:'0<=T1<=6', verts:[
+      { rot:'R', cond:'0<=T1<='+T1A, verts:[
         { v:'OB', cond:'T2 > 3', leaves:[
           {c:'T3 <= 1',   g:'R3 MOB', hit:T3<=1},
           {c:'T3 <= 5',   g:'R1 NOB', hit:T3>1&&T3<=5},
@@ -2647,7 +2649,7 @@ function exportarPDF() {
     doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(TINTA[0],TINTA[1],TINTA[2]);
     doc.text('Leyenda',M,ly);
     doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(90,100,115);
-    doc.text('T1 = Rotacion (A: >6 anterior / R: 0-6 neutral / P: <0 posterior)',M,ly+5);
+    doc.text('T1 = Rotacion (A: >'+T1A+' anterior / R: 0-'+T1A+' neutral / P: <0 posterior)',M,ly+5);
     doc.text('T2 = Vertical (OB: >3 abierta / N: 0-3 normal / DB: <0 profunda)',M,ly+9.5);
     doc.text('T3 = ANB con sub-rangos numericos -> tipo rotacional y sagital',M,ly+14);
     doc.setFillColor(NAR[0],NAR[1],NAR[2]); doc.circle(PW-M-50,ly+4,1.5,'F');

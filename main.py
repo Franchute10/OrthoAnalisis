@@ -373,10 +373,14 @@ def arbol_decision(T1, T2, T3, poblacion: str = "latam"):
       Ver diagrama completo en documentación.
     """
     p = POBLACION_PARAMS.get(poblacion, POBLACION_PARAMS["latam"])
+    # Guard: valores no numericos -> no clasificar (evita caer en P por NaN)
+    if any((x is None) or (isinstance(x, float) and math.isnan(x)) for x in (T1, T2, T3)):
+        return "?? (datos incompletos)"
     T1_ANT = p["T1_ant"]
     T2_OB  = p["T2_ob"]
     T2_N   = p["T2_n_inf"]
 
+    # Bordes inclusivos (Figura 14 Petrovic 1996). No cambiar >= por >.
     if T1 > T1_ANT:      # ── ANTERIOR ──────────────────────────────────────
         if T2 > T2_OB:                     # OB
             if   T3 <= 1.5:  return "A3 MOB"
@@ -667,6 +671,8 @@ def determinar_categoria(grupo):
       categoria   -> int 1-6, o None si no está mapeado
       advertencia -> None, o texto si el grupo no está en la tabla
     """
+    if not grupo or not isinstance(grupo, str):
+        return None, "Grupo no calculado (datos incompletos)."
     cat = GRUPOS_33.get(grupo.strip())
     if cat is None:
         return None, (f"Grupo '{grupo}' no está en los 33 grupos de Petrovic-Lavergne 1996. Revise los puntos.")
