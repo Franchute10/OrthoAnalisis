@@ -4,18 +4,48 @@ Figura 14 y Figura 15 de Petrovic-Stutzmann-Lavergne (1996),
 transcritas de la tesis UNAM-León 2019 (Mateos González, pp.37-38)
 y validadas de forma cruzada con la tesis UCE-Ecuador 2019 (Coba Moreno).
 
-Ejecutar:  python3 test_motor_petrovic.py       (modo standalone)
-       o:  pytest test_motor_petrovic.py -q
+Ejecutar:
+    python3 test_motor_petrovic.py                 # busca main.py junto a este archivo
+    python3 test_motor_petrovic.py ruta/al/main.py # ruta explícita
+    pytest test_motor_petrovic.py -q               # modo pytest / CI
 """
-import importlib.util, math, sys
+import importlib.util, math, sys, os
 
-def _load(path="main.py"):
+
+def _resolver_main():
+    """Resuelve la ruta de main.py de forma portable (standalone, pytest y CI).
+
+    Prioridad:
+      1) argumento de línea de comandos que termine en .py y exista
+      2) variable de entorno ORTHO_MAIN
+      3) main.py en el mismo directorio que este archivo de test
+      4) main.py en el directorio de trabajo actual
+    """
+    arg = sys.argv[1] if len(sys.argv) > 1 else ""
+    # Solo aceptar el arg si es un .py existente y NO es un archivo de test
+    # (evita que pytest pase el propio test y se importe a sí mismo -> recursión).
+    if (arg.endswith(".py") and os.path.exists(arg)
+            and "test_" not in os.path.basename(arg)):
+        return arg
+    env = os.environ.get("ORTHO_MAIN")
+    if env and os.path.exists(env):
+        return env
+    aqui = os.path.dirname(os.path.abspath(__file__))
+    cand = os.path.join(aqui, "main.py")
+    if os.path.exists(cand):
+        return cand
+    return "main.py"
+
+
+def _load(path):
     spec = importlib.util.spec_from_file_location("mp", path)
-    m = importlib.util.module_from_spec(spec); sys.modules["mp"]=m
-    spec.loader.exec_module(m); return m
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules["mp"] = mod
+    spec.loader.exec_module(mod)
+    return mod
 
-# Permite pasar la ruta del main.py como argumento
-MAIN = sys.argv[1] if len(sys.argv) > 1 and sys.argv[1].endswith(".py") else "/tmp/m.py"
+
+MAIN = _resolver_main()
 m = _load(MAIN)
 
 # ─────────────────────────────────────────────────────────────────────
@@ -136,11 +166,19 @@ def test_selector_poblacion():
 
 # ── TEST 9: robustez None/NaN (no debe caer silenciosamente en 'P') ──
 def test_robustez_nan():
-    import math as _mm
     g = m.arbol_decision(float('nan'),1,2,"latam")
     assert not g.startswith("P"), f"NaN cayó en {g} (debería avisar datos incompletos)"
 
+# ── TEST 10: determinar_categoria robusto ante None / grupo inválido ──
+def test_categoria_robusta():
+    cat, _ = m.determinar_categoria(None)          # no debe lanzar excepción
+    assert cat is None
+    cat2, _ = m.determinar_categoria("ZZ XXX")
+    assert cat2 is None
+
+
 if __name__=="__main__":
+    print(f"main.py bajo prueba: {MAIN}\n")
     tests=[v for k,v in sorted(globals().items()) if k.startswith("test_")]
     ok=0
     for t in tests:
@@ -151,3 +189,4 @@ if __name__=="__main__":
         except Exception as e:
             print(f"ERROR {t.__name__}: {type(e).__name__}: {e}")
     print(f"\n{ok}/{len(tests)} tests OK")
+    sys.exit(0 if ok==len(tests) else 1)
