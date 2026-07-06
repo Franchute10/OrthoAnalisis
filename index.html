@@ -385,6 +385,35 @@ input[type=range]::-webkit-slider-thumb {
 }
 #consent-banner button:hover { opacity: .88; }
 
+/* Overlay de calibración inicial — centrado, no bloquea el resto de la UI detrás */
+#calib-onboarding {
+  position: fixed; inset: 0; z-index: 9998;
+  background: rgba(10,13,18,.55);
+  display: flex; align-items: center; justify-content: center;
+}
+.calib-onboarding-card {
+  background: var(--bg-card, #1c2333); color: #fff;
+  border-radius: 12px; padding: 28px 30px; max-width: 380px;
+  text-align: center; box-shadow: 0 12px 40px rgba(0,0,0,.4);
+  border: 1px solid rgba(255,255,255,.08);
+}
+.calib-onboarding-icon { font-size: 34px; margin-bottom: 10px; }
+.calib-onboarding-title { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+.calib-onboarding-text { font-size: 12px; line-height: 1.55; opacity: .85; margin-bottom: 20px; }
+.calib-onboarding-actions { display: flex; gap: 10px; justify-content: center; }
+.calib-btn-skip {
+  background: transparent; color: rgba(255,255,255,.7);
+  border: 1px solid rgba(255,255,255,.2); padding: 9px 16px;
+  border-radius: 6px; font-size: 12px; cursor: pointer;
+}
+.calib-btn-skip:hover { background: rgba(255,255,255,.06); }
+.calib-btn-start {
+  background: var(--orange); color: #fff; border: none;
+  padding: 9px 18px; border-radius: 6px; font-size: 12px;
+  font-weight: 600; cursor: pointer;
+}
+.calib-btn-start:hover { opacity: .88; }
+
 .sidebar-divider { height: 1px; background: var(--border); }
 
 /* AI Assistant card */
@@ -667,6 +696,22 @@ input[type=range]::-webkit-slider-thumb {
     para investigacion y mejora del sistema. <a href="#" onclick="return false;">Mas informacion</a>
   </p>
   <button onclick="cerrarConsentBanner()">Entendido</button>
+</div>
+
+<!-- ══ CALIBRACIÓN INICIAL — se pide al cargar la Rx, como en OrthoTP ══ -->
+<div id="calib-onboarding" style="display:none">
+  <div class="calib-onboarding-card">
+    <div class="calib-onboarding-icon">📏</div>
+    <div class="calib-onboarding-title">Calibrar escala de la radiografía</div>
+    <div class="calib-onboarding-text">
+      Si la radiografía tiene una regla metálica visible, márcala ahora para obtener
+      medidas lineales de Bimler en milímetros reales (N-S, Co-Go, N-Me, etc.).
+    </div>
+    <div class="calib-onboarding-actions">
+      <button class="calib-btn-skip" onclick="omitirCalibracionInicial()">Omitir</button>
+      <button class="calib-btn-start" onclick="aceptarCalibracionInicial()">📏 Calibrar ahora</button>
+    </div>
+  </div>
 </div>
 
 <!-- ══ HEADER ═══════════════════════════════════════════════ -->
@@ -1129,8 +1174,29 @@ function cargarImagen(event) {
     redraw();
     actualizarZoomIndicator();
     if (typeof actualizarBotonesUX === 'function') actualizarBotonesUX();  // ⟵ HOOK
+    // Pedir calibración de la regla al inicio, como en OrthoTP.
+    // No bloquea: el doctor puede omitir si la Rx no tiene regla visible.
+    iniciarCalibracionInicial();
   };
   img.src = URL.createObjectURL(file);
+}
+
+function iniciarCalibracionInicial() {
+  if (state.px_per_mm) return; // ya calibrado antes (misma sesión), no repetir
+  const overlay = document.getElementById('calib-onboarding');
+  if (overlay) overlay.style.display = 'flex';
+}
+
+function aceptarCalibracionInicial() {
+  const overlay = document.getElementById('calib-onboarding');
+  if (overlay) overlay.style.display = 'none';
+  if (!state.modoCalib) toggleModoCalib();
+}
+
+function omitirCalibracionInicial() {
+  const overlay = document.getElementById('calib-onboarding');
+  if (overlay) overlay.style.display = 'none';
+  mostrarHint('Puedes calibrar despues con el icono 📏 de la barra de herramientas');
 }
 
 function aplicarFiltros() {
@@ -1441,54 +1507,77 @@ function dibujarLineas() {
 }
 
 function dibujarPunto(screenX, screenY, config, isAI=false) {
-  const r = 5;
+  // Estilo "mira de francotirador": anillo hueco + cruz que sobresale del
+  // anillo + punto central diminuto. Sin letra encima (la lista lateral
+  // ya identifica cada punto — ver #points-list).
+  const rAnillo = 11;   // radio del círculo/anillo
+  const gap     = 4;    // hueco central sin líneas, para no tapar el punto exacto
+  const extra   = 6;    // cuánto sobresalen las líneas más allá del anillo
+
   ctx.save();
-  ctx.beginPath(); ctx.arc(screenX, screenY, r+4, 0, Math.PI*2);
-  ctx.fillStyle = config.color + '25'; ctx.fill(); ctx.restore();
+  // Halo suave de fondo (ayuda a distinguir sobre fondos claros/oscuros)
+  ctx.beginPath(); ctx.arc(screenX, screenY, rAnillo+3, 0, Math.PI*2);
+  ctx.fillStyle = config.color + '18'; ctx.fill();
+  ctx.restore();
+
   ctx.save();
-  ctx.beginPath(); ctx.arc(screenX, screenY, r, 0, Math.PI*2);
-  ctx.fillStyle = config.color; ctx.fill();
-  ctx.strokeStyle = '#0a0d12'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.restore();
+  // Anillo (hueco, no relleno)
+  ctx.beginPath(); ctx.arc(screenX, screenY, rAnillo, 0, Math.PI*2);
+  ctx.strokeStyle = config.color; ctx.lineWidth = 2; ctx.stroke();
+  ctx.restore();
+
   ctx.save();
-  ctx.strokeStyle = '#0a0d12'; ctx.lineWidth = 1;
+  // Cruz — 4 segmentos que van desde el hueco central hasta más allá del anillo
+  ctx.strokeStyle = config.color; ctx.lineWidth = 1.6;
   ctx.beginPath();
-  ctx.moveTo(screenX-r+1, screenY); ctx.lineTo(screenX+r-1, screenY);
-  ctx.moveTo(screenX, screenY-r+1); ctx.lineTo(screenX, screenY+r-1);
-  ctx.stroke(); ctx.restore();
+  ctx.moveTo(screenX-rAnillo-extra, screenY); ctx.lineTo(screenX-gap, screenY);
+  ctx.moveTo(screenX+gap,           screenY); ctx.lineTo(screenX+rAnillo+extra, screenY);
+  ctx.moveTo(screenX, screenY-rAnillo-extra); ctx.lineTo(screenX, screenY-gap);
+  ctx.moveTo(screenX, screenY+gap);           ctx.lineTo(screenX, screenY+rAnillo+extra);
+  ctx.stroke();
+  ctx.restore();
+
   ctx.save();
-  ctx.font = 'bold 10px JetBrains Mono,monospace';
-  ctx.fillStyle = config.color; ctx.strokeStyle = '#0a0d12'; ctx.lineWidth = 3;
-  ctx.strokeText(config.key, screenX+8, screenY-6);
-  ctx.fillText(config.key,   screenX+8, screenY-6);
+  // Punto central diminuto — marca la posición exacta
+  ctx.beginPath(); ctx.arc(screenX, screenY, 1.6, 0, Math.PI*2);
+  ctx.fillStyle = '#0a0d12'; ctx.fill();
+  ctx.beginPath(); ctx.arc(screenX, screenY, 1, 0, Math.PI*2);
+  ctx.fillStyle = config.color; ctx.fill();
   ctx.restore();
 }
 
 function dibujarPuntoIA(screenX, screenY, config) {
-  const r = 6;
-  // Halo pulsante (color IA)
+  // Misma mira, en color/estilo IA (línea discontinua para diferenciar
+  // "sugerido" de "confirmado").
+  const rAnillo = 12, gap = 4, extra = 6;
+
   ctx.save();
-  ctx.beginPath(); ctx.arc(screenX, screenY, r+6, 0, Math.PI*2);
-  ctx.fillStyle = 'rgba(168,85,247,0.15)'; ctx.fill(); ctx.restore();
-  // Círculo IA
+  ctx.beginPath(); ctx.arc(screenX, screenY, rAnillo+4, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(168,85,247,0.12)'; ctx.fill();
+  ctx.restore();
+
   ctx.save();
-  ctx.beginPath(); ctx.arc(screenX, screenY, r, 0, Math.PI*2);
-  ctx.fillStyle = config.color;
-  ctx.globalAlpha = 0.85;
-  ctx.fill();
-  ctx.strokeStyle = '#a855f7'; ctx.lineWidth = 2; ctx.stroke(); ctx.restore();
-  // Cruz
-  ctx.save(); ctx.strokeStyle = '#0a0d12'; ctx.lineWidth = 1; ctx.globalAlpha = 0.8;
+  ctx.setLineDash([3, 3]);
+  ctx.beginPath(); ctx.arc(screenX, screenY, rAnillo, 0, Math.PI*2);
+  ctx.strokeStyle = '#a855f7'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.restore();
+
+  ctx.save();
+  ctx.setLineDash([3, 3]);
+  ctx.strokeStyle = '#a855f7'; ctx.lineWidth = 1.6;
   ctx.beginPath();
-  ctx.moveTo(screenX-r+1, screenY); ctx.lineTo(screenX+r-1, screenY);
-  ctx.moveTo(screenX, screenY-r+1); ctx.lineTo(screenX, screenY+r-1);
-  ctx.stroke(); ctx.restore();
-  // Label con fondo IA
+  ctx.moveTo(screenX-rAnillo-extra, screenY); ctx.lineTo(screenX-gap, screenY);
+  ctx.moveTo(screenX+gap,           screenY); ctx.lineTo(screenX+rAnillo+extra, screenY);
+  ctx.moveTo(screenX, screenY-rAnillo-extra); ctx.lineTo(screenX, screenY-gap);
+  ctx.moveTo(screenX, screenY+gap);           ctx.lineTo(screenX, screenY+rAnillo+extra);
+  ctx.stroke();
+  ctx.restore();
+
   ctx.save();
-  ctx.font = 'bold 10px JetBrains Mono,monospace';
-  ctx.fillStyle = '#a855f7'; ctx.strokeStyle = '#0a0d12'; ctx.lineWidth = 3;
-  ctx.strokeText('✦'+config.key, screenX+9, screenY-7);
-  ctx.fillStyle = config.color;
-  ctx.fillText('✦'+config.key,   screenX+9, screenY-7);
+  ctx.beginPath(); ctx.arc(screenX, screenY, 1.6, 0, Math.PI*2);
+  ctx.fillStyle = '#0a0d12'; ctx.fill();
+  ctx.beginPath(); ctx.arc(screenX, screenY, 1, 0, Math.PI*2);
+  ctx.fillStyle = '#a855f7'; ctx.fill();
   ctx.restore();
 }
 
@@ -1583,10 +1672,19 @@ function onMouseMove(e) {
     actualizarListaPuntos(); redraw(); return;
   }
 
-  // Detectar hover sobre punto para cambiar cursor
+  // Detectar hover sobre punto para cambiar cursor + mostrar su nombre
+  // (ya no hay letra fija sobre el punto; el nombre aparece al pasar el mouse)
   const hit = getPuntoEnPosicion(screenX, screenY);
   if (hit) {
     canvas.style.cursor = 'grab';
+    const hitConfig = PUNTOS_CONFIG.find(p => p.key === hit.key);
+    if (hitConfig) {
+      const tooltipHover = document.getElementById('tooltip');
+      tooltipHover.textContent = `${hitConfig.key}: ${hitConfig.nombre}`;
+      tooltipHover.style.display = 'block';
+      tooltipHover.style.left = screenX + 'px';
+      tooltipHover.style.top  = screenY + 'px';
+    }
   } else if (!state.isDragging) {
     canvas.style.cursor = state.puntoActivo < PUNTOS_CONFIG.length ? 'crosshair' : 'default';
   }
