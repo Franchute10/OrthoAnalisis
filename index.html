@@ -2005,6 +2005,12 @@ async function analizarPuntos() {
   }
   if (!validarCamposPaciente()) return;
 
+  // Guard contra doble-clic / doble-envío: si ya hay un análisis en curso,
+  // ignorar el clic repetido en vez de disparar una segunda petición.
+  const btnAnalizar = document.getElementById('btn-analizar');
+  if (btnAnalizar && btnAnalizar.dataset.enviando === '1') return;
+  if (btnAnalizar) btnAnalizar.dataset.enviando = '1';
+
   document.getElementById('loading').style.display = 'flex';
   document.getElementById('results-area').style.display = 'none';
   try {
@@ -2049,6 +2055,8 @@ async function analizarPuntos() {
       <div class="empty-state"><div class="empty-icon">⚠️</div>
       <div style="color:var(--warn)">Error</div>
       <div style="font-size:10px">${err.message}</div></div>`;
+  } finally {
+    if (btnAnalizar) btnAnalizar.dataset.enviando = '0';
   }
 }
 
