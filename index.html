@@ -1134,11 +1134,11 @@ function cargarImagen(event) {
 }
 
 function aplicarFiltros() {
-  const brillo    = document.getElementById('brillo').value;
-  const contraste = document.getElementById('contraste').value;
-  const invertir  = document.getElementById('invertir').checked;
-  document.getElementById('brillo-val').textContent    = parseFloat(brillo).toFixed(1);
-  document.getElementById('contraste-val').textContent = parseFloat(contraste).toFixed(1);
+  const brillo    = document.getElementById('brightness-range').value;
+  const contraste = document.getElementById('contrast-range').value;
+  const invertir  = document.getElementById('invert-check').checked;
+  document.getElementById('brightness-val').textContent = parseFloat(brillo).toFixed(1);
+  document.getElementById('contrast-val').textContent   = parseFloat(contraste).toFixed(1);
   canvas.style.filter = `brightness(${brillo}) contrast(${contraste}) ${invertir ? 'invert(1)' : ''}`;
 }
 
@@ -1848,7 +1848,7 @@ function resetTodo() {
   document.getElementById('zoom-indicator').style.display = 'none';
   document.getElementById('canvas-hint').style.display    = 'none';
   document.getElementById('btn-ia').disabled = true;
-  document.getElementById('fileInput').value = '';
+  document.getElementById('file-input').value = '';
   resetPuntos();
 }
 
