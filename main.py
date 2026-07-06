@@ -104,7 +104,7 @@ def _subir_radiografia(imagen_b64: str) -> str:
             _log.warning("radiografia rechazada: %d bytes decodificados > 10MB", len(raw))
             return None
         filename = f"{uuid.uuid4().hex}.{ext}"
-        bucket = "radiografias"
+        bucket = "radiografia"
 
         url = f"{SUPABASE_URL}/storage/v1/object/{bucket}/{filename}"
         req = urllib.request.Request(
