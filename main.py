@@ -1,6 +1,8 @@
 import math
 import os
 import json
+import uuid
+import base64
 import urllib.request
 import urllib.error
 from fastapi import FastAPI, Request
@@ -20,6 +22,136 @@ except Exception:
     _OPENCV_OK = False
 
 app = FastAPI(title="OrthoAnalysis - Motor Cefalométrico v2.4")
+
+# =================================================================
+# INTEGRACIÓN SUPABASE — analítica anonimizada + almacenamiento
+# de radiografías (sin nombre de paciente).
+# Se usa HTTP directo (urllib) para no añadir dependencias nuevas.
+# =================================================================
+import logging as _logging
+_log = _logging.getLogger("ortho.analitica")
+if not _log.handlers:
+    _h = _logging.StreamHandler()
+    _h.setFormatter(_logging.Formatter("[analitica] %(levelname)s %(message)s"))
+    _log.addHandler(_h); _log.setLevel(_logging.INFO)
+
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "").rstrip("/")
+SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
+_SUPABASE_OK = bool(SUPABASE_URL and SUPABASE_KEY)
+
+
+def _supabase_headers(content_type="application/json"):
+    return {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "Content-Type": content_type,
+        "Prefer": "return=minimal",
+    }
+
+
+def _pais_desde_ip(ip: str) -> str:
+    """Geolocalización por IP, sin pedir nada al usuario.
+    Servicio gratuito ip-api.com (45 req/min, sin API key).
+    Si falla o el IP es local (desarrollo), devuelve '??'.
+    """
+    if not ip or ip.startswith(("127.", "10.", "192.168.", "::1")):
+        return "??"
+    try:
+        req = urllib.request.Request(
+            f"http://ip-api.com/json/{ip}?fields=countryCode",
+            headers={"User-Agent": "OrthoAnalysis/1.0"},
+        )
+        with urllib.request.urlopen(req, timeout=2) as resp:
+            data = json.loads(resp.read().decode())
+            return data.get("countryCode") or "??"
+    except Exception as e:
+        _log.info("geoip fallo: %s", e)
+        return "??"
+
+
+def _subir_radiografia(imagen_b64: str) -> str:
+    """Sube la radiografía (base64 dataURL) a Supabase Storage.
+    Devuelve la URL pública, o None si falla o no hay imagen.
+    No se guarda ningún nombre de paciente en el path del archivo.
+    """
+    if not _SUPABASE_OK or not imagen_b64:
+        return None
+    # Límite de tamaño del payload base64 (antes de decodificar): ~14MB base64 ≈ 10MB binario
+    MAX_B64_CHARS = 14_000_000
+    if len(imagen_b64) > MAX_B64_CHARS:
+        _log.warning("radiografia rechazada: payload %d bytes > limite", len(imagen_b64))
+        return None
+    try:
+        # Aceptar tanto dataURL completo como base64 puro
+        if "," in imagen_b64 and imagen_b64.strip().startswith("data:"):
+            header, b64data = imagen_b64.split(",", 1)
+            ext = "png" if "png" in header else "jpg"
+        else:
+            b64data = imagen_b64
+            ext = "jpg"
+
+        raw = base64.b64decode(b64data)
+
+        # Validar que sea realmente una imagen por magic bytes (no confiar en el header)
+        es_png  = raw[:8] == b"\x89PNG\r\n\x1a\n"
+        es_jpg  = raw[:3] == b"\xff\xd8\xff"
+        if not (es_png or es_jpg):
+            _log.warning("radiografia rechazada: no es PNG/JPEG (magic bytes)")
+            return None
+        ext = "png" if es_png else "jpg"
+        # Límite del binario decodificado (defensa en profundidad)
+        if len(raw) > 10 * 1024 * 1024:
+            _log.warning("radiografia rechazada: %d bytes decodificados > 10MB", len(raw))
+            return None
+        filename = f"{uuid.uuid4().hex}.{ext}"
+        bucket = "radiografias"
+
+        url = f"{SUPABASE_URL}/storage/v1/object/{bucket}/{filename}"
+        req = urllib.request.Request(
+            url, data=raw, method="POST",
+            headers={
+                "apikey": SUPABASE_KEY,
+                "Authorization": f"Bearer {SUPABASE_KEY}",
+                "Content-Type": f"image/{ext}",
+            },
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            if resp.status not in (200, 201):
+                return None
+        return f"{SUPABASE_URL}/storage/v1/object/public/{bucket}/{filename}"
+    except Exception as e:
+        _log.warning("subida radiografia fallo: %s", e)
+        return None
+
+
+def _limpiar_para_json(valor):
+    """Convierte NaN/inf a None para que PostgREST acepte el JSON (rechaza NaN)."""
+    if isinstance(valor, float) and (math.isnan(valor) or math.isinf(valor)):
+        return None
+    return valor
+
+
+def _guardar_analisis(registro: dict) -> None:
+    """Inserta una fila en la tabla `analisis` de Supabase.
+    Falla en silencio (no debe romper la respuesta al doctor
+    si Supabase está caído o no configurado).
+    """
+    if not _SUPABASE_OK:
+        return
+    try:
+        url = f"{SUPABASE_URL}/rest/v1/analisis"
+        registro = {k: _limpiar_para_json(v) for k, v in registro.items()}
+        payload = json.dumps(registro).encode()
+        req = urllib.request.Request(
+            url, data=payload, method="POST", headers=_supabase_headers()
+        )
+        urllib.request.urlopen(req, timeout=5)
+    except Exception as e:
+        # Analítica es best-effort; nunca debe afectar al usuario, pero SÍ se registra
+        # para que se pueda diagnosticar si Supabase falla silenciosamente por semanas.
+        _log.warning("guardar_analisis fallo: %s", e)
+
+
 
 # =================================================================
 # MOTOR MATEMÁTICO v2.4
@@ -1207,6 +1339,16 @@ async def analizar(request: Request):
         body = await request.json()
         px_per_mm = body.pop("px_per_mm", None)      # calibración px→mm
         poblacion  = body.pop("poblacion", "latam")  # latam | europa
+
+        # Campos de analítica anonimizada (opcionales; no rompen el análisis si faltan)
+        edad_paciente   = body.pop("edad_paciente", None)
+        sexo_paciente   = body.pop("sexo_paciente", None)
+        nombre_doctor   = body.pop("nombre_doctor", None)
+        codigo_ref      = body.pop("codigo_referencia", None)   # código propio del doctor, NO el nombre del paciente
+        imagen_rx_b64   = body.pop("imagen_radiografia", None)  # dataURL del canvas, opcional
+        acepto_datos    = body.pop("acepto_uso_datos", True)
+        puntos_ia_orig  = body.pop("puntos_sugeridos_ia", None) # snapshot de lo que sugirió la IA, si aplica
+
         pts  = {}
         for nombre, coords in body.items():
             if isinstance(coords, dict):   pts[nombre] = (coords["x"], coords["y"])
@@ -1255,6 +1397,40 @@ async def analizar(request: Request):
             if v > 70: return "Lepto"
             return "Meso (norma)"
 
+        # ── Analítica anonimizada: geolocalizar + subir + guardar (best-effort) ──
+        # Se ejecuta en BACKGROUND (thread pool) para NO bloquear el event loop:
+        # las llamadas urllib son síncronas y, si Supabase/ip-api tardan o están
+        # caídos, la respuesta clínica al doctor NO debe esperar por ellas.
+        if acepto_datos:
+            ip_cliente = request.headers.get("x-forwarded-for", "").split(",")[0].strip() \
+                         or (request.client.host if request.client else "")
+
+            def _persistir_bg():
+                try:
+                    pais_detectado  = _pais_desde_ip(ip_cliente)
+                    radiografia_url = _subir_radiografia(imagen_rx_b64)
+                    _guardar_analisis({
+                        "pais": pais_detectado,
+                        "nombre_doctor": nombre_doctor,
+                        "codigo_referencia_doctor": codigo_ref,
+                        "edad_paciente": edad_paciente,
+                        "sexo_paciente": sexo_paciente,
+                        "radiografia_url": radiografia_url,
+                        "puntos_finales": json.dumps(pts),
+                        "puntos_sugeridos_ia": json.dumps(puntos_ia_orig) if puntos_ia_orig else None,
+                        "sna": factores["SNA"], "snb": factores["SNB"], "anb": factores["ANB"],
+                        "ml_nsl": factores["ML_NSL"], "nl_nsl": factores["NL_NSL"],
+                        "t1": T1, "t2": T2, "t3": T3,
+                        "grupo": grupo, "categoria": categoria,
+                        "poblacion_parametro": poblacion,
+                    })
+                except Exception as e:
+                    _log.warning("persistencia background fallo: %s", e)
+
+            # fire-and-forget: no se espera el resultado (best-effort)
+            import asyncio as _asyncio
+            _asyncio.get_event_loop().run_in_executor(None, _persistir_bg)
+
         return {
             "success": True,
             "factores_bimler": {
@@ -1280,7 +1456,6 @@ async def analizar(request: Request):
                 "ODI":  factores["ODI"],
                 "clasif_ABS": clasif_ABS(factores["ABS"]),
             },
-            "medidas_lineales": factores["lineales"],
             "indicadores_petrovic": {
                 "T1": T1, "T2": T2, "T3": T3,
                 "ML_NSLc": ML_NSLc,
