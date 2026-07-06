@@ -1490,12 +1490,35 @@ async def analizar(request: Request):
     except Exception as e:
         return {"success": False, "detail": str(e)}
 
+@app.get("/api/mi-poblacion")
+async def mi_poblacion(request: Request):
+    """
+    Sugiere el set de parámetros (latam/europa) según el país detectado
+    por IP del doctor que abre el sistema. Es solo una SUGERENCIA inicial
+    para pre-seleccionar el dropdown — el doctor siempre puede cambiarlo
+    manualmente (ej. un doctor en Lima tratando a un paciente europeo).
+    """
+    ip_cliente = request.headers.get("x-forwarded-for", "").split(",")[0].strip() \
+                 or (request.client.host if request.client else "")
+    pais = _pais_desde_ip(ip_cliente)
+
+    # Países cuya calibración de referencia es la europea (Bjork-Skieller/OrthoTP).
+    # Todo lo demás (incluido "??" sin detectar) usa latam por defecto,
+    # que es la fuente primaria de Petrovic 1996.
+    PAISES_EUROPA = {
+        "DE","IT","FR","ES","PT","GB","IE","NL","BE","LU","CH","AT",
+        "PL","CZ","SK","HU","RO","BG","GR","HR","SI","DK","SE","NO",
+        "FI","EE","LV","LT",
+    }
+    sugerido = "europa" if pais in PAISES_EUROPA else "latam"
+    return {"pais_detectado": pais, "poblacion_sugerida": sugerido}
+
+
 @app.get("/api/health")
 async def health():
-    return {"status": "ok", "version": "2.4",
-            "grupos_rotacionales": 27,
-            "factores_bimler": 8,
-            "casos_validados": 3}
+    return {"status": "ok", "version": "3.1",
+            "grupos_rotacionales": 33,
+            "factores_bimler": 8}
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

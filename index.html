@@ -364,6 +364,11 @@ input[type=range]::-webkit-slider-thumb {
   border-color: var(--orange); box-shadow: 0 0 0 3px rgba(245,130,32,.12); background: white;
 }
 .req-mark { color: var(--orange); font-weight: 700; }
+.pobla-auto-tag {
+  font-size: 8px; color: var(--accent2, #00c8ff); font-weight: 500;
+  text-transform: none; letter-spacing: 0; margin-left: 6px;
+  opacity: .8; font-style: italic;
+}
 .field-error { display: none; font-size: 10px; color: #e0403f; margin-top: 4px; font-weight: 500; }
 .patient-field.field-invalid input,
 .patient-field.field-invalid select { border-color: #e0403f; box-shadow: 0 0 0 3px rgba(224,64,63,.10); }
@@ -877,6 +882,16 @@ input[type=range]::-webkit-slider-thumb {
       <div class="patient-field">
         <label for="pac-codigo">Código de referencia (opcional)</label>
         <input type="text" id="pac-codigo" placeholder="ej. MG-2026-014" autocomplete="off"/>
+      </div>
+      <div class="patient-field">
+        <label for="pac-poblacion">
+          Parámetros de referencia
+          <span class="pobla-auto-tag" id="pobla-auto-tag" style="display:none">detectado automáticamente</span>
+        </label>
+        <select id="pac-poblacion" onchange="state.poblacion=this.value">
+          <option value="latam">🌎 Latinoamérica (Petrovic 1996, T1&gt;6)</option>
+          <option value="europa">🇪🇺 Europa / OrthoTP (T1&gt;9)</option>
+        </select>
       </div>
     </div>
 
@@ -2073,6 +2088,45 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
+// ── Auto-detección de parámetros de población (Latam/Europa) por IP ──
+// Solo sugiere un valor inicial sensato; el doctor siempre puede
+// cambiarlo manualmente en el selector del panel de datos del paciente.
+// No se repite en cada carga: si el doctor ya eligió uno a mano en esta
+// sesión del navegador, se respeta esa elección y no se sobreescribe.
+document.addEventListener('DOMContentLoaded', async () => {
+  const select = document.getElementById('pac-poblacion');
+  if (!select) return;
+
+  const eleccionManual = sessionStorage.getItem('oa_poblacion_manual');
+  if (eleccionManual) {
+    select.value = eleccionManual;
+    state.poblacion = eleccionManual;
+    return;
+  }
+
+  try {
+    const resp = await fetch('/api/mi-poblacion');
+    const info = await resp.json();
+    if (info.poblacion_sugerida) {
+      select.value = info.poblacion_sugerida;
+      state.poblacion = info.poblacion_sugerida;
+      const tag = document.getElementById('pobla-auto-tag');
+      if (tag) {
+        tag.style.display = 'inline';
+        setTimeout(() => { tag.style.display = 'none'; }, 6000);
+      }
+    }
+  } catch (e) {
+    // Si falla la detección (red, servicio caído), se queda en 'latam' por defecto.
+  }
+
+  // Si el doctor cambia el selector a mano, recordar su elección en esta
+  // sesión del navegador (no vuelve a auto-detectar hasta cerrar pestaña).
+  select.addEventListener('change', () => {
+    sessionStorage.setItem('oa_poblacion_manual', select.value);
+  });
+});
+
 
 function buildAparatologia(data) {
   const rec = data.recomendacion || {};
@@ -2104,12 +2158,6 @@ function buildAparatologia(data) {
     + '<span style="font-size:9px;color:var(--text-dim)">' + a + '</span></div>'
   ).join('');
 
-  const pobSelector = '<select onchange="state.poblacion=this.value;analizarPuntos()" '
-    + 'style="font-size:8px;background:var(--bg-card);color:var(--text-dim);border:1px solid rgba(255,255,255,.15);border-radius:3px;padding:2px 4px;cursor:pointer">'
-    + '<option value="latam"' + ((state.poblacion||'latam')==='latam'?' selected':'') + '>🌎 Latinoamérica (T1>6)</option>'
-    + '<option value="europa"' + (state.poblacion==='europa'?' selected':'') + '>🇪🇺 Europa/OrthoTP (T1>9)</option>'
-    + '</select>';
-
   html += '<div class="result-group" style="border-left:3px solid #00c8ff">'
     + '<div class="result-group-title" style="display:flex;justify-content:space-between;align-items:center">'
     + '<span>Recomendación Terapéutica <span style="font-size:8px;color:var(--text-dim);font-weight:400">(Petrovic-Simoes 2004*)</span></span>'
@@ -2121,9 +2169,9 @@ function buildAparatologia(data) {
     + '<div><div style="font-size:8px;color:var(--text-dim)">Extracción</div><div style="font-size:10px;color:' + extColor + '">' + (rec.extraccion||'—') + '</div></div>'
     + '<div style="flex:1"><div style="font-size:8px;color:var(--text-dim)">Timing</div><div style="font-size:9px;color:var(--text)">' + (rec.timing||'—') + '</div></div>'
     + '</div>'
-    + '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:8px;justify-content:space-between">'
-    + '<div style="font-size:8px;color:var(--text-dim)">📊 Parámetros: <span style="color:#00c8ff">' + (pob.nombre||'Latinoamérica') + '</span></div>'
-    + pobSelector
+    + '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.06)">'
+    + '<div style="font-size:8px;color:var(--text-dim)">📊 Parámetros usados: <span style="color:#00c8ff">' + (pob.nombre||'Latinoamérica') + '</span>'
+    + ' <span style="opacity:.7">— cámbialos en el panel de Datos del Paciente antes del próximo análisis</span></div>'
     + '</div></div>'
     + '<div style="font-size:7.5px;color:var(--text-dim);line-height:1.5;padding:5px 4px;border-top:1px solid rgba(255,255,255,.06)">'
     + '* Fuente: Petrovic-Stutzmann-Lavergne (1996) vía Simoes W. Ortopedia funcional de los maxilares (2004); Tamayo Sendoya A. (2020). '
