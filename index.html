@@ -499,9 +499,20 @@ input[type=range]::-webkit-slider-thumb {
   border: 1px solid transparent;
 }
 .point-item:hover { background: var(--surface-low); border-color: var(--border); }
-.point-item.active { background: #fff4eb; border-color: #f9c490; }
+.point-item.active {
+  background: #fff4eb; border-color: #f9c490;
+  border-left: 3px solid var(--orange);
+  box-shadow: 0 1px 6px rgba(245,130,32,.15);
+}
 .point-item.done   { background: #f0faf4; border-color: #bbf0cc; }
 .point-item.suggested { background: rgba(124,58,237,.06); border-color: rgba(124,58,237,.25); }
+/* Pendiente (aún no llega el turno): tono neutro-frío, NO rojo — el rojo
+   en software clínico suele leerse como "error/alarma", y un punto que
+   simplemente falta marcar no es un error. El número en anillo hueco
+   comunica "en espera" sin generar alarma visual. */
+.point-item.pending .point-num {
+  background: transparent; border: 1.5px solid var(--border); color: var(--text-dim);
+}
 
 .point-num {
   width: 20px; height: 20px; border-radius: 50%;
@@ -537,6 +548,19 @@ input[type=range]::-webkit-slider-thumb {
   background: linear-gradient(90deg, var(--orange), var(--navy));
   border-radius: 2px; transition: width .35s ease;
 }
+.current-point-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; padding: 2px 0;
+}
+.current-point-label {
+  font-size: 9px; color: var(--text-dim); text-transform: uppercase;
+  letter-spacing: .6px; font-weight: 600;
+}
+.current-point-name {
+  font-size: 13px; font-weight: 700; color: var(--orange);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.current-point-name.is-done { color: var(--green); }
 .pts-note { font-size: 9px; color: var(--text-dim); margin-top: 5px; text-align: right; }
 
 /* Quick actions row */
@@ -902,14 +926,12 @@ input[type=range]::-webkit-slider-thumb {
 
   </div><!-- end sidebar-scroll -->
 
-  <!-- Progress at bottom -->
+  <!-- Punto actual — reemplaza el % de progreso: mejor decirle al doctor
+       EXACTAMENTE cuál punto sigue, que darle un número abstracto -->
   <div class="sidebar-bottom">
-    <div class="progress-row">
-      <span>Progreso del análisis</span>
-      <strong id="pts-count-pct">0%</strong>
-    </div>
-    <div class="progress-bar">
-      <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+    <div class="current-point-row" id="current-point-row">
+      <span class="current-point-label">Marcando ahora</span>
+      <span class="current-point-name" id="current-point-name">—</span>
     </div>
   </div>
 </div><!-- end right-panel -->
@@ -1507,78 +1529,41 @@ function dibujarLineas() {
 }
 
 function dibujarPunto(screenX, screenY, config, isAI=false) {
-  // Estilo "mira de francotirador": anillo hueco + cruz que sobresale del
-  // anillo + punto central diminuto. Sin letra encima (la lista lateral
-  // ya identifica cada punto — ver #points-list).
-  const rAnillo = 11;   // radio del círculo/anillo
-  const gap     = 4;    // hueco central sin líneas, para no tapar el punto exacto
-  const extra   = 6;    // cuánto sobresalen las líneas más allá del anillo
-
+  // Punto compacto (como estaba originalmente) — sin la letra flotante,
+  // que quitaba visibilidad. La lista lateral identifica cada punto.
+  const r = 5;
   ctx.save();
-  // Halo suave de fondo (ayuda a distinguir sobre fondos claros/oscuros)
-  ctx.beginPath(); ctx.arc(screenX, screenY, rAnillo+3, 0, Math.PI*2);
-  ctx.fillStyle = config.color + '18'; ctx.fill();
-  ctx.restore();
-
+  ctx.beginPath(); ctx.arc(screenX, screenY, r+4, 0, Math.PI*2);
+  ctx.fillStyle = config.color + '25'; ctx.fill(); ctx.restore();
   ctx.save();
-  // Anillo (hueco, no relleno)
-  ctx.beginPath(); ctx.arc(screenX, screenY, rAnillo, 0, Math.PI*2);
-  ctx.strokeStyle = config.color; ctx.lineWidth = 2; ctx.stroke();
-  ctx.restore();
-
-  ctx.save();
-  // Cruz — 4 segmentos que van desde el hueco central hasta más allá del anillo
-  ctx.strokeStyle = config.color; ctx.lineWidth = 1.6;
-  ctx.beginPath();
-  ctx.moveTo(screenX-rAnillo-extra, screenY); ctx.lineTo(screenX-gap, screenY);
-  ctx.moveTo(screenX+gap,           screenY); ctx.lineTo(screenX+rAnillo+extra, screenY);
-  ctx.moveTo(screenX, screenY-rAnillo-extra); ctx.lineTo(screenX, screenY-gap);
-  ctx.moveTo(screenX, screenY+gap);           ctx.lineTo(screenX, screenY+rAnillo+extra);
-  ctx.stroke();
-  ctx.restore();
-
-  ctx.save();
-  // Punto central diminuto — marca la posición exacta
-  ctx.beginPath(); ctx.arc(screenX, screenY, 1.6, 0, Math.PI*2);
-  ctx.fillStyle = '#0a0d12'; ctx.fill();
-  ctx.beginPath(); ctx.arc(screenX, screenY, 1, 0, Math.PI*2);
+  ctx.beginPath(); ctx.arc(screenX, screenY, r, 0, Math.PI*2);
   ctx.fillStyle = config.color; ctx.fill();
-  ctx.restore();
+  ctx.strokeStyle = '#0a0d12'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.restore();
+  ctx.save();
+  ctx.strokeStyle = '#0a0d12'; ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(screenX-r+1, screenY); ctx.lineTo(screenX+r-1, screenY);
+  ctx.moveTo(screenX, screenY-r+1); ctx.lineTo(screenX, screenY+r-1);
+  ctx.stroke(); ctx.restore();
 }
 
 function dibujarPuntoIA(screenX, screenY, config) {
-  // Misma mira, en color/estilo IA (línea discontinua para diferenciar
-  // "sugerido" de "confirmado").
-  const rAnillo = 12, gap = 4, extra = 6;
-
+  // Igual que dibujarPunto, con halo/color IA — sin letra flotante.
+  const r = 6;
   ctx.save();
-  ctx.beginPath(); ctx.arc(screenX, screenY, rAnillo+4, 0, Math.PI*2);
-  ctx.fillStyle = 'rgba(168,85,247,0.12)'; ctx.fill();
-  ctx.restore();
-
+  ctx.beginPath(); ctx.arc(screenX, screenY, r+6, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(168,85,247,0.15)'; ctx.fill(); ctx.restore();
   ctx.save();
-  ctx.setLineDash([3, 3]);
-  ctx.beginPath(); ctx.arc(screenX, screenY, rAnillo, 0, Math.PI*2);
-  ctx.strokeStyle = '#a855f7'; ctx.lineWidth = 2; ctx.stroke();
-  ctx.restore();
-
-  ctx.save();
-  ctx.setLineDash([3, 3]);
-  ctx.strokeStyle = '#a855f7'; ctx.lineWidth = 1.6;
+  ctx.beginPath(); ctx.arc(screenX, screenY, r, 0, Math.PI*2);
+  ctx.fillStyle = config.color;
+  ctx.globalAlpha = 0.85;
+  ctx.fill();
+  ctx.strokeStyle = '#a855f7'; ctx.lineWidth = 2; ctx.stroke(); ctx.restore();
+  ctx.save(); ctx.strokeStyle = '#0a0d12'; ctx.lineWidth = 1; ctx.globalAlpha = 0.8;
   ctx.beginPath();
-  ctx.moveTo(screenX-rAnillo-extra, screenY); ctx.lineTo(screenX-gap, screenY);
-  ctx.moveTo(screenX+gap,           screenY); ctx.lineTo(screenX+rAnillo+extra, screenY);
-  ctx.moveTo(screenX, screenY-rAnillo-extra); ctx.lineTo(screenX, screenY-gap);
-  ctx.moveTo(screenX, screenY+gap);           ctx.lineTo(screenX, screenY+rAnillo+extra);
-  ctx.stroke();
-  ctx.restore();
-
-  ctx.save();
-  ctx.beginPath(); ctx.arc(screenX, screenY, 1.6, 0, Math.PI*2);
-  ctx.fillStyle = '#0a0d12'; ctx.fill();
-  ctx.beginPath(); ctx.arc(screenX, screenY, 1, 0, Math.PI*2);
-  ctx.fillStyle = '#a855f7'; ctx.fill();
-  ctx.restore();
+  ctx.moveTo(screenX-r+1, screenY); ctx.lineTo(screenX+r-1, screenY);
+  ctx.moveTo(screenX, screenY-r+1); ctx.lineTo(screenX, screenY+r-1);
+  ctx.stroke(); ctx.restore();
 }
 
 // ============================================================
@@ -1672,19 +1657,12 @@ function onMouseMove(e) {
     actualizarListaPuntos(); redraw(); return;
   }
 
-  // Detectar hover sobre punto para cambiar cursor + mostrar su nombre
-  // (ya no hay letra fija sobre el punto; el nombre aparece al pasar el mouse)
+  // Detectar hover sobre punto solo para cambiar el cursor (sin tooltip de
+  // nombre: Denisse pidió quitarlo, quita visibilidad de la Rx. La lista
+  // lateral ya identifica cada punto).
   const hit = getPuntoEnPosicion(screenX, screenY);
   if (hit) {
     canvas.style.cursor = 'grab';
-    const hitConfig = PUNTOS_CONFIG.find(p => p.key === hit.key);
-    if (hitConfig) {
-      const tooltipHover = document.getElementById('tooltip');
-      tooltipHover.textContent = `${hitConfig.key}: ${hitConfig.nombre}`;
-      tooltipHover.style.display = 'block';
-      tooltipHover.style.left = screenX + 'px';
-      tooltipHover.style.top  = screenY + 'px';
-    }
   } else if (!state.isDragging) {
     canvas.style.cursor = state.puntoActivo < PUNTOS_CONFIG.length ? 'crosshair' : 'default';
   }
@@ -1696,17 +1674,7 @@ function onMouseMove(e) {
     if (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD) state.dragMoved = true;
   }
 
-  // Tooltip punto activo
-  if (!state.modoSugerido && state.imagen && state.puntoActivo < PUNTOS_CONFIG.length && !state.isDragging && !hit) {
-    const config  = PUNTOS_CONFIG[state.puntoActivo];
-    const tooltip = document.getElementById('tooltip');
-    tooltip.textContent = `→ ${config.key}: ${config.nombre}`;
-    tooltip.style.display = 'block';
-    tooltip.style.left = screenX + 'px';
-    tooltip.style.top  = screenY + 'px';
-  } else {
-    document.getElementById('tooltip').style.display = 'none';
-  }
+  document.getElementById('tooltip').style.display = 'none';
 }
 
 function onMouseUp(e) {
@@ -1793,7 +1761,8 @@ function renderListaPuntos() {
 function actualizarListaPuntos() {
   const count = Object.keys(state.puntos).length;
   document.getElementById('pts-count').textContent = count;
-  document.getElementById('progress-fill').style.width = (count/13*100)+'%';
+
+  let activeItemEl = null;
 
   PUNTOS_CONFIG.forEach((p, i) => {
     const item   = document.getElementById(`pt-item-${i}`);
@@ -1812,10 +1781,31 @@ function actualizarListaPuntos() {
     } else if (i === state.puntoActivo && !state.modoSugerido) {
       item.classList.add('active');
       coords.innerHTML = '<span style="color:var(--accent2)">← marcar</span>';
+      activeItemEl = item;
     } else {
+      item.classList.add('pending');
       coords.innerHTML = '';
     }
   });
+
+  // Indicador "Marcando ahora" — reemplaza el % de progreso
+  const nameEl = document.getElementById('current-point-name');
+  if (nameEl) {
+    if (state.puntoActivo < PUNTOS_CONFIG.length && !state.modoSugerido) {
+      const activo = PUNTOS_CONFIG[state.puntoActivo];
+      nameEl.textContent = `${activo.key} — ${activo.nombre}`;
+      nameEl.classList.remove('is-done');
+    } else {
+      nameEl.textContent = '✓ Los 13 puntos están marcados';
+      nameEl.classList.add('is-done');
+    }
+  }
+
+  // Llevar el punto activo a la vista si el doctor avanzó fuera del scroll visible
+  if (activeItemEl) {
+    activeItemEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+
   if (typeof actualizarBotonesUX === 'function') actualizarBotonesUX();  // ⟵ HOOK
   actualizarHintAnclas();
 }
@@ -1947,6 +1937,16 @@ function resetTodo() {
   document.getElementById('canvas-hint').style.display    = 'none';
   document.getElementById('btn-ia').disabled = true;
   document.getElementById('file-input').value = '';
+
+  // Reset de calibración — la Rx anterior no debe dejar escala pegada
+  state.px_per_mm = null;
+  state.calibPts  = [];
+  state.mm_rulero = 10;
+  state.modoCalib = false;
+  const calibBtn = document.getElementById('btn-calib');
+  if (calibBtn) { calibBtn.classList.remove('calib-active'); calibBtn.title = 'Calibrar escala (marcar rulero)'; }
+  if (typeof actualizarCalibPanel === 'function') actualizarCalibPanel();
+
   resetPuntos();
 }
 
@@ -3021,15 +3021,6 @@ init();
       : 'OA';
   });
 })();
-
-// Progress percentage sync
-const _origActualPct = actualizarListaPuntos;
-actualizarListaPuntos = function() {
-  _origActualPct.apply(this, arguments);
-  const pct = Math.round(Object.keys(state.puntos).length / PUNTOS_CONFIG.length * 100);
-  const el = document.getElementById('pts-count-pct');
-  if (el) el.textContent = pct + '%';
-};
 
 init();
 </script>
