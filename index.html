@@ -263,13 +263,31 @@ input[type=range]::-webkit-slider-thumb {
 }
 .canvas-hint {
   position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%);
-  background: rgba(10,14,22,.85); backdrop-filter: blur(4px);
-  border: 1px solid rgba(255,255,255,.1);
-  padding: 6px 16px; border-radius: 20px;
-  font-size: 10px; color: rgba(255,255,255,.4);
+  background: rgba(10,14,22,.92); backdrop-filter: blur(6px);
+  border: 1px solid rgba(255,255,255,.18);
+  padding: 7px 18px; border-radius: 20px;
+  font-size: 11.5px; color: rgba(255,255,255,.75);
   pointer-events: none; white-space: nowrap; display: none;
+  letter-spacing: .3px;
 }
 .canvas-hint strong { color: var(--orange); }
+
+/* Tooltip educativo que aparece la primera vez que se hace zoom */
+.zoom-tip {
+  position: absolute; bottom: 54px; left: 50%; transform: translateX(-50%);
+  background: rgba(244,133,26,.95); backdrop-filter: blur(6px);
+  border: 1px solid rgba(255,255,255,.25);
+  padding: 9px 20px; border-radius: 24px;
+  font-size: 12px; font-weight: 600; color: #fff;
+  pointer-events: none; white-space: nowrap; display: none;
+  box-shadow: 0 4px 18px rgba(244,133,26,.45);
+  animation: zoomTipIn .3s ease;
+  z-index: 20;
+}
+@keyframes zoomTipIn {
+  from { opacity:0; transform: translateX(-50%) translateY(6px); }
+  to   { opacity:1; transform: translateX(-50%) translateY(0); }
+}
 
 .ai-status {
   display: none; align-items: center; gap: 8px;
@@ -836,7 +854,8 @@ input[type=range]::-webkit-slider-thumb {
   </div>
   <div class="drag-indicator" id="drag-indicator">Arrastra para mover</div>
   <div class="ai-badge" id="ai-badge">✦ Sugerencias IA — arrastra para ajustar</div>
-  <div class="canvas-hint" id="canvas-hint">Clic para marcar · Rueda para zoom · Clic derecho para mover</div>
+  <div class="canvas-hint" id="canvas-hint">Clic para marcar · Rueda para zoom · <strong>Clic derecho para mover</strong></div>
+  <div class="zoom-tip" id="zoom-tip">🖐 Zoom activo — <strong>clic derecho + arrastra</strong> para mover la imagen</div>
   <div class="tooltip" id="tooltip" style="display:none"></div>
 </div>
 
@@ -1837,8 +1856,21 @@ function actualizarHintAnclas() {
   }
 }
 
+let _zoomTipMostrado = false;
+let _zoomTipTimer    = null;
+
 function actualizarZoomIndicator() {
-  document.getElementById('zoom-val').textContent = Math.round(state.zoom*100)+'%';
+  const pct = Math.round(state.zoom * 100);
+  document.getElementById('zoom-val').textContent = pct + '%';
+
+  // Mostrar tip educativo la primera vez que el zoom supera 130%
+  if (!_zoomTipMostrado && pct > 130 && state.imagen) {
+    _zoomTipMostrado = true;
+    const tip = document.getElementById('zoom-tip');
+    tip.style.display = 'block';
+    clearTimeout(_zoomTipTimer);
+    _zoomTipTimer = setTimeout(() => { tip.style.display = 'none'; }, 4500);
+  }
 }
 
 function irAPunto(idx) {
