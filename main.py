@@ -630,6 +630,11 @@ APARATOS_POR_TIPO = {
         "extraccion":    "+  (frecuentemente indicada)",
         "cirugia":       False,
         "timing":        "Iniciar lo antes posible; baja respuesta requiere mayor tiempo",
+        "pronostico_largo_plazo": (
+            "Seguimiento a 10 años (Moro, 2001, USP-Bauru, n=100, Clase II tratada con "
+            "extracciones): menor tendencia a recidiva de sobremordida que categoría 3. "
+            "Perfil facial post-contención tiende a ser más estable que en categorías 4-5."
+        ),
     },
     # ── CATEGORÍA 2 — potencial bajo ─────────────────────────────────
     "A2D": {
@@ -674,6 +679,12 @@ APARATOS_POR_TIPO = {
         "extraccion":    "+  (a evaluar según apiñamiento)",
         "cirugia":       False,
         "timing":        "Fase ascendente del pico puberal (CVM estadio 2-3); aprox. 18% de los pacientes",
+        "pronostico_largo_plazo": (
+            "Seguimiento a 10 años (Moro, 2001, USP-Bauru, n=100, Clase II tratada con "
+            "extracciones): mayor tendencia a recidiva de sobremordida que categoría 1. "
+            "Corrección molar sostenida en 75% por crecimiento diferencial real (ABCH), resto "
+            "por compensación dentoalveolar (Moro et al., AJODO 2000;117:86-97)."
+        ),
     },
     # ── CATEGORÍA 4 — potencial neutro ───────────────────────────────
     "R1N": {
@@ -688,6 +699,12 @@ APARATOS_POR_TIPO = {
         "extraccion":    "según apiñamiento dental",
         "cirugia":       False,
         "timing":        "Flexible; buena respuesta en cualquier fase",
+        "pronostico_largo_plazo": (
+            "Seguimiento a 10 años (Moro, 2001, USP-Bauru, n=100, Clase II tratada con "
+            "extracciones): mejor estabilidad de alineación de incisivos inferiores de todas "
+            "las categorías estudiadas (78.57% de casos satisfactorios). Nota: perfil facial "
+            "post-contención tendió a mostrarse más retruido que en categorías 1-3."
+        ),
     },
     # ── CATEGORÍA 5 — potencial alto ─────────────────────────────────
     "A1D": {

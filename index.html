@@ -2169,6 +2169,10 @@ function buildAparatologia(data) {
     + '<div><div style="font-size:8px;color:var(--text-dim)">Extracción</div><div style="font-size:10px;color:' + extColor + '">' + (rec.extraccion||'—') + '</div></div>'
     + '<div style="flex:1"><div style="font-size:8px;color:var(--text-dim)">Timing</div><div style="font-size:9px;color:var(--text)">' + (rec.timing||'—') + '</div></div>'
     + '</div>'
+    + (rec.pronostico_largo_plazo ? '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.08)">'
+        + '<div style="font-size:9px;color:#a855f7;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px">📈 Pronóstico a largo plazo</div>'
+        + '<div style="font-size:9px;color:var(--text-dim);line-height:1.5">' + rec.pronostico_largo_plazo + '</div>'
+        + '</div>' : '')
     + '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.06)">'
     + '<div style="font-size:8px;color:var(--text-dim)">📊 Parámetros usados: <span style="color:#00c8ff">' + (pob.nombre||'Latinoamérica') + '</span>'
     + ' <span style="opacity:.7">— cámbialos en el panel de Datos del Paciente antes del próximo análisis</span></div>'
@@ -3019,6 +3023,18 @@ function exportarPDF() {
     doc.setFont('helvetica','normal');
     const timingLines = doc.splitTextToSize(rec_pdf.timing||'—', PW-M*2-25);
     doc.text(timingLines, M+20, ry); ry += timingLines.length*5 + 5;
+
+    // Pronostico a largo plazo (Moro, 2001/2000 - seguimiento 10 anos), si el grupo lo tiene
+    if (rec_pdf.pronostico_largo_plazo) {
+      doc.setDrawColor(220); doc.setLineWidth(0.3); doc.line(M, ry, PW-M, ry); ry += 5;
+      doc.setFillColor(168,85,247,0.07); 
+      const plLines = doc.splitTextToSize(rec_pdf.pronostico_largo_plazo, PW-M*2-4);
+      doc.rect(M, ry-3, PW-M*2, plLines.length*4.5+9, 'F');
+      doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(140,60,220);
+      doc.text('Pronostico a largo plazo', M+2, ry+2); ry += 6;
+      doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(90,95,110);
+      doc.text(plLines, M+2, ry); ry += plLines.length*4.5 + 5;
+    }
 
     // Nota bibliográfica con *
     doc.setDrawColor(220); doc.setLineWidth(0.3); doc.line(M, ry, PW-M, ry); ry += 5;
