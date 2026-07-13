@@ -516,48 +516,83 @@ input[type=range]::-webkit-slider-thumb {
 .points-list::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 2px; }
 
 .point-item {
-  display: flex; align-items: center; gap: 8px;
-  padding: 7px 8px; border-radius: 8px; margin-bottom: 2px;
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 10px; border-radius: 10px; margin-bottom: 4px;
   cursor: pointer; transition: all .15s;
-  border: 1px solid transparent;
+  border: 1.5px solid transparent;
 }
 .point-item:hover { background: var(--surface-low); border-color: var(--border); }
+
+/* ACTIVO — verde, negrita, muy visible */
 .point-item.active {
-  background: #fff4eb; border-color: #f9c490;
-  border-left: 3px solid var(--orange);
-  box-shadow: 0 1px 6px rgba(245,130,32,.15);
+  background: #f0fff6;
+  border: 1.5px solid #34d399;
+  border-left: 4px solid #16a34a;
+  box-shadow: 0 2px 10px rgba(22,163,74,.15);
 }
-.point-item.done   { background: #f0faf4; border-color: #bbf0cc; }
-.point-item.suggested { background: rgba(124,58,237,.06); border-color: rgba(124,58,237,.25); }
-/* Pendiente (aún no llega el turno): tono neutro-frío, NO rojo — el rojo
-   en software clínico suele leerse como "error/alarma", y un punto que
-   simplemente falta marcar no es un error. El número en anillo hueco
-   comunica "en espera" sin generar alarma visual. */
+.point-item.active .point-name { color: #15803d; font-size: 13px; font-weight: 800; }
+.point-item.active .point-desc { color: #166534; font-size: 10px; }
+
+/* MARCADO — naranja */
+.point-item.done {
+  background: #fff8f0;
+  border: 1.5px solid #fdba74;
+  border-left: 4px solid var(--orange);
+}
+.point-item.done .point-name  { color: var(--orange); font-weight: 700; }
+.point-item.done .point-desc  { color: #c2600a; }
+
+/* SUGERIDO IA — púrpura */
+.point-item.suggested {
+  background: rgba(124,58,237,.06);
+  border: 1.5px solid rgba(124,58,237,.35);
+  border-left: 4px solid var(--ai);
+}
+
+/* PENDIENTE — neutro, sin alarma */
+.point-item.pending .point-name { color: var(--text-dim); font-weight: 500; }
 .point-item.pending .point-num {
   background: transparent; border: 1.5px solid var(--border); color: var(--text-dim);
 }
 
+/* Número/burbuja */
 .point-num {
-  width: 20px; height: 20px; border-radius: 50%;
+  width: 26px; height: 26px; border-radius: 50%;
   background: var(--border); display: flex; align-items: center;
-  justify-content: center; font-size: 9px; font-weight: 700;
+  justify-content: center; font-size: 10px; font-weight: 800;
   color: var(--text-dim); flex-shrink: 0;
 }
-.point-item.done .point-num      { background: var(--green); color: white; }
-.point-item.active .point-num    { background: var(--orange); color: white; }
+.point-item.done .point-num      { background: var(--orange); color: white; }
+.point-item.active .point-num    { background: #16a34a; color: white; font-size: 11px; }
 .point-item.suggested .point-num { background: var(--ai); color: white; }
 
-.point-name  { font-weight: 600; font-size: 12px; color: var(--text); }
-.point-desc  { font-size: 9px; color: var(--text-dim); margin-top: 1px; }
+.point-name  { font-weight: 600; font-size: 12.5px; color: var(--text); }
+.point-desc  { font-size: 9.5px; color: var(--text-dim); margin-top: 2px; }
 .point-coords { margin-left: auto; font-size: 9px; color: var(--orange); white-space: nowrap; text-align: right; font-weight: 600; }
 .point-coords .coord-xy { font-size: 8px; color: var(--text-dim); display: block; font-weight: 400; }
 
 /* Sidebar bottom — progress */
 .sidebar-bottom {
   padding: 10px 14px 12px;
-  border-top: 1px solid var(--border);
+  border-top: 2px solid var(--border);
   background: var(--surface-low);
 }
+/* Botón undo prominente en el sidebar */
+.btn-undo-sidebar {
+  display: flex; align-items: center; gap: 6px;
+  width: 100%; padding: 8px 12px; margin-bottom: 8px;
+  background: white; border: 1.5px solid var(--border);
+  border-radius: 8px; font-size: 11px; font-weight: 600;
+  color: var(--text-mid); cursor: pointer; transition: all .15s;
+}
+.btn-undo-sidebar:hover:not(:disabled) {
+  border-color: var(--orange); color: var(--orange);
+  background: #fff8f0;
+}
+.btn-undo-sidebar:disabled {
+  opacity: .35; cursor: not-allowed;
+}
+.btn-undo-sidebar .undo-icon { font-size: 14px; }
 .progress-row {
   display: flex; justify-content: space-between;
   font-size: 11px; color: var(--text-dim); margin-bottom: 6px;
@@ -960,9 +995,11 @@ input[type=range]::-webkit-slider-thumb {
 
   </div><!-- end sidebar-scroll -->
 
-  <!-- Punto actual — reemplaza el % de progreso: mejor decirle al doctor
-       EXACTAMENTE cuál punto sigue, que darle un número abstracto -->
+  <!-- Punto actual + undo prominente -->
   <div class="sidebar-bottom">
+    <button class="btn-undo-sidebar" id="btn-undo-sidebar" onclick="deshacerUltimoPunto()" disabled>
+      <span class="undo-icon">↶</span> Deshacer último punto
+    </button>
     <div class="current-point-row" id="current-point-row">
       <span class="current-point-label">Marcando ahora</span>
       <span class="current-point-name" id="current-point-name">—</span>
@@ -1563,41 +1600,61 @@ function dibujarLineas() {
 }
 
 function dibujarPunto(screenX, screenY, config, isAI=false) {
-  // Punto compacto (como estaba originalmente) — sin la letra flotante,
-  // que quitaba visibilidad. La lista lateral identifica cada punto.
   const r = 5;
+  // Halo exterior
   ctx.save();
   ctx.beginPath(); ctx.arc(screenX, screenY, r+4, 0, Math.PI*2);
   ctx.fillStyle = config.color + '25'; ctx.fill(); ctx.restore();
+  // Círculo relleno
   ctx.save();
   ctx.beginPath(); ctx.arc(screenX, screenY, r, 0, Math.PI*2);
   ctx.fillStyle = config.color; ctx.fill();
   ctx.strokeStyle = '#0a0d12'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.restore();
+  // Cruz interior
   ctx.save();
   ctx.strokeStyle = '#0a0d12'; ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(screenX-r+1, screenY); ctx.lineTo(screenX+r-1, screenY);
   ctx.moveTo(screenX, screenY-r+1); ctx.lineTo(screenX, screenY+r-1);
   ctx.stroke(); ctx.restore();
+  // Etiqueta: clave del punto encima del círculo
+  ctx.save();
+  ctx.font = 'bold 10px "JetBrains Mono", monospace';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+  ctx.lineWidth = 2.5; ctx.strokeStyle = 'rgba(10,13,18,0.85)';
+  ctx.strokeText(config.key, screenX, screenY - r - 2);
+  ctx.fillStyle = config.color;
+  ctx.fillText(config.key, screenX, screenY - r - 2);
+  ctx.restore();
 }
 
 function dibujarPuntoIA(screenX, screenY, config) {
-  // Igual que dibujarPunto, con halo/color IA — sin letra flotante.
   const r = 6;
+  // Halo IA púrpura
   ctx.save();
   ctx.beginPath(); ctx.arc(screenX, screenY, r+6, 0, Math.PI*2);
   ctx.fillStyle = 'rgba(168,85,247,0.15)'; ctx.fill(); ctx.restore();
+  // Círculo
   ctx.save();
   ctx.beginPath(); ctx.arc(screenX, screenY, r, 0, Math.PI*2);
-  ctx.fillStyle = config.color;
-  ctx.globalAlpha = 0.85;
+  ctx.fillStyle = config.color; ctx.globalAlpha = 0.85;
   ctx.fill();
   ctx.strokeStyle = '#a855f7'; ctx.lineWidth = 2; ctx.stroke(); ctx.restore();
+  // Cruz interior
   ctx.save(); ctx.strokeStyle = '#0a0d12'; ctx.lineWidth = 1; ctx.globalAlpha = 0.8;
   ctx.beginPath();
   ctx.moveTo(screenX-r+1, screenY); ctx.lineTo(screenX+r-1, screenY);
   ctx.moveTo(screenX, screenY-r+1); ctx.lineTo(screenX, screenY+r-1);
   ctx.stroke(); ctx.restore();
+  // Etiqueta IA: clave del punto en púrpura
+  ctx.save();
+  ctx.font = 'bold 10px "JetBrains Mono", monospace';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+  ctx.lineWidth = 2.5; ctx.strokeStyle = 'rgba(10,13,18,0.85)';
+  ctx.strokeText(config.key, screenX, screenY - r - 2);
+  ctx.fillStyle = '#a855f7';
+  ctx.fillText(config.key, screenX, screenY - r - 2);
+  ctx.restore();
 }
 
 // ============================================================
@@ -1927,9 +1984,12 @@ function actualizarBotonesUX() {
   if (typeof actualizarBotonIA === 'function') actualizarBotonIA();
   const total    = PUNTOS_CONFIG.length;
   const marcados = Object.keys(state.puntos).length;
-  const btnUndo  = document.getElementById('btn-undo');
-  const btnFit   = document.getElementById('btn-fit');
-  if (btnUndo) btnUndo.disabled = (state.ordenMarcado.length === 0) || state.modoSugerido;
+  const btnUndo        = document.getElementById('btn-undo');
+  const btnUndoSidebar = document.getElementById('btn-undo-sidebar');
+  const btnFit         = document.getElementById('btn-fit');
+  const undoDis = (state.ordenMarcado.length === 0) || state.modoSugerido;
+  if (btnUndo)        btnUndo.disabled        = undoDis;
+  if (btnUndoSidebar) btnUndoSidebar.disabled = undoDis;
   if (btnFit)  btnFit.disabled  = !state.imagen;
   const btnA = document.getElementById('btn-analizar');
   if (btnA) btnA.disabled = (marcados < total) || state.modoSugerido;
