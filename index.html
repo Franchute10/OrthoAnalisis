@@ -213,19 +213,7 @@ input[type=range]::-webkit-slider-thumb {
 #main-canvas { position: absolute; top: 0; left: 0; cursor: crosshair; pointer-events: none; }
 
 /* Methodology overlay (top-left of canvas like Stitch) */
-.canvas-method-card {
-  position: absolute; top: 16px; left: 16px;
-  background: rgba(255,255,255,.92);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255,255,255,.6);
-  border-radius: var(--r-md);
-  padding: 10px 14px;
-  box-shadow: 0 4px 20px rgba(0,0,0,.15);
-  z-index: 5; pointer-events: none;
-}
-.method-label { font-size: 9px; font-weight: 600; color: var(--orange); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px; }
-.method-name  { font-family: var(--head); font-size: 13px; font-weight: 700; color: var(--navy); }
-.method-sub   { font-size: 10px; color: var(--text-dim); margin-top: 2px; }
+
 
 /* No image state */
 .no-image {
@@ -596,39 +584,7 @@ input[type=range]::-webkit-slider-thumb {
                white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .point-coords { display: none; }
 
-/* Sidebar bottom — progress */
-.sidebar-bottom {
-  padding: 10px 14px 12px;
-  border-top: 2px solid var(--border);
-  background: var(--surface-low);
-}
-/* sidebar bottom */
-.progress-row {
-  display: flex; justify-content: space-between;
-  font-size: 11px; color: var(--text-dim); margin-bottom: 6px;
-}
-.progress-row strong { color: var(--navy); font-weight: 700; }
-.progress-bar {
-  height: 4px; background: var(--border); border-radius: 2px; overflow: hidden;
-}
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--orange), var(--navy));
-  border-radius: 2px; transition: width .35s ease;
-}
-.current-point-row {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 8px; padding: 2px 0;
-}
-.current-point-label {
-  font-size: 9px; color: var(--text-dim); text-transform: uppercase;
-  letter-spacing: .6px; font-weight: 600;
-}
-.current-point-name {
-  font-size: 13px; font-weight: 700; color: var(--orange);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.current-point-name.is-done { color: var(--green); }
+
 .pts-note { font-size: 9px; color: var(--text-dim); margin-top: 5px; text-align: right; }
 
 /* Quick actions row */
@@ -871,12 +827,6 @@ input[type=range]::-webkit-slider-thumb {
 <!-- ══ CANVAS AREA ═══════════════════════════════════════════ -->
 <div class="canvas-area" id="canvas-area">
   <!-- Methodology overlay -->
-  <div class="canvas-method-card">
-    <div class="method-label">Metodología Activa</div>
-    <div class="method-name">Bimler · Lavergne-Petrovic</div>
-    <div class="method-sub">27 grupos · 8 factores · Motor validado</div>
-  </div>
-
   <!-- No image state — click anywhere here to upload -->
   <div class="no-image" id="no-image" style="cursor:pointer;z-index:5;position:absolute;inset:0"
        onclick="document.getElementById('file-input').click()">
@@ -1008,13 +958,6 @@ input[type=range]::-webkit-slider-thumb {
   </div><!-- end sidebar-top -->
 
   <!-- BOTTOM: punto activo -->
-  <div class="sidebar-bottom">
-    <div class="current-point-row" id="current-point-row">
-      <span class="current-point-label">Marcando ahora</span>
-      <span class="current-point-name" id="current-point-name">—</span>
-    </div>
-  </div>
-
 </div><!-- end right-panel -->
 
 <!-- ══ BOTTOM ACTION BAR ═════════════════════════════════════ -->
@@ -1890,17 +1833,7 @@ function actualizarListaPuntos() {
   });
 
   // Indicador "Marcando ahora" — reemplaza el % de progreso
-  const nameEl = document.getElementById('current-point-name');
-  if (nameEl) {
-    if (state.puntoActivo < PUNTOS_CONFIG.length && !state.modoSugerido) {
-      const activo = PUNTOS_CONFIG[state.puntoActivo];
-      nameEl.textContent = `${activo.key} — ${activo.nombre}`;
-      nameEl.classList.remove('is-done');
-    } else {
-      nameEl.textContent = '✓ Los 13 puntos están marcados';
-      nameEl.classList.add('is-done');
-    }
-  }
+  // current-point-name eliminado de UI
 
   // Llevar el punto activo a la vista si el doctor avanzó fuera del scroll visible
   if (activeItemEl) {
