@@ -1846,14 +1846,10 @@ function actualizarListaPuntos() {
 
 // Mensaje del canvas: progreso de anclas hasta activar la IA
 function actualizarHintAnclas() {
+  // Mensaje de anclas eliminado — la guia de puntos lateral cumple esa funcion
   const hint = document.getElementById('canvas-hint');
-  if (!hint || !state.imagen || state.modoSugerido) return;
-  if (typeof todasAnclasMarcadas === 'function' && !todasAnclasMarcadas()) {
-    const n = anclasMarcadas();
-    hint.innerHTML = `Marca <strong>S, N, Me, Go</strong> para activar la IA (${n}/4) · luego ✦ sugiere los 9 restantes`;
-  } else {
-    hint.innerHTML = 'Clic para marcar · Rueda para zoom · Clic derecho para mover';
-  }
+  if (!hint) return;
+  hint.innerHTML = 'Clic para marcar · Rueda para zoom · <strong>Clic derecho para mover</strong>';
 }
 
 let _zoomTipMostrado = false;
