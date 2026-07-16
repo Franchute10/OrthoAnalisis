@@ -4,3 +4,6 @@ python-multipart
 opencv-python-headless
 Pillow
 numpy
+pypdf
+openai
+supabase
