@@ -8,3 +8,4 @@ pypdf
 openai
 anthropic
 supabase
+python-pptx
