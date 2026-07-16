@@ -173,7 +173,7 @@ ARCHIVOS = {
         "fuente": "Cefalometría I — Bimler CCC",
         "tema": "bimler", "carpeta": CARPETA_DOCS
     },
-    "532123603-Bimler.ppt": {
+    "532123603-Bimler.pptx": {
         "fuente": "Bimler — Presentación académica completa",
         "tema": "bimler", "carpeta": CARPETA_DOCS
     },
