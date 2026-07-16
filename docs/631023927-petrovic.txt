@@ -1,0 +1,649 @@
+KIRU. 2022 ene-mar; 19(1): 36-45                                                                                                                                                                                                                                                                                                                           Cruz, V. y Jácome, A.                          	  
+                                                                                                                                                                                                                                                                                     	                        Cruz Gallegos A. & Jácome Arteaga	  
+
+
+       Artículo de Revisión / Review Article
+
+ISSN (Impreso): 1812 - 7886 ISSN(Digital): 2410-2717.                                                                                                                                                                                                                                      KIRU. 2022 ene-mar; 19(1): 36-45
+                                                                                                                                                                                                                                                                                  https://doi.org/10.24265/kiru.2022.v19n1.05
+
+
+
+   Relación multifactorial involucrada en los procesos de crecimiento,
+      facial. “Enfocada al lenguaje del Servosistema de Alexandre
+                   Petrovic”: Revisión de la literatura.
+
+       Multifactorial relationship involved in growth processes facial growth. "Focused on
+             the language of Alexandre Petrovic's Servosystem": Literature review.
+                                                                                                                                                                                                                                                      1a                                                                     2a
+       Jácome Arteaga                                                                                                    Víctor Alexander Cruz Gallegos                                                                                                    Abigail Roxana
+
+                                                                                                                                                                1
+                                                                                                                                     Universidad UTE, Quito, Ecuador.
+                                                                                                                   2
+                                                                                                                        Universidad de Guayaquil, Ecuador.
+                                                                                                                                  a
+                                                                                                                                    Odontólogo
+
+Resumen
+El conocimiento de poder determinar la maduración esquelética y el potencial de crecimiento faltante, es un
+elemento esencial a la hora de la planificación en el tratamiento ortodóncico. El estudio del crecimiento y
+desarrollo craneofacial resulta un proceso complejo e indispensable para el diagnóstico y resolución de
+maloclusiones. El crecimiento y desarrollo craneofacial sucede por el proceso de crecimiento y osificación del
+cartílago hialino, fomentando así la teoría del servosistema, el mismo que es un sistema con retroalimentación,
+de renovación constante, lo que genera una nueva respuesta. Desde este punto de vista, Petrovic considera
+involucrar la aparatología ortopédica, donde explicó que el cóndilo mandibular puede contestar a estímulos
+mecánicos ocasionando estrés a nivel de las estructuras anatómicas debido a las fuerzas ortodónticas por medio
+de la interactuación de la circulación de la sangre y células blancas que como resultado forman la remodelación
+ósea, lo que podría ser inhibitorio o sinérgico. El objetivo de esta revisión es resumir conceptos recientes sobre el
+crecimiento craneofacial, enfocados a la teoría de Alexandre Petrovic y sus colaboradores, con el desarrollo del
+conocimiento científico general e inspirar a crear un nuevo enfoque multidisciplinario más integrado basado en la
+persona, mediante bases de datos MEDLINE, EMBASE, Pubmed, y Google Académico, las cuales fueron
+evaluadas, y sintetizadas, para ser parte de la siguiente revisión de la literatura.
+
+Palabras clave: Maxilar,; Mandíbula; Desarrollo óseo; Cartílago. (Fuente: DeCS BIREME)
+
+Abstract
+The knowledge of being able to determine skeletal maturation and missing growth potential is an essential
+element when planning orthodontic treatment. The study of craniofacial growth and development is a complex
+and essential process for the diagnosis and resolution of malocclusions. Craniofacial growth and development
+occurs by the process of growth and ossification of the hyaline cartilage, thus promoting the theory of the
+servosystem, which is a system with feedback, of constant renewal, which generates a new response. From this
+point of view, Petrovic considers involving orthopedic appliances, where he explained that the mandibular condyle
+can respond to mechanical stimuli causing stress at the level of anatomical structures due to orthodontic forces
+through the interaction of blood circulation and cells white cells that as a result form bone remodeling, which could
+be inhibitory or synergistic. The objective of this review is to summarize recent concepts on craniofacial growth,
+focused on the theory of Alexandre Petrovic and his collaborators, with the development of general scientific
+knowledge and inspire the creation of a new, more integrated multidisciplinary approach based on the person,
+through bases of MEDLINE, EMBASE, Pubmed, and Google Scholar data, which were evaluated, and
+synthesized, to be part of the next literature review.
+
+Key words: Maxilla, Mandible, Bone development, Cartilage. (Source: MeSH NLM)
+
+
+Recibido: 13 de julio de 2021                                                                                     Aprobado: 11 de noviembre de 2021                                                                                                                                                            Publicado: 08 de enero de 2022
+
+Correspondencia:                                                                                                                                                                                                                               Este es un artículo de acceso abierto distribuido
+Víctor Alexander Cruz Gallegos                                                                                                                                                                                                                 bajo la licencia Creative Commons Atribución 4.0
+Dirección: Av. San Luis 1265, San Luis. Lima, Perú                                                                                                                                                                                             Internacional (CC BY 4.0)
+Correo electrónico: alexandercruz1993@hotmail.com                                                                                                                                                                                              https://creativecommons.org/licenses/by/4.0/deed.es
+                                                                                                                                                                                                                                               	  
+
+
+
+
+                                                                                                                                                                                                                                                                                                                                                                                               	  
+                                                                                                                                                                                                                                               	  
+Citar como: Cruz, V. y Jácome, A. Relación multifactorial involucrada en los procesos de crecimiento, que controlan el crecimiento facial.
+“Enfocada al lenguaje del Servosistema de Alexandre Petrovic”: Revisión de la literatura. KIRU. 2022 ene-mar; 19(1): 36-45.
+https://doi.org/10.24265/kiru.2022.v19n1.05
+                	              	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  36	  
+                                                                                                                                                                                                                                                	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  h	  ttps://doi.org/10.24265/kiru.2022.v19n1.05	  
+	  
+KIRU. 2022 ene-mar; 19(1): 36-45.                             Relación multifactorial involucrada en los procesos de crecimiento
+
+
+
+
+INTRODUCCIÓN                                              grupos de control y variables, en humanos al
+                                                          igual que en animales. Esta precisión le permitió
+El reconcomiendo de un patrón esquelético y del           obtener datos precisos y así describir mediante
+potencial de crecimiento residual, implica una            una representación en llave cibernética el
+interrelación precisa del crecimiento y desarrollo        conjunto de mecanismos que regulan el
+                                                                                     (3,4)
+con la etapa de maduración de cada individuo.             crecimiento craneofacial         . Por medio de su
+Para decidir un tratamiento acorde a las                  teoría denominada “Servosistema”, describen el
+necesidades de nuestro paciente, de manera                crecimiento craneofacial, el cual es provocado
+                     (1)
+individualizada , es necesario tener un vasto             por la influencia de la carga genética y su
+conocimiento de los mecanismos que regulan el             expresión, la cual es condicionada por una serie
+                                                                                                       (8)
+crecimiento craneofacial, así como los factores           de estímulos externos que la activan , dicha
+que influyen en el tratamiento de la maloclusión          teoría indica que el crecimiento craneofacial
+(2)
+    . Por ejemplo: El crecimiento mandibular, está        sucede a través de complejos mecanismos con
+atado a un patrón con ciertas restricciones, ya           una función de aceleración o desaceleración,
+que el hueso se agranda más durante la                    que se relacionan unos sobre otros y son
+adolescencia, provocado por la presencia de la            regulados     mediante        un      sistema    de
+                                                                                                     (2)
+porción cartilaginosa del cóndilo mandibular, que         retroalimentación positivos y negativos .
+va a crecer al máximo en el complejo
+craneofacial. Por lo tanto, el determinar la              El servosistema (Figura 1.), es un sistema
+velocidad máxima de crecimiento mandibular es             organizado que se auto corrige en base a las
+de vital importancia, para lograr el mayor impacto        condiciones que se presentan. En donde el autor
+en el tratamiento con aparatología funcional              pudo formular y esquematizar los distintos
+             (4,5-7)
+(ortopedia)          .                                    factores involucrados en el crecimiento
+                                                          craneofacial, así como la interacción y
+                                                                                    (9)
+Alexandre Petrovic realizó sus investigaciones            complejidad de los mismos .
+con gran atención al detalle al seleccionar los
+
+
+
+
+       Figura 1: Servosistema de Petrovic. Diagrama sobre el control del crecimiento condilar. (2)
+
+
+                                                     37	                     https://doi.org/10.24265/kiru.2022.v19n1.05          	  
+KIRU. 2022 ene-mar; 19(1): 36-45                                                                                                                                                                                                                                                                                                                    Cruz, V. y Jácome, A.                         	  
+                                                                                                                                                                                                                                                                                                       Cruz Gallegos A. & Jácome Arteaga	  
+
+
+
+Para una mejor explicación de su teoría,                                                                                                                                                          superficie oclusal mandibular permanece en la
+                                                                                                                                                                                                                                        (17)
+Petrovic y sus colaboradores utilizaron un                                                                                                                                                        mejor posición de adaptación posible .
+lenguaje cibernético, donde para los autores el                                                                                                                                                   La posición sagital del arco inferior, en
+crecimiento craneofacial ocurre por un                                                                                                                                                            términos del lenguaje cibernético se va a
+mecanismo de aceleración y desaceleración,                                                                                                                                                        considerar como la variable controlable o
+                                                                                                                                                                                                                          (19)
+los cuales estaba regulados por otros sistemas                                                                                                                                                    comparador periférico        . Una contribución
+de retroalimentación tanto positivo como                                                                                                                                                          directa de la STH, somatomedina, sobre el
+         (10)
+negativo .                                                                                                                                                                                        cartílago del septum nasal, y de manera
+                                                                                                                                                                                                  indirecta sobre las suturas van a controlar el
+El crecimiento y desarrollo craneofacial es un                                                                                                                                                    crecimiento del maxilar, pero como una
+proceso, que se da desde la fertilización hasta                                                                                                                                                   reacción a este estimulo van a afectar la
+la muerte. En otras palabras, puede durar toda                                                                                                                                                    capacidad de respuesta de los pre-
+la vida. Se caracteriza por un alto grado de                                                                                                                                                      osteoblastos frente a los factores regionales y
+                       (11,12)
+influencia genética             con algunos picos;                                                                                                                                                locales que estimulan la capacidad de división
+                                                   (13)                                                                                                                                                   (20-21-22)
+relacionados a cambios hormonales                                                                                                                                                                 celular            .
+                              (14-16.)
+asociados a la edad                    . Los términos
+crecimiento y desarrollo no son sinónimos,                                                                                                                                                        En una reacción de movimiento en cadena, el
+pero coexisten y tienen como objetivo lograr el                                                                                                                                                   cartílago del septum, la hormona STH y la
+equilibrio y la función de todo el sistema                                                                                                                                                        somatomedina producen un efecto de
+                  (17)
+estomatognático .                                                                                                                                                                                 desplazamiento del maxilar hacia adelante,
+En otro contexto el crecimiento craneofacial se                                                                                                                                                   induciendo el crecimiento de la sutura
+puede concebir como un servosistema (El                                                                                                                                                           premaxilo-maxilar, y en un menor grado a la
+                                                                                                                                                                                                                         (21-22-23-24)
+servosistema o servomecanismo es un                                                                                                                                                               sutura maxilo-palatina               .
+sistema cuyo funcionamiento está regido por
+las desviaciones entre su comportamiento                                                                                                                                                          El maxilar superior al cambiar su posición,
+efectivo o instantáneo y su comportamiento                                                                                                                                                        activa una serie de mecanismo que inducen al
+prescrito), que va a controlar automática e                                                                                                                                                       cambio de posición del maxilar inferior, y como
+inconscientemente todo el proceso de                                                                                                                                                              resultado se genera una señal que aumenta la
+aposición y reabsorción ósea, el cual va a                                                                                                                                                        actividad del músculo pterigoideo externo y
+estar comprometido por los estímulos o la                                                                                                                                                         otros músculos del sistema masticatorio, para
+                                                                                                                                                                                                                                       (20-21-22)
+información que reciba. Es importante                                                                                                                                                             llegar a una óptima posición oclusal            .
+mencionar que la respuesta puede ser                                                                                                                                                              Con un aumento en la actividad muscular,
+alterada o modificada por un factor intrínseco                                                                                                                                                    vamos a inducir una proliferación celular en el
+facial que va a involucrar aspectos genéticos y                                                                                                                                                   cartílago condilar, que a su vez va a estimular
+hormonales.                                                                                                                                                                                       una rotación del crecimiento posterior de la
+                                                                                                                                                                                                  mandibular y posteriormente al crecimiento del
+Para un entendimiento más a fondo de la                                                                                                                                                           cóndilo, esto puede explicar cómo responde el
+teoría del servosistema, tenemos que                                                                                                                                                              cóndilo frente a estímulos mecánicos y por
+interrelacionar algunas estructuras del sistema                                                                                                                                                   consiguiente la manera de que funciona la
+                                                                                                                                                                                                                           (20).
+masticatorio con el lenguaje cibernético.                                                                                                                                                         aparatología ortopédica
+Donde una posición sagital de la arcada
+superior se considera el punto referente de la                                                                                                                                                    En la teoría del lenguaje cibernético, también
+entrada al sistema (input), la cual va a estar                                                                                                                                                    existe un comparador central que va a
+guiada por la hormona de crecimiento                                                                                                                                                              controlar el crecimiento condilar, el cual
+Somatotropina (STH) y somatomedina, el                                                                                                                                                            consiste en un engrama regulado por la
+cartílago del tabique y por el crecimiento de la                                                                                                                                                  actividad sensorial de la actividad muscular del
+        (18)
+lengua .                                                                                                                                                                                          complejo masticatorio. Con una posición
+                                                                                                                                                                                                  repetitiva del maxilar inferior, adquirida por las
+En el análisis del crecimiento craneofacial los                                                                                                                                                   funciones vitales diarias, acompañadas de las
+puntos de referencia para el servosistema: la                                                                                                                                                     señales llegar a una oclusión óptima, van a ser
+                                                                                                                                                                                                                                           (25)
+señal de entrada (input) será la posición                                                                                                                                                         parte de este sistema muscular                . Una
+sagital de la arcada superior, la señal de salida                                                                                                                                                 alteración entre las relaciones sagitales de las
+(output) la dará la dirección y magnitud de                                                                                                                                                       dos arcadas va a provocar una señal de
+crecimiento     del   cartílago    condilar.   El                                                                                                                                                 desviación que automáticamente estimula la
+comparador periférico del servo sistema está                                                                                                                                                      actividad muscular del pterigoideo externo,
+representado por La oposición entre las                                                                                                                                                           que como respuesta va a estimular el
+posiciones de los dos arcos. El comparador                                                                                                                                                        crecimiento del cartílago condilar. Al resultado
+periférico es la fuente de la señal de                                                                                                                                                            de la nueva posición sagital, en el lenguaje
+corrección, que ajusta la actividad postural del                                                                                                                                                  cibernético lo vamos a definir como salida del
+músculo pterigoideo lateral de manera que la                                                                                                                                                      sistema.
+            	              	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  38	  
+                                                                                                                                                                                                                                            	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  https://doi.org/10.24265/kiru.2022.v19n1.05	  
+	  
+KIRU. 2022 ene-mar; 19(1): 36-45.                            Relación multifactorial involucrada en los procesos de crecimiento
+
+
+
+
+                                                            1. Evaluación del grado de madurez ósea y de
+En cuanto a lo genético y su evolución con el               la edad esquelética del paciente (34), el
+paso de los años, existen 3 linajes de células              método base para predecir y conocer el
+principales que están involucradas en el                    estadio de maduración ósea del paciente, es
+crecimiento y desarrollo craneofacial las                   mediante la toma y estudio de una radiografía
+                                                                    (34)
+cuales son: osteogénico, condrogénico y                     carpal       , cuya imagen posee rasgos
+fibrogénico. Estas células provienen de un                  anatómicos que permiten el control de los
+                                                                                     (34)
+progenitor común que son las células                        cambios con el desarrollo .
+mesénquimas, que se van a originar como
+resultado de la migración de las células de la              2. Crear un mecanismo de monitoreo para
+cresta neural
+              (26-27-28-29-30)
+                               .                            verificar el pico de crecimiento del niño cada
+                                                            tres meses para desarrollar un plan que pueda
+Todas estas células tienen comportamientos                  verificar    el   crecimiento      de       unidades
+                                                                                          (4-13)
+diferentes    que     incluyen   eventos      de            estadísticas de velocidad            . En el caso
+proliferación, apoptosis, diferenciación y                  específico del crecimiento individual. La
+síntesis de las matrices, las cuales van a ser              antropometría es un método que se puede
+controladas por un gen especifico
+                                      (31)
+                                           . Los            establecer para monitorear el crecimiento y
+                                                                                                   (35)
+genes pueden ser regulados por factores                     desarrollo de niños y adolescentes .
+ambientales, y algunos estímulos mecánicos,                 3. Para determinar el tipo de crecimiento
+por lo que en la actualidad se resuelven                    rotacional y la categoría auxológica del
+maloclusiones con el uso de diferentes tipos                paciente. La investigación de Petrovic sobre el
+de aparatología que van a estimular los                     cartílago condilar ha explicado las diferencias
+procesos de diferenciación celular en los                   individuales de los pacientes que reciben el
+distintos centros de crecimiento como es el                 mismo tratamiento. En la década de 1960,
+cartílago condilar y las suturas craneofaciales             Petrovic, Laverne y Stutzmann demostraron
+(32-33)
+        .                                                   que el cartílago condilar es de naturaleza
+                                                                        (36)
+                                                            secundaria       . Las células precondoblasticas
+En el momento que se produce el crecimiento                 (células mitóticas) de este cartílago no están
+sagital del maxilar, por una acción ya sea                  rodeadas por la matriz del cartílago, lo que
+intrínseca    o   extrínseca,     esta    puede             permite el efecto directo de factores locales
+desencadenar variaciones que se expresan a                  sobre las células en división, que pueden
+través de la resección del cartílago del septum             estimularlarse o inhibirse. Con base en el
+nasal o mediante el suministro de hormonas                  potencial de crecimiento del tejido mandibular,
+de crecimiento o testosterona, e incluso                    el índice de recambio óseo alveolar obtenido
+mediante la base de la teoría del                           después de la extracción del premolar y el
+“Servosistema”, Alexandre Petrovic junto con                nivel de osificación subperióstica, Petrovic y
+sus colaboradores, pretendieron monitorear el               Stutzmann describieron seis categorías de
+crecimiento del individuo en tres parámetros;               crecimiento       auxológicas
+                                                                                              (37-38)
+                                                                                                      . Estas
+rotación de la mandíbula, crecimiento del                   categorías corresponden al potencial de
+maxilar y mandíbula, acompañado del                         crecimiento que aumenta gradualmente a
+seguimiento del grado de madurez ósea y                     partir de valores de 1 a 6. Estos valores
+esqueletal del individuo, mediante una curva                representan el índice de división de células
+de crecimiento, a esto la denominaron                       mitóticas a nivel del cartílago en proceso.
+“Categorías auxológicas de crecimiento”.                    (Figura 2).
+Donde los postulados no refieren lo siguiente:
+
+
+
+
+                                                   39	                      https://doi.org/10.24265/kiru.2022.v19n1.05          	  
+KIRU. 2022 ene-mar; 19(1): 36-45                                                                                                                                                                                                                                                                                                                    Cruz, V. y Jácome, A.                         	  
+                                                                                                                                                                                                                                                                                                       Cruz Gallegos A. & Jácome Arteaga	  
+
+
+
+
+                                                                                                                                                                                                                                                                                                     (19)
+                                            Figura 2.: Categorías auxológicas de crecimiento.
+
+
+
+
+En las categorías 1, 2 y 3, el potencial de                                                                                                                                                       determinadas biológicamente con valores
+crecimiento de la mandíbula es menor que el                                                                                                                                                       cefalométrico específicos, lo que le permitió
+del maxilar superior. En la categoría 4, el                                                                                                                                                       trazar un diagrama de árbol en el que se
+crecimiento de la mandíbula es igual al                                                                                                                                                           encontraban 11 tipos rotacionales y 33 grupos
+crecimiento del maxilar. En las categorías 5 y                                                                                                                                                    rotacionales para la personalización (Figura 3).
+6, el potencial de crecimiento de la mandíbula                                                                                                                                                    Esta    clasificación    puede      explicar  la
+es mayor que el del maxilar; hay una                                                                                                                                                              heterogeneidad del crecimiento mandibular en
+                                                                                                                                                                                                                (40)
+tendencia      a     desarrollar    maloclusión                                                                                                                                                   el hombre          . La identificación del tipo
+                         (38-39)
+esquelética de clase III         .                                                                                                                                                                rotacional mediante el análisis cefalométrico
+                                                                                                                                                                                                  puede determinar el potencial de crecimiento
+Petrovic señaló las correlaciones existentes                                                                                                                                                      del paciente y predecir la respuesta al
+                                                                                                                                                                                                                             (2)
+entre    6   categorías    de    crecimiento                                                                                                                                                      tratamiento de ortodoncia .
+
+
+
+
+            	              	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  40	  
+                                                                                                                                                                                                                                            	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  https://doi.org/10.24265/kiru.2022.v19n1.05	  
+	  
+KIRU. 2022 ene-mar; 19(1): 36-45.                                   Relación multifactorial involucrada en los procesos de crecimiento
+
+
+
+
+                                                                                                      (20)
+                               Figura 3.: Diagrama identificativo del grupo rotacional
+
+
+
+                                                                                 (42
+Para determinar el grupo de rotación al que                        Coba, P. ) diseño un estudio con la finalidad
+pertenece el paciente, se analizó la proyección                    de identificar el potencial de crecimiento,
+lateral de la radiografía de cráneo mediante                       encontrando que fue menos frecuente la
+medición craneal y se evaluó el ángulo.                            categoría R2DN (rotación mandibular neutral,
+Algunos de estos ángulos se miden                                  más potencial de crecimiento en maxilar
+directamente en el EEG (ángulo medido),                            comparado a la mandíbula, una relación
+mientras que otros ángulos se calculan                             intermaxilar distal con mordida normal). Y más
+usando fórmulas matemáticas simples (ángulo                        frecuente la categoría P1NOB (rotación
+           (40-41)
+esperado)          .                                               mandibular posterior, igual potencial de
+                                                                   crecimiento entre el maxilar y la mandíbula,
+DISCUSIÓN                                                          una relación intermaxilar normal con mordida
+                                                                   abierta), considerado como un paciente mal
+Petrovic, et al. describieron la compleja                          crecedor.
+relación multifactorial existente en la formación
+                                                                                                                (43)
+y crecimiento craneofacial. Dicha teoría                           En Perú Gutiérrez, Y.            realizó una
+establece que el crecimiento se da atreves de                      investigación en radiografías cefalométricas
+mecanismos de aceleración y desaceleración,                        obteniendo como resultados que la forma de la
+controlados      mediante       retroalimentación                  mandíbula influye directamente con el biotipo
+positiva y negativa. Ejecutamos este proyecto                      facial.    Siendo     que     en    pacientes
+de investigación con la finalidad de analizar y                    hipodivergentes la morfología mandibular es
+comprender la relación multifactorial que                          más larga y en hiperdivergentes más corta.
+conlleva este proceso de crecimiento.
+
+
+
+
+                                                          41	                         https://doi.org/10.24265/kiru.2022.v19n1.05       	  
+KIRU. 2022 ene-mar; 19(1): 36-45                                                                                                                                                                                                                                                                                                                         Cruz, V. y Jácome, A.                         	  
+                                                                                                                                                                                                                                                                                                            Cruz Gallegos A. & Jácome Arteaga	  
+
+
+                                                                                                                               (44)
+De acuerdo con Hernández, T.                  la                                                                                                                                                       aunque no así entre la forma del cóndilo y la
+morfogénesis cráneo facial debe mantener un                                                                                                                                                            postura corporal por falta de evidencia
+equilibrio tanto estructural como funcional de                                                                                                                                                         científica.
+las numerosas zonas de tejido duro y blando
+durante su desarrollo. El cartílago condilar, el                                                                                                                                                       La comprensión acerca de la estructura
+reborde alveolar y el borde posterior de la                                                                                                                                                            molecular y la formación celular del cartílago
+rama son puntos postnatales primordiales de                                                                                                                                                            condíleo ha mostrado avances de gran
+crecimiento del maxilar inferior.                                                                                                                                                                      magnitud. Se ha evidenciado, que ciertos
+                                                                                                                                                                                                       genes como el factor de crecimiento
+                   (45)
+García, Y.      en su investigación determinó                                                                                                                                                          fibroblástico se encuentran en el interior y
+                                                                                                                                                                                                                                                      (51)
+que la forma del maxilar inferior tomando en                                                                                                                                                           exterior de las células del cartílago condíleo
+cuenta ancho y alto de la rama mandibular,
+ancho de la sínfisis mentoniana y la longitud                                                                                                                                                          CONCLUSIONES
+de la mandíbula está relacionado directamente
+con el biotipo facial del paciente. Encontrando                                                                                                                                                        Desde los inicio de la investigación médica,
+una marcada diferencia en las dimensiones                                                                                                                                                              guiada con cada nuevo descubrimiento
+del maxilar inferior en los distintos biotipos                                                                                                                                                         científico a lo largo de la historia de la
+faciales.                                                                                                                                                                                              humanidad,       acompañada        de    grandes
+                                                                                                                                                                                                       científicos que en el transcurso de sus vidas,
+                          (46)
+Demichelis, C.       realizó una investigación                                                                                                                                                         pretendieron darle un nuevo sentido al
+acerca     del    comportamiento      y    las                                                                                                                                                         inmenso mar de conocimiento que es el
+modificaciones del sistema masticatorio, para                                                                                                                                                          cuerpo humano, y que hasta la actualidad se
+comprender los distintos periodos que se dan                                                                                                                                                           siguen abriendo nuevos caminos para poder
+en la oclusión. Concluyendo que durante la                                                                                                                                                             entender el funcionamiento de nuestro
+morfogénesis del sistema masticatorio se                                                                                                                                                               sistema, acompañado de el ideal de resolver
+pueden presentar cambios debido a factores                                                                                                                                                             una innumerable lista de lesiones que aqueja
+internos y externos. La formación y desarrollo                                                                                                                                                         al individuo día a día, las teorías del
+craneofacial transcurre dinámicamente a                                                                                                                                                                crecimiento y desarrollo craneofacial entran en
+través de cambios constantes, por lo cual                                                                                                                                                              este universo investigativo, donde siempre van
+debemos tener claro los posibles cambios que                                                                                                                                                           a estar influenciadas por los nuevos
+puedan     desarrollarse    en   el   sistema                                                                                                                                                          descubrimientos      científicos,    que    como
+masticatorio.                                                                                                                                                                                          resultado nos ofrecen nuevos postulados que
+                                                                                                                                                                                                       cada vez se acerca más a resolver el enigma
+En el estudio realizado por Brachetta, N. (47)                                                                                                                                                         del profundo estudio del              crecimiento
+se analizaron los diferentes mecanismos de                                                                                                                                                             craneofacial, ofreciendo un nuevo concepto
+formación osea que influyen directamente en                                                                                                                                                            teórico con una base científica completamente
+la morfología facial. Teniendo como resultado                                                                                                                                                          sustentada, donde con el paso del tiempo
+que existen factores biomecánicos locales                                                                                                                                                              dejara de ser una teoría. Este concepto
+capaces de generar variaciones dentro de los                                                                                                                                                           siempre ira de la mano de un diagnóstico y
+procesos de formación osea.                                                                                                                                                                            planificación de un tratamiento individualizado,
+                                                                                                                                                                                                       buscando crear una doctrina a la hora de tratar
+                                                                 (48)
+Abril y colaboradores            mediante su                                                                                                                                                           a un paciente, enfocado a un problema
+investigación en pacientes pediátricos tratados                                                                                                                                                        específico, descubriendo la funcionalidad
+con aparatología ortopédica fija lograron                                                                                                                                                              normal,     para    comprender      el   proceso
+obtener cambios verticales, transversales y                                                                                                                                                            patológico, y así empezar un tratamiento
+sagitales en los maxilares. Manteniendo así un                                                                                                                                                         dirigido, responsable, y guiado que nos llevara
+equilibrio oclusal y logrando prevenir                                                                                                                                                                 a solucionar la lesión que aqueja al paciente.
+malformaciones esqueléticas complejas.                                                                                                                                                                 Una base científica sólida, acompañada de un
+                                                                                                                                                                                                       diagnostico multidisciplinario, guiado por un
+                                                               (49)
+Romero y colaboradores       a través de su                                                                                                                                                            equipo de trabajo que involucra la resolución
+investigación   evidenciaron    al    cóndilo                                                                                                                                                          de la afección del individuo, y aplicando el
+mandibular como la fuente de crecimiento                                                                                                                                                               tratamiento ideal garantizar el éxito en cada
+regional más importante, determinando que                                                                                                                                                              uno de nuestros tratamientos a lo largo de
+cualquier cambio en la mecánica del desarrollo                                                                                                                                                         nuestra      experiencia     profesional    como
+se expresaría en la modificación del                                                                                                                                                                   especialistas en Ortodoncia. Alexandre
+crecimiento mandibular.                                                                                                                                                                                Petrovic con su talentoso grupo de trabajo y
+                                                                                                                                                                                                       colaboradores a lo largo de sus innumerables
+                                                      (50)
+Luna, K y colaboradores       concluyeron en su                                                                                                                                                        investigaciones, tratando de reafirmar su
+investigación que existe una relación directa                                                                                                                                                          teoría, pudieron deducir que existe una
+entre la postura corporal y la oclusión dentaria,                                                                                                                                                      relación multifactorial inmersa en todo el
+            	                   	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  42	  
+                                                                                                                                                                                                                                                 	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  https://doi.org/10.24265/kiru.2022.v19n1.05	  
+	  
+KIRU. 2022 ene-mar; 19(1): 36-45.                             Relación multifactorial involucrada en los procesos de crecimiento
+
+
+
+
+proceso que conlleva el crecimiento y                        (posterior), Neutro (N), NSL: línea Nasion-Silla
+desarrollo craneofacial del individuo, donde                 Turca; va del punto N al punto S, ML: línea
+establece que cada persona tiene un altísimo                 mandibular, NL: línea nasal que pasa por ENA
+potencial de crecimiento, el cual esta                       (espina nasal anterior) y ENP (espina nasal
+influenciado      por     un     sistema      de             posterior).
+retroalimentación positiva y negativa. En sus                Financiamiento
+investigaciones Petrovic junto con otros                     Este artículo es autofinanciado.
+autores        demostraron       que       existe
+comportamiento celular en el cartílago                       Contribución de autores
+secundario del cóndilo mandibular, donde la                  VACG y ARJA: recolección de la información,
+germinación de los esqueletoblastos, van a                   revisión     bibliográfica  y     redacción del
+formar     únicamente         un   condroblasto              manuscrito. Los autores leyeron y aprobaron
+secundario, mientras que los precondroblastos                la revisión final del manuscrito.
+van a controlar el aumento de la masa tisular,
+donde estímulos humorales y mecánicos van                    Conflicto de interés
+guiar y controlar la producción de este celular              Los autores no reportan                          conflictos           de
+estimulado un crecimiento del cartílago                      intereses.
+condilar. Al momento de aplicar una fuerza
+mediante una técnica ortopédica funcional a                  Consentimiento para publicar
+nivel mandibular o maxilar, vamos a inducir a                Los autores cuentan con el consentimiento de
+un aumento del flujo circulatorio que                        publicación.
+conllevaría a un aumento del flujo sanguíneo y
+linfático, en los cuales van a transportar sus               Aprobación ética y consentimiento para
+respectivos     nutrientes    y   factores    de             publicar
+crecimiento, que como resultado final                        No aplica.
+mediante el uso y acción de la aparatología se
+podría explicar el crecimiento del cartílago                 REFERENCIAS BIBLIOGRÁFICAS
+condilar. Acompañado al flujo circulatorio,
+están presente los músculos de la masticación                1.    Gomes AS, Lima EM. Crecimiento mandibular
+                                                                   durante       la       adolescencia. Orthod             de
+que pueden alterar la velocidad, dirección y
+                                                                   ángulo. 2006; 76: 786–790.
+magnitud del crecimiento del cartílago                       2.    Guercio E, Deli R, D'Avanzo G, Saccomanno
+condíleo. Cabe acotar que todavía no existe                        S.      Individualización              del     tratamiento
+una evidencia completamente sustentada de                          ortodontico.     Importancia             de    los   tipos
+que estos mecanismos subyacentes, puedan                           rotacionales y las categorias auxologicas. Acta
+guiar la diferenciación celular de los                             odontol. venez [Internet]. 2009 Jun [citado
+esqueletoblastos      en     condroblastos      u                  2021 Ene 27] ; 47( 2):348-354. Disponible en:
+osteoblastos, controlando el crecimiento y                         http://ve.scielo.org/scielo.php?script=sci_arttex
+desarrollo craneofacial.                                           t&pid=S000163652009000200010&lng=es.
+                                                             3.    LAVERGNE J., PETROVIC A. Discontinuities
+                                                                   in occlusal relationships and the regulation of
+En el inmenso universo de las teorías que                          facial growth: A cybernetic view. Eur. J.
+hablan     del    crecimiento    y   desarrollo                    Orthodontics, 1983;5: 269-278.
+craneofacial, por sus sustentaciones científicas             4.    PETROVIC A. Control of postnatal growth of
+a lo largo de la historia de la investigación                      secondary cartilages of the mandible by
+humana, la teoría del “Servosistema”, de                           mechanisms regulating occlusion: Cybernetic
+Alexandre Petrovic y sus colaboradores, nos                        model. Trans. Eur. Orthod. Soc., 1974;50:69-
+abre la puerta a un nuevo comienzo                                 75.
+investigativo, para poder comprender el                      5.    Subramaniam          P,        Naidu       P.     Cambios
+                                                                   dimensionales mandibulares y madurez
+complejo sistema del crecimiento y desarrollo
+                                                                   esquelética. Contemp Clin Dent. 2010; 1 (4):
+a nivel de cara y cráneo, donde con cada                           218-22.
+avance tecnológico, y una biología molecular,                6.    Tingey TF, Shapiro PASoy J. Inhibición
+puede ser una nueva herramienta para                               selectiva del crecimiento condilar en la
+resolver los eslabones sobre esta teoría, y                        mandíbula del conejo mediante papaína
+poder ofrecer al mundo científico un nuevo                         intraarticular. Orthod. 1982; 81 (6): 455-64.
+concepto sobre el crecimiento craneofacial.                  7.    Bjork A, Skieller V. Crecimiento facial y
+                                                                   erupción dentaria: un estudio de implantes en
+Abreviaturas                                                       la pubertad. A.m.	  J.	  Orthod.	  1972; 64: 339–383.
+                                                             8.    Petrovic AG, Stutzmann JJ, Oudet CL. Control
+Somatotropina (STH), open bite (OB) o
+                                                                   processes in postnatal growth of mandibular
+mordida abierta, normal bite (N), Deep bite                        condyle cartilage. Rev Iberoam Ortod.
+(DB), distal (D), normal (N) y medial (M),                         1986;6(1):11-58.
+anterior (A), neutral (R), posterior (P), P
+
+
+                                                    43	                      https://doi.org/10.24265/kiru.2022.v19n1.05               	  
+KIRU. 2022 ene-mar; 19(1): 36-45                                                                                                                                                                                                                                                                                                                    Cruz, V. y Jácome, A.                         	  
+                                                                                                                                                                                                                                                                                                       Cruz Gallegos A. & Jácome Arteaga	  
+
+
+
+9.     PETROVIC A, STUTZMANN J, OUDET C.                                                                                                                                                                                  II Patients: A Systematic Review and Meta-
+       Control processes in postnatal growth of                                                                                                                                                                           Analysis of Controlled Studies. PLoS One.
+       condylar cartilage of his mandible (14-57). In:                                                                                                                                                                    2015;28(10).
+       Mc Namara J.A. Jr: Determinants of mandible                                                                                                                                                23.                     Baccetti T. Improving the effectiveness of
+       form and growth. Monograph 4. Cranio-Facial                                                                                                                                                                        functional jaw orthopedics in Class II
+       Growth Series, Center for Human Growth and                                                                                                                                                                         malocclusion by appropriate treatment timing.
+       Development. Univ. Michigan, Ann Arbor,                                                                                                                                                                            Orthod Fr. 2010; 81(4):279-86.
+       Michigan, Usa, 275, 1975.                                                                                                                                                                  24.                     Obwegeser HL. Clinical Experience Regarding
+10.    Stutzmann JJ, Petrovic AG. Role of the lateral                                                                                                                                                                     the Influence of the Condyle on the Growth of
+       pterygoid                muscle             and                                                                                                                                                                    the Mandible. In: Mandibular Growth
+       meniscotemporomandibular           frenum      in                                                                                                                                                                  Anomalies. Berlin, Heidelberg: Springer Berlin
+       spontaneous growth of the mandible and in                                                                                                                                                                          Heidelberg: 2001; 1(1): 49-135.
+       growth       stimulated    by    the    postural                                                                                                                                           25.                     Owtad P, Potres Z, Shen G, Petocz P,
+       hyperpropulsor. Am J Orthod Dentofacial                                                                                                                                                                            Darendeliler MA. A histochemical study on
+       Orthop. 1990; 97(5):381-92.                                                                                                                                                                                        condylar cartilage and glenoid fossa during
+11.    ROOSENBOOM J, HENS G, MATTERN BC,                                                                                                                                                                                  mandibular advancement. Angle Orthod.
+       MARK S, CLAES P. Exploring the Underlying                                                                                                                                                                          2011;81(2):270-6.
+       Genetics of Craniofacial Morphology through                                                                                                                                                26.                     Neirinckx V, Coste C, Rogister B, Wislet-
+       Various Sources of Knowledge. Biomed Res                                                                                                                                                                           Gendebien         S.    Concise    review:      adult
+       Int. 2016;20(2):1-9.                                                                                                                                                                                               mesenchymal stem cells, adult neural crest
+12.    6. AHMED MK, YE X, PJ. T. Review of the                                                                                                                                                                            stem cells, and therapy of neurological
+       Genetic Basis of Jaw Malformations. J Pediatr                                                                                                                                                                      pathologies: a state of play. Stem Cells Transl
+       Genet. 2016;5(4):209-19.                                                                                                                                                                                           Med. 2013;2(4):284- 96.
+13.    LITSAS G. Growth hormone therapy and                                                                                                                                                       27.                     Owtad P, Potres Z, Shen G, Petocz P,
+       craniofacial bones: a comprehensive review.                                                                                                                                                                        Darendeliler MA. A histochemical study on
+       Oral Dis. 2013;19(6):559- 67;                                                                                                                                                                                      condylar cartilage and glenoid fossa during
+14.    LITSAS G1, ARI-DEMIRKAYA A. Growth                                                                                                                                                                                 mandibular advancement. Angle Orthod.
+       indicators in orthodontic patients. Part 1:                                                                                                                                                                        2011;81(2):270-6.
+       comparison of cervical bone age to hand-wrist                                                                                                                                              28.                     Vega-López GA, Cerrizuela S, Aybar MJ.
+       skeletal age. Relationship with chronological                                                                                                                                                                      Trunk neural crest cells: formation, migration
+       age. Eur J Paediatr Dent. 2010;11(4):176-80.                                                                                                                                                                       and beyond. Int J Dev Biol. 2017;61(1):5-15.
+15.    9. ANDALINA E. The Consequences of                                                                                                                                                         29.                     Furutera T, Takechi M, Kitazawa T, Takei J,
+       Cranial-Facial Anomalies [Internet]. Northern                                                                                                                                                                      Yamada T, Vu Hoang T et al. Differing
+       Illinois University; 2002 [citado 2021 ene 27].                                                                                                                                                                    contributions of the first and second
+       Recuperado             a        partir       de:                                                                                                                                                                   pharyngeal arches to tympanic membrane
+       http://commons.lib.niu.edu/bitstream/handle/10                                                                                                                                                                     formation in the mouse and chick.
+       843/17110/41012SLPAndalina%2C             Elissa                                                                                                                                                                   Development. 2017;144(18):33.
+       Seaver.pdf?sequence=1&isAllowed=y                                                                                                                                                          30.                     Alhadlaq A, Mao JJ. Mesenchymal stem cells:
+16.    10. BACCETTI T, FRANCHI L, MCNAMARA J.                                                                                                                                                                             isolation and therapeutics. Stem Cells Dev.
+       The cervical vertebral maturation (CVM)                                                                                                                                                                            2004; 13(4):436-48.
+       method for the assessment of optimal                                                                                                                                                       31.                     Hinton RJ. Genes that regulate morphogenesis
+       treatment timing in dentofacial orthopedics.                                                                                                                                                                       and growth of the temporomandibular joint: a
+       Seminars in Orthodontics. 2005;11(3):119-29.                                                                                                                                                                       review. Dev Dyn. 2014; 243(7):864-74.
+17.    CAMARGO-PRADA D, OLAYA-GAMBOA ER,                                                                                                                                                          32.                     Gomes AS, Lima EM. Crecimiento mandibular
+       TORRES-MURILLO,           EA.     Teorías    del                                                                                                                                                                   durante        la      adolescencia. Orthod	     de	  
+       crecimiento craneofacial: una revisión de                                                                                                                                                                          ángulo.	  2006; 76: 786–790.
+       literatura. UstaSalud. 2017;16: 78-88.                                                                                                                                                     33.                     PETROVIC A, STUTZMANN J. Récentes
+18.    Petrovic AG, Stutzmann JJ. Reactive capacity                                                                                                                                                                       acquisitions biologiques sur la morphogenèse
+       of animal and human condylar cartilage at the                                                                                                                                                                      de la mandibule (17-26). Le menton. (Ouvrage
+       cellular and molecular levels in the light of a                                                                                                                                                                    public sous la direction de J. Levignac).
+       cybernetic concept of facial growth. Fortschr                                                                                                                                                                      Masson, Paris, 1987.
+       Kieferorthop. 1988; 49(5):405-25.                                                                                                                                                          34.                     BERNAL N. ARIAS M. Indicadores de
+19.    Petrovic AG, Stutzmann JJ, Shambaugh GE                                                                                                                                                                            maduración esquelética y dental. Revista Ces
+       Jr. Experimental studies on pathology and                                                                                                                                                                          Odontología. 2007. 20(01) 59-68.
+       therapy of otospongiosis. Am J Otol. 1985;                                                                                                                                                 35.                     GOMEZ-CAMPOS, ROSSANA, ARRUDA,
+       6(1):43-50.                                                                                                                                                                                                        MIGUEL,          LUARTE-ROCHA,          CRISTIAN,
+20.    Pritchard JJ, Scott JH, Girgis FG. The                                                                                                                                                                             URRA ALBORNOZ, CAMILO, ALMONACID
+       structure and development of cranial and facial                                                                                                                                                                    FIERRO,          ALEJANDRO,        &     COSSIO-
+       sutures.TJ Anat. 1956; 90(1):73-86.                                                                                                                                                                                BOLAÑOS, MARCO. Enfoque teórico del
+21.    Donnely H et al. Bone and cartilage                                                                                                                                                                                crecimiento físico de niños y adolescentes.
+       differentiation of a single stem cell population                                                                                                                                                                   Revista Española de Nutrición Humana y
+       driven by material interface. J Tissue Eng.                                                                                                                                                                        Dietética. 2016. 20(3), 244-253.
+       2017;15(8).                                                                                                                                                                                36.                     PETROVIC A.G. An experimental and
+22.    Perinetti G, Primožič J, Franchi L, Contardo L.                                                                                                                                                                    cybernetic approach to the mechanism of
+       Treatment Effects of Removable Functional                                                                                                                                                                          action of functional appliances on the
+       Appliances in Pre-Pubertal and Pubertal Class                                                                                                                                                                      mandibular growth. In: Mc Namara JA Jr
+
+            	              	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  44	  
+                                                                                                                                                                                                                                            	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  	  https://doi.org/10.24265/kiru.2022.v19n1.05	  
+	  
+KIRU. 2022 ene-mar; 19(1): 36-45.                                    Relación multifactorial involucrada en los procesos de crecimiento
+
+
+
+
+      editor: Malocclusion and the peridontium,
+      Monograph 15, Craniofacial Growth series,                     44. Hernández               Moreno,            Tania
+      Ann Arbor, Mich, 1984, Cebter for Human                           Yahel (2018) Análisis de la posición del
+      Growth and development, University of                             incisivo inferior y del tamaño de la sínfisis
+      Michigan.                                                         mandibular en diferentes maloclusiones y
+37.   Petrovic A, Stutzmann J, Oudet C. Turnover of                     patrones         verticales. Maestría       tesis,
+      human alveolar bone removed either in the                         Universidad de Panamá.
+      day or in the night. J. Int. Cycle Res., 1981; 12:            45. García Asmat, Y. (2018). Asociación del tipo
+      161-166.                                                          facial y las dimensiones mandibulares en
+38.   Petrovic A, Stutzmann J. The concept of the                       pacientes evaluados en un instituto de
+      mandibular       tissue-level      growth     and                 diagnóstico maxilofacial. Tesis Para Optar por
+      responsiveness to a functional appliance. In:                     el Título Profesional de Especialista en
+      Graber LW, ed. Orthodontics. State of the art:                    Ortodoncia y Ortopedia Maxilar. Lima, Perú.
+      essence of the science. St. Louis: CV Mosby;                      103p.
+      1986; 59-74.                                                  46. Demichelis, C.E. (2019). Esencia del Sistema
+39.   Petrovic A., Lavergne J., Stutzmann J. Tissue-                    Masticatorio y Guía Anterior Funcional.
+      level growth and responsiveness potential,                        Revista uruguaya de ortopedia y ortodoncia,
+      growth rotation and treatment decision (181-                      2(1), 5-78.
+      223) In: Vig P.S., Ribbens K.A.: Science and                  47. Brachetta Aporta, N. (2018). Dinámica del
+      clinical judgement in orthodontics: Monograph                     crecimiento óseo facial en poblaciones
+      19. Craniofacial Growth Series, center for                        humanas del sur de Sudamérica. Tesis
+      Human Growth and Development. Univ.                               presentada para optar por el título de Doctor
+      Michigan, Ann Arbor, Michigan, Usa, 1986;                         en Ciencias Naturales. Buenos Aires,
+      249.                                                              Argentina. 233p.
+40.   Petrovic A., Lavergne J., Stutzmann J.                        48. Abril Umbarila, R. A., Vera Suarez, S. A. y
+      Diagnostic et traitement en orthopédie                            Vera Forero, D. A. (2019) Cambios
+      dentofaciale : principes et diagramme de                          transversales en los arcos dentales en niños
+      décision. L'Orthodontie Française, 1987; 58:                      de 5 a 9 años de edad, tratados con pistas
+      517-542.                                                          planas directas: estudio descriptivo. Tesis de
+41.   PETROVIC A, STUTZMANN J, LAVERGNE                                 posgrado. Bogotá, Colombia. 79p.
+      J.: Mechanism of craniofacial growth and                      49. Romero Peláez CM, Torres Murillo EA, Pinto
+      modus operandi of functional appliances: a                        Parada YA. Crecimiento del cartílago condilar.
+      cell-level and cybernetic approach to                             Una revisión de la literatura. Odontol
+      orthodontic decision making. In Carlson DS,                       Sanmarquina [Internet]. 20 de junio de 2018
+      ed. craniofacial growth theory and orthodontic                    [citado 13 de octubre de 2022];21(2):131-40.
+      treatment. Monograph 23. Craniofacial growth                  50. Luna Ramirez, K. Sastoque Alméciga, G.
+      series. Ann Arbor: Center for Human Growth                        (2020).       Relación      entre    maloclusión,
+      and Development, the University of Michigan;                      forma del cóndilo y postura corporal en niños
+      1990; 13-74.                                                      mediante una revisión literaria. Trabajo de
+42.   Coba Moreno, P. (2019). Identificación del                        grado para optar al título de Odontólogo.
+      grupo auxológico de acuerdo a Petrovic-                           Universidad Antonio Nariño. Ibagué, Colombia.
+      Lavergne en niños de 8 a 14 años en una                           77p.
+      población de Quito, Ecuador. Trabajo de                       51. Lee W. Graber, Robert L. Vanarsdall Jr,
+      titulación previo a la obtención del Título de                    Katherine W.L. Vig, y Greg J. Huang. (2018)
+      Odontólogo. Carrera de Odontología. Quito:                        Ortodoncia, Principios y técnicas actuales. 6°
+      UCE. 83 p.                                                        ed. Elsevier. Barcelona, España. Capítulo 1
+43.   Gutiérrez Navarro, Y. (2019). Morfología                          Crecimiento y desarrollo craneofaciales:
+      mandibular según el biotipo facial en pacientes                   perspectiva. Pag 20.
+      de 18 a 35 años de la Clínica de Imagenología
+      de la Facultad de Odontología de la
+      Universidad Nacional Mayor de San Marcos.
+      Tesis para optar el Título Profesional de
+      Cirujano Dentista. Lima, Perú. 82 p.
+      _______________________________________________________________________
+                 Alexander Cruz Gallegos
+                 ORCID: https://orcid.org/0000-0002-5177-6314
+                 Correo: alexandercruz1993@hotmail.com
+
+                 Abigail Roxana Jácome Arteaga
+                 ORCID: https://orcid.org/0000-0002-6350-4922
+                 Correo: abi-roxi14@hotmail.com
+
+
+
+
+                                                           45	                      https://doi.org/10.24265/kiru.2022.v19n1.05          	  
+Copyright of Revista Kiru is the property of Universidad de San Martin de Porres and its
+content may not be copied or emailed to multiple sites or posted to a listserv without the
+copyright holder's express written permission. However, users may print, download, or email
+articles for individual use.
+

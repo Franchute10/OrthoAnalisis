@@ -1,0 +1,672 @@
+                    Acta Odont. Venez. Vol 52 Nº 3 AÑO 2014 TRABAJO ORIGINAL
+
+IDENTIFICACIÓN DE TIPOS ROTACIONALES Y CATEGORÍAS AUXOLÓGICAS COMO
+     HERRAMIENTA DIAGNÓSTICA EN LA PREDICCIÓN DEL POTENCIAL DE
+                       CRECIMIENTO MANDIBULAR
+     IDENTIFICATION OF ROTATIONAL TYPES AND AUXOLOGICAL CATEGORIES AS DIAGNOSTIC TOOL IN THE
+                           PREDICTION OF MANDIBULAR GROWTH POTENTIAL
+
+                                                                         Recibido para Arbitraje: 05/05/2014
+                                                                     Aceptado para Publicación: 17/07/29014
+
+De Stefano, A., Odontólogo Residente del Postgrado de Ortodoncia, Facultad de Odontología, Universidad Central
+de Venezuela. Guercio, E., Prof. Asociado, Univ. Central de Venezuela. Ortodoncista; MSc Ortognatodoncia Clínica.
+Univ. Católica del Sacro Cuore A. Gemelli, Roma.
+
+
+RESUMEN
+En la población joven venezolana las maloclusiones representan un importante problema de salud bucal.
+Resulta útil la aplicación de métodos diagnósticos cefalométricos como el propuesto por Petrovic que
+permitan identificar el potencial de crecimiento mandibular del paciente como un instrumento para
+seleccionar la modalidad de tratamiento. Objetivo: el propósito de esta investigación fue identificar los
+grupos rotacionales y las categorías auxológicas en pacientes venezolanos, de ambos géneros, entre 7 y
+10 años, que acudieron a la Facultad de Odontología de la UCV, durante el periodo 2006-2010.
+Materiales y Métodos: se aplicó el método cefalométrico de Petrovic para la identificación del tipo
+rotacional y categoría auxológica en las radiografías cefálicas laterales de pacientes sin tratamiento
+ortopédico ni ortodóncico previo. Resultados: el tipo rotacional más frecuente fue el P1N, seguido por
+R2D, R1N y P2D; en ambos géneros el tipo rotacional P1N fue el más frecuente, sin embargo en el
+género femenino, también se observaron los tipos P2D, R2D y R1N. El grupo rotacional más frecuente
+fue P1NOB y en segundo lugar R1NOB. Los grupos rotacionales P1NOB y R1NOB fueron los más
+frecuentes en las niñas y P1NOB en los niños. Conclusión: La determinación del tipo rotacional y la
+categoría auxológica es una herramienta diagnóstica importante para orientar el plan de tratamiento
+más acorde según el potencial de crecimiento del paciente.
+
+PALABRA CLAVE: Rotación mandibular; Grupos rotacionales; Categorías Auxológicas; Potencial de
+crecimiento mandibular; Cefalometría.
+
+ABSTRACT
+In the young venezuelan population, malocclusions are an important oral health problem. It is useful the
+application of cephalometric diagnostic methods as the proposed by Petrovic that allows to identify the
+mandibular growth potential of the patient as a tool to select the appropriate treatment modality. The
+aim of this study was to identify the rotational auxologic groups and categories in Venezuelan patients
+for both genders, age between 7 and 10 years, who had been attended in the Faculty of Dentistry of the
+Universidad Central of Venezuela, during the period 2006-2010. Materials and Methods: was applied
+Petrovic cephalometric method for identifying the rotational type and auxologic category in the cephalic
+lateral radiographs of patients without previous orthodontic or orthopedic treatment. Results: The most
+frequent rotational type was P1N, followed by R2D, R1N and P2D; in both genders P1N rotational type
+was the most common, however in the female gender, P2D, and R2D and R1N types were also observed.
+The most frequent rotational group was P1NOB and secondly R1NOB. R1NOB and P1NOB were
+rotational groups most frequent in girls and in boys was P1NOB. Conclusion: The determination of the
+rotational type and auxologic category is important to guide the treatment plan according to the
+patient's growth potential.
+
+KEY WORDS: mandibular rotation; rotational groups; Auxologic Categories; Mandibular growth
+potential; Cephalometry.
+
+INTRODUCCIÓN
+El diagnóstico correcto de las maloclusiones y la elección del plan de tratamiento ortopédico-
+ortodóncico más adecuado para cada paciente está basado en los conocimientos alcanzados sobre el
+crecimiento del complejo maxilofacial y los diversos factores que lo regulan1,2, 3. Tomando en cuenta
+que un gran número de la población infantil venezolana presenta algún tipo de maloclusión4, es
+importante el conocimiento de estos procesos y de los métodos diagnósticos que no simplemente
+describan la maloclusión presente, sino que también consideren la gran variabilidad individual y
+permitan predecir el potencial de crecimiento del paciente, sirviendo de guía para seleccionar la
+modalidad de tratamiento, ortopédico u ortodóncico, el momento ideal para tratar y la predicción de la
+respuesta al tratamiento, para obtener resultados satisfactorios. La identificación del tipo rotacional y
+la categoría auxológica, según lo propuesto por Petrovic y Cols. 5, 6, 7 es una información útil para
+ampliar el diagnóstico, ya que permite predecir el potencial de crecimiento del paciente y sirve como
+instrumento guía para seleccionar el plan de tratamiento ortopédico u ortodóncico ideal.
+Petrovic, a partir de estudios experimentales a nivel histológico y recurriendo a un servosistema
+cibernético, explica que el crecimiento de las distintas regiones del cráneo se debe a la interacción de
+una serie de eventos de control interno y de mecanismos de retroalimentación de acuerdo a la
+información externa. Es un sistema de control automático de circuito cerrado, cuyo resultado es
+dependiente de la información que recibe 8.
+
+Esta teoría señala que la posición del maxilar superior constituye el punto de referencia para el
+crecimiento mandibular. La longitud mandibular debe ajustarse a la longitud maxilar para lograr
+relaciones oclusales óptimas. La discrepancia anteroposterior entre el maxilar y la mandíbula, actúa
+como señal que modifica la actividad del músculo pterigoideo lateral. La contracción de dicho músculo
+desplaza la mandíbula, lo cual estimula el crecimiento condilar compensatorio para estabilizar la
+mandíbula en una posición más armónica. La señal generada no sólo permite el mejoramiento de la
+función masticatoria, sino también permite la sincronización entre el crecimiento maxilar y mandibular 8
+(Figura 1).
+             Figura 1 Diagrama Cibernético para el control del crecimiento del cartílago condíleo mandibular
+                                                  Tomado de Saadia 9
+
+
+
+
+Björk 10 señala que la mandíbula gracias a su capacidad intrínseca de adaptarse puede experimentar un
+crecimiento rotacional hacia delante (anterior) o hacia atrás (posterior) para así colocarse en una
+posición funcional continúa 10.
+
+La rotación hacia delante de la mandíbula ocurre cuando el crecimiento vertical del área condilar excede
+el crecimiento vertical alveolar. Cuando el crecimiento vertical del área condilar es menor que el
+crecimiento que acontece en el área alveolar, ocurre la rotación mandibular hacia atrás 10, 11.
+
+Lavergne y Gasson 12 investigando la influencia de la rotación mandibular en las maloclusiones y
+tratando de considerar la individualidad del tipo facial, asociaron el análisis cefalométrico de la
+Universidad de Bergen según Hasund 13 a los estudios de Björk 10 y formularon el diagrama arbóreo de
+dos niveles para determinar con el uso de radiografías cefálicas, los tipos rotacionales de crecimiento14.
+
+Posteriormente, Petrovic, Lavergne y Stutzmann 15, 16 teniendo en cuenta el modelo cibernético de
+regulación del crecimiento mandibular, agregaron el tercer nivel a la arborización relativa a la relación
+sagital intermaxilar. De esta manera obtuvieron la clasificación de los grupos rotacionales de
+crecimiento en tres niveles (Figura 2).
+El primer nivel se basa en la magnitud del crecimiento tisular y celular. Se utiliza un enfoque
+cefalométrico para evaluación del crecimiento posicional del hueso como expresión del potencial de
+crecimiento. La estimación de la diferencia en el potencial de crecimiento entre la mandíbula y el
+maxilar expresada en orden numérico: 2; 1; 3.
+
+         “2”: el potencial de crecimiento de la mandíbula es inferior al del maxilar;
+
+          “1”: el potencial de crecimiento de la mandíbula no difiere significativamente del potencial de
+         crecimiento biológico del maxilar;
+
+         “3”: el potencial de crecimiento de la mandíbula es superior al del maxilar 14.
+
+El segundo nivel se basa en variaciones en la dirección de crecimiento de ambos maxilares, afecta a las
+tres ramas principales de la arborización. Guarda relación con la inclinación y la rotación de crecimiento
+de ambos maxilares. Los tipos de rotación mandibular pueden ser posterior (P), neutra (N) y anterior (A).
+La relación postero-anterior intermaxilar se evalúa con el ángulo ANB y puede ser distal (D), normal (N) y
+Mesial (M) 14.
+
+El tercer nivel se basa en la relación oclusal, actuando como “comparador periférico” del servosistema.
+La relación oclusal vertical puede ser mordida abierta (OB), mordida normal (N) o mordida profunda
+(DB). La relación sagital a nivel del primer molar puede ser de Clase I, II y III o relación molar borde a
+borde (c/c) 14.
+
+Basado en dicho triple esquema de ramificaciones, se pueden distinguir once tipos rotacionales sagitales
+y designarlos mediante una etiqueta en la cual aparecerán tres símbolos sucesivos que significarán 8,14:
+
+    1.   Rotación de crecimiento mandibular: P(Posterior) / R (Neutro) / A (Anterior)
+
+    2. Diferencia del potencial de crecimiento del maxilar y la mandíbula expresada en números: 1= la
+
+         mandíbula crece igual que el maxilar; 2= la mandíbula crece menos que el maxilar; 3= la
+
+         mandíbula crece más que el maxilar.
+
+    3. La relación sagital máxilo mandibular; D (distal); N (Normal); M (Mesial).
+
+Adicionalmente, cada tipo rotacional está subdividido en la dimensión vertical en mordida abierta (OB),
+mordida normal (N) o mordida profunda (DB), dando lugar a treinta y tres grupos rotacionales, cada uno
+morfogénicamente y morfológicamente estable8,14. Un grupo rotacional puede subdividirse, de nuevo,
+en diferentes relaciones oclusales, tales como Clase I, Clase II, Clase III y relación cúspide a cúspide (c/c),
+de manera que el número total de posibilidades es, de hecho, de 70 9, 17 (Figura 2).
+                              Figura 2 Tipos rotacionales según Petrovic & Lavergne
+                                                Tomado de Saadia 9
+
+
+
+Para la determinación de tipo rotacional de crecimiento, Petrovic y Cols. utilizaron un diagrama, basado
+en la cefalometría, que permite la identificación directa del grupo rotacional (Figura 3). En este diagrama
+se comparan las mediciones obtenidas del paciente con un conjunto correspondiente de valores
+considerados normales, no con relación a normas fijas, sino relativas a la combinación de “normas
+fluctuantes” según lo propuesto por Hasund 14.
+                       Figura 3 Diagrama de Identificación del grupo rotacional de crecimiento
+                                     Tomado de Petrovic, Stutzmann Lavergne 14
+
+Petrovic, Lavergne y Stutzmann 15, 16 clasificaron todos sus casos de estudio según el índice mitótico de
+la rama y del rango de remodelado del hueso alveolar, en seis categorías auxológicas, del uno (1) al seis
+(6), donde 1 es el valor más bajo y representa el menor índice mitótico y 6 el más alto, que representa
+el mayor índice de división celular. Observaron que el índice mitótico es significativamente mayor en las
+mandíbulas de rotación anterior que en las de rotación posterior, según describió Björk en 1955 10. Sin
+embargo, la división de los niños en rotadores anteriores y posteriores según Björk, no explicaba
+detalladamente la realidad biológica. En consecuencia, examinaron distintos métodos de categorización
+cefalométrica. El método más apropiado consistió en clasificar a los niños según las categorizaciones de
+las rotaciones de crecimiento de Lavergne y Gasson 14.
+
+A continuación, Petrovic Lavergne y Stutzmann14 realizaron un estudio a ciegas múltiple, en el que
+establecieron una correlación entre las seis categorías de crecimiento tisular, determinadas por el índice
+mitótico y el índice de remodelado del hueso alveolar, y los once tipos rotacionales propuestos por
+Lavergne y Gasson 14. Integrando así los conceptos biológicos y cibernéticos básicos en una estructura
+conceptual y funcional que fuera de utilidad para la interpretación biológica y, en última instancia, para
+posibles aplicaciones en la toma de decisiones terapéuticas14.
+
+En la Figura 4 se observa el gráfico que representa la relación entre las categorías auxológicas y los tipos
+rotacionales. Hacia el lado izquierdo del gráfico, el potencial de crecimiento mandibular está por debajo
+del potencial de crecimiento maxilar; invirtiéndose la relación a medida que se desplaza a la derecha. .
+
+
+
+
+            Figura 4 Categorías de crecimiento mandibular a nivel tisular y la correspondiente distancia Co-Pog.
+                                        Tomado de Petrovic, Stutzmann Lavergne 14
+
+
+
+
+Las investigaciones de Petrovic y su grupo de estudio permitieron que la identificación de un tipo
+determinado de rotación, representara de hecho una identificación indirecta de la categoría auxológica
+18
+   (Error! Reference source not found.).
+               Figura 5 Categoría auxológica de crecimiento y su correspondencia con el grupo rotacional
+                                                 Tomado de Guercio 19
+
+Las investigaciones de Petrovic y su grupo de estudio demostraron que la efectividad terapéutica de un
+aparato que estimule el alargamiento mandibular depende de dos condiciones 6:
+
+
+           •    Desde el punto de vista fisiológico, el tratamiento es clínicamente pertinente, sobre
+                todo en las denominadas categorías auxológicas más altas, cuanto mayor es la categoría
+                auxológica, también es mayor la efectividad a nivel tisular, del tratamiento funcional.
+
+           •    Cronobiológicamente, el tratamiento es factible, sobre todo cuando se aplica en la fase
+                ascendente de la aceleración del crecimiento puberal 6.
+
+La identificación del tipo rotacional y de consecuencia la categoría auxológica asociada permite tener en
+cuenta la variabilidad biológica individual de los tejidos mandibulares humanos, en la toma de
+decisiones terapéuticas, con la posible elección entre aparatos ortopédicos, funcionales y ortodóncicos
+en los pacientes en fase ascendente de crecimiento 6,20.
+
+La presente investigación se propuso identificar a través del método propuesto por Petrovic y Cols 5, 6,7
+los tipos rotacionales y sus categorías auxológicas asociadas más frecuentes en escolares venezolanos,
+como una herramienta para conocer el potencial de crecimiento mandibular de la población infantil
+venezolana, que permita pronosticar la capacidad de respuesta al tratamiento.
+
+MATERIALES Y MÉTODOS
+La muestra de estudio estuvo constituida por el grupo de pacientes que acudieron al servicio de
+Ortodoncia de la Facultad de Odontología de la Universidad Central de Venezuela entre los años 2006 y
+2010, cuyos registros diagnósticos se encontraban en el Archivo General de Historias Clínicas de dicha
+institución y que cumplieron con los criterios de inclusión. Se incluyeron en la muestra aquellos
+individuos de ambos géneros, en edades comprendidas entre 7 y 10 años, con ambos padres
+venezolanos. Fueron excluidos de la muestra aquellos pacientes con patologías sistémicas de cualquier
+tipo, malformaciones craneofaciales, pacientes con síndromes y aquellos que recibieron algún tipo de
+tratamiento ortopédico u ortodóncico previo a la primera evaluación en el servicio. La muestra final fue
+conformada por un total de 120 pacientes.
+
+Los datos personales de los pacientes que conformaron la muestra, se mantuvieron confidenciales
+haciendo uso de una codificación numérica y el uso de la información y los registros diagnósticos fue
+autorizado por el paciente a través del consentimiento informado. El tratamiento recibido por los
+pacientes con se vio modificado en función del estudio.
+
+La Comisión de Bioética de la Facultad de Odontología de la Universidad Central de Venezuela otorgó el
+aval para la realización del estudio
+
+La información de edad y género de cada paciente se obtuvo directamente de la anamnesis de las
+Historias Clínicas que conformaron la muestra y se aplicó el análisis cefalométrico de Lavergne-Petrovic
+para la determinación de los Grupos Rotacionales en la radiografía cefálica lateral inicial de cada
+individuo y los datos fueron anotados en el instrumento de registro de datos, previamente validado. El
+investigador realizó todos los trazados de forma manual y fueron evaluados por un experto. Los datos
+de cada paciente recogidos en el instrumento fueron transcritos en una hoja de Excel Microsoft 2010.
+
+La determinación del tipo rotacional, el grupo rotacional y la categoría auxológica se llevó a cabo
+mediante la aplicación del Método Cefalométrico de Lavergne y Petrovic 6, 14. Para ello fue necesario
+medir ángulos directamente en la cefalometría de cada paciente, llamados “ángulos medidos” y calcular
+valores mediante fórmulas matemáticas: los “ángulos esperados”. Se obtuvieron también mediante
+cálculos matemáticos y los valores de T1, T2 y T3 utilizados posteriormente en el diagrama de flujo para
+la identificación de los grupos rotacionales.
+
+Los puntos anatómicos S, N, A, B, ENA, ENP y los planos NSL, ML, NL, NB, y NA fueron trazados para
+obtener los “ángulos medidos” SNB, ML/NSL, NL/NSL y ANB. (Figura 6).
+
+
+
+
+                                                                         PLANOS DE REFERENCIA:
+
+                                                                             -      NSL
+                                                                             -      ML
+                                                                             -      NL
+                                                                             -      BN
+                                                                             -      AN
+                                                                         ANGULOS MEDIDOS
+
+                                                                               -         SNB
+                                                                               -         ML/NSL
+                                                                               -         NL/NSL
+                                                                               -         ANB
+
+
+               Figura 6 Planos y Ángulos de referencia para el análisis cefalométrico de Lavergne Petrovic
+                                               Tomado de Guercio 2009 19
+
+
+
+Una vez medidos los ángulos en la cefalometría de cada individuo, se calcularon por medio de las
+fórmulas matemáticas los “ángulos esperados” ML/NSL y NL/NSL:
+
+   •   ML/NSL esperado= 192 - 2(SNB medido),
+   •   NL/NSL esperado= (ML/NSL medido)/2 – 7.
+
+Seguidamente se obtuvieron los valores de T1, T2 y T3 de cada paciente de la muestra:
+
+Valor T1
+
+       El valor de T1 se refiere a la rotación de crecimiento mandibular y se obtiene por medio de la
+       siguiente fórmula:
+
+       T1 = ML/NSL calculado - ML/NSL medido en el paciente.
+
+       Para un T1 mayor que seis (T1 ˃ 6) se tendrá una rotación de crecimiento mandibular tipo
+       anterior (A).
+
+       Para un T1 comprendido entre cero y seis (0 ≤ T1 ≤ 6) se tendrá una rotación de crecimiento de
+       tipo Neutro (R).
+
+       Para un T1 menor que cero (T1 ˂ 0) se tendrá una rotación tipo P (posterior) 7, 14, 21.
+
+Valor T2
+
+       El valor indica la inclinación del maxilar superior y su dimensión vertical y es obtenido mediante
+       el siguiente cálculo matemático:
+
+       T2 = NL/NSL calculado – NL/NSL medido en el paciente
+
+       Si T2 es mayor que tres (T2 ˃ 3) se corresponde con una mordida abierta, “open-bite” (OB)
+
+       Cuando T2 se encuentra entre cero y tres (0 ≤ T2 ≤ 3) se corresponde con una mordida normal,
+       “normal-bite” (N).
+
+       Si T2 es menor que cero (T2 ˂ 0) se corresponde con una mordida profunda, “deep-bite” (DB) 7,
+       14,21
+            .
+
+Valor T3
+
+       Representa la diferencia de potencial de crecimiento entre la mandíbula y el maxilar superior.:
+       1= la mandíbula crece igual que el maxilar; 2= la mandíbula crece menos que el maxilar; 3= la
+       mandíbula crece más que el maxilar.
+
+       Por otra parte con el valor T3 es posible obtener la relación intermaxilar sagital: distal (D),
+       normal (N) y mesial (M).
+
+       T3 es igual al ángulo ANB medido 7, 14, 21.
+
+Los valores de T1, T2 y T3 de cada individuo fueron utilizados en el diagrama de flujo de identificación
+del grupo rotacional propuesto por Lavergne y Petrovic 14 (Figura 3Error! Reference source not found.).
+El valor obtenido en T1 se ubicó en la primera columna del diagrama de flujo y permitió determinar el
+nivel de la segunda columna, asi si T1 fue mayor a 6 se siguió la línea superior que parte de T1 a T2, si T1
+estaba entre 0 y 6 se siguió la línea media y si T1 fue menor a 6 se continuó por la línea inferior que
+partiendo de T1 se dirige a T2.
+
+El valor de T2 fué utiizado para determinar el siguiente nivel en el diagrama de flujo de manera similar a
+como si hizo con T1, si el valor de T2 fué mayor que 3, se continuó en la parte superior de T2 a T3, si T2
+estaba entre 0 y 3 se continuó por la línea media y finalmente si el valor de T2 fue menor a 0 se continuó
+entonces por la línea inferior.
+
+Por último, según fue el valor de T3, se siguió la indicación del diagrama de flujo que llevó asÍ al grupo
+rotacional del paciente, el cual fue registrado en el intrumento de cada individuo.
+
+
+El grupo rotacional determinado mediante el diagrama de flujo consta de 4 a 5 caracteres, los tres
+primeros representan la etiqueta trinomial correspondiente al tipo rotacional del paciente y los últimos
+dígitos indican la relación vertical. Se registró entonces el tipo rotacional del paciente tomando los tres
+primeros caracteres del grupo rotacional.
+
+El siguiente paso fue la determinación de la categoría auxológica de cada paciente según lo propuesto
+por Lavergne y Petrovic 6 utilizando la tabla que las reúne (Figura 5).
+
+Una vez identificados el grupo rotacional, el tipo rotacional y la categoría auxológica de cada paciente,
+la información fue transcrita a una hoja de cálculo en Excel Microsoft 2010, y para el procesamiento
+estadístico se empleó el Software Estadístico SPSS para Windows, Versión Nº 20, en español.
+
+RESULTADOS
+El grupo de escolares venezolanos estudiado estuvo compuesto por 120 niños, 65 niñas y 55 varones, en
+edades comprendidas entre 7 y 10 años, con una edad media de 8,52 ± 1,03 años, siendo la edad media
+de las niñas 8,34 ± 1,04 y la de los varones 8,73 ± 0,99.
+
+Al observar los tipos rotacionales de los individuos que conformaron la muestra, se evidencia una mayor
+frecuencia del tipo rotacional P1N con un 25%, seguido por el Tipo rotacional R2D con el 20%, el R1N
+con el 19,2% y el P2D con 18,3 %. En la muestra estudiada no se observaron los tipos rotacionales A2D y
+P3M (Gráfico 1).
+
+
+
+                                     Frecuencia de los tipos rotacionales y sus categorías
+                                                    auxológicas asociadas
+                                                                        25
+                                    25                                                        20
+                                                                              18.3    19.2
+                                    20
+                       porcentaje
+
+
+
+
+                                    15
+                                    10    5      5.8            5
+                                     5                  0.8                                          0.8
+                                     0
+                                         A1D    A1N    A3M     P1M     P1N    P2D     R1N     R2D    R3M
+                                          (5)    (5)    (6)     (5)     (2)    (1)     (4)     (3)    (5)
+                                                Tipo rotacional y su categoría auxológica asociada
+                                      Gráfico 1: Frecuencia de tipos rotacionales y sus categorías auxológicas asociadas
+
+Los tipos rotacionales mostraron diferente distribución según el género como se observa en el Gráfico 2.
+En ambos géneros el tipo rotacional más frecuente fue P1N, sin embargo en el género femenino,
+también tuvieron una frecuencia elevada los tipos P2D, R2D y R1N.
+
+                                                                          Frecuencia de los tipos rotacionales y su categorias
+                                                                                auxológicas asociadas según el género
+
+                                                                                                                                  Femenino                                   Masculino
+                                                                  N°de pactes
+
+
+
+                                                                                40
+                                                                                20                                                                                          14              8              10                10
+                                                                                                       5               3
+                                                                                                                       4               1                   3                16             14              13                14
+                                                                                     0                 1                                                   3                                                                                  1
+                                                                                                      A1D            A1N          A3M              P1M                      P1N            P2D          R1N               R2D             R3M
+                                                                                                       (5)            (5)          (6)              (5)                      (2)            (1)          (4)               (3)             (5)
+                                                                                               Tipo rotacional y su categoría auxológica asociada
+
+
+                                   Gráfico 2: Frecuencia de tipos rotacionales y su categorías auxológicas asociadas por género
+
+
+
+Los tipos rotacionales se dividen según la relación vertical, en treinta y tres grupos rotacionales. El más
+frecuente de la muestra fue P1NOB con el 20,0 %, en segundo lugar de frecuencia se observó el grupo
+R1NOB con el 14,2 %. Según el género se observó una mayor aparición de los grupos P1NOB (18,5%) y
+R1NOB (18,5%) en el género femenino, mientras que el grupo rotacional más frecuente en el género
+masculino fue P1NOB (25,4%) (Gráfico 3).
+
+                             Frecuencia de los grupos rotacionales y sus categorías auxológicas asociadas
+                                                           según el género
+
+                                                                                                                             Femenino                                       Masculino
+
+
+              45%
+              40%
+              35%
+ Porcentaje
+
+
+
+
+              30%                                                                                                                                              21.80%
+
+              25%
+                                                                                                                                                                                                                                               9.10%
+              20%
+                                                                                                                                                                                                          7.30%
+              15%                                                                                                                                                                                                                                                                    9.10%
+                                                                                                                                                                                                                                                                        5.10%
+              10%                                                         3.60%
+                                                                                                                                                               18.50%                                                                         18.50%
+                                                                                                                                                                                     3.60% 13.80%
+               5%         3.60%       1.80% 3.60%                         6.20%
+                                                                                                                                                                              3.60%                     5.50%                                                           9.80% 10.80%
+                                                        1.80%
+                    3.60% 1.50% 1.80% 3.10% 3.10% 1.80% 1.50% 3.10% 3.40%                                                                                                      3.10% 4.60%        3.60%                                                    5.50%
+                                                                                                                                                                                                        1.50%                                                                                    1.80%
+               0%
+                                                                                                                      P1M N (5)
+
+
+
+
+                                                                                                                                                                                            P2D N (1)
+
+
+
+
+                                                                                                                                                                                                                                                           R2D DB (3)
+                                                                                                                                                                                                                     R1N DB (4)
+                                 A1D N (5)
+
+
+
+
+                                                                                                                                                               P1N OB (2)
+
+
+
+
+                                                                                                                                                                                                                                                                        R2D N (3)
+                                                                            A1N OB (5)
+
+
+
+
+                                                                                                                                  P1M OB (5)
+                                                                                                                                               P1N N (2)
+
+
+
+
+                                                                                                                                                                                                        P2D OB (1)
+
+
+
+
+                                                                                                                                                                                                                                                                                                 R3M N (5)
+                                                                                                                                                                                                                                              R1N OB (4)
+                                             A1D OB (5)
+                                                          A1N N (5)
+
+
+
+
+                                                                                                        P1M DB (5)
+
+
+
+
+                                                                                                                                                                              P2D DB (1)
+
+
+
+
+                                                                                                                                                                                                                                  R1N N (4)
+
+
+
+
+                                                                                                                                                                                                                                                                                    R2D OB (3)
+                    A1D DB (5)
+
+
+
+
+                                                                                         A3M DB (6)
+
+
+
+
+                                                                                    Grupo rotacional y su categoría auxológica asociada
+             Gráfico 3: Frecuencia de grupos rotacionales y categorías auxológicas asociadas según el género
+
+
+
+DISCUSIÓN
+Los resultados del este estudio mostraron que el tipo rotacional más frecuente de la muestra estudiada,
+fue P1N, siendo este un tipo rotacional que presenta una rotación posterior mandibular con igual
+potencial de crecimiento entre el maxilar y la mandíbula y relación sagital máxilo-mandibular normal 7 14.
+Este tipo rotacional se ubica según lo propuesto por Petrovic dentro de la categoría auxológica dos (2),
+es decir, con poco potencial mandibular de crecimiento tisular debido a un bajo índice de división celular
+y de remodelado óseo a nivel condilar 6, 15, 22. Esto implicaría una escasa respuesta al tratamiento de
+avance mandibular ortopédico- ortodóncico en los pacientes Clase II en crecimiento 15,23.
+
+Se observó también que los tipos rotacionales R2D (3), R1N (4) y P2D (1), mostraron un porcentaje de
+frecuencia similar entre ellos y muy cercano al tipo rotacional predominante P1N. La escasa diferencia
+entre los porcentajes de los tipos rotacionales mencionados podría estar relacionada con el tamaño de
+la muestra, sin embargo, es importante destacar la alta frecuencia de tipos rotacionales como R2D(3) y
+R1N(4) pues representan categorías de crecimiento mayores, con una mejor respuesta a los
+tratamientos de Clase II como lo refieren Celli 20 y Moro y Scavini 24, quienes realizaron estudios
+aplicando aparatología funcional de avance mandibular en pacientes en crecimiento con diferentes
+categorías auxológicas y observando que mientras más alta es la categoría mayor es la respuesta
+mandibular y que los mejores resultados se obtienen en la categoría 5.
+
+En esta investigación no se evidenciaron los tipos rotacionales A2D y P3M en la muestra estudiada, lo
+que no significa necesariamente que no se presenten en la población infantil venezolana. Podría
+deberse al tamaño reducido de la muestra, por lo que se recomienda realizar nuevas investigaciones con
+un mayor tamaño muestral.
+
+Al observar la frecuencia de los tipos rotacionales según el género, se evidencia que en ambos el más
+frecuente es el P1N, sin embargo en las niñas existe poca diferencia con los tipos P2D, R2D y R1N, lo cual
+demuestra que el género femenino tiene una mayor variabilidad de tipos rotacionales. Esto nos orienta
+hacia la necesidad de utilizar la identificación de los tipos rotacionales y categorías auxológicas como
+herramienta diagnóstica en el área ortodóncica.
+
+Guercio y col 19 en un estudio realizado con una muestra de ochocientos (800) pacientes italianos (490F
+y 310M) con un rango de edades comprendidas entre 6 y 16 años de edad, reporta que el tipo rotacional
+más frecuente de la muestra fue el R1N. Los otros tipos rotacionales observados con frecuencia fueron
+R2D, A1N, P1N y A1D; en su estudio no se describe la frecuencia de los tipos rotacionales según el
+género. Estos resultados no muestran el mismo tipo rotacional predominante que en este estudio, sin
+embargo los otros tipos observados que coinciden con los resultados obtenidos son el P1N y el R1N.
+Esto parece mostrar una posible relación entre el origen étnico y los tipos rotacionales. No existen
+investigaciones al respecto por lo que se sugiere la realización de estudios multicéntricos que permitan
+establecer si existe una relación entre las distintas poblaciones y los tipos rotacionales, incluyendo la
+etnicidad entre las variables a estudiar.
+En el presente estudio se observó también que el grupo rotacional más frecuente de la muestra fue
+P1NOB(2), confirmando al tipo rotacional P1N como el de mayor frecuencia, con una relación vertical de
+mordida abierta; en segundo lugar se encontró el grupo R1NOB(4). Estos grupos rotacionales
+corresponden a categorías auxológicas que reflejan potenciales de crecimiento distintos, uno bajo y el
+otro de mayor potencial, esto refleja que en la muestra estudiada existe una variabilidad en cuanto al
+potencial de respuesta, por lo que es importante determinarlo como pronóstico del tratamiento.
+
+En el género femenino se observó la misma frecuencia de los grupos P1NOB(2) y R1NOB(4). Sería
+recomendable ampliar la muestra de estudio para observar mejor cuál es el grupo rotacional más
+frecuente en el género femenino.
+
+Duran 25 realizó un estudio en 30 escolares venezolanos de ambos géneros, entre 8 y 10 años de edad,
+con morfología armónica y dinámica funcional equilibrada, sin tratamientos previos de Ortodoncia ni
+Ortopedia. Observó que el grupo rotacional más frecuente fue el P1NOB(2), lo que coincide con los
+resultados de esta investigación. En cuanto a la variabilidad por género, los resultados difieren, pues su
+estudio muestra una mayor frecuencia del grupo rotacional P1NOB(2) en el género femenino, mientras
+que el R1NOB(4) predominó en el masculino. Sin embargo, los más frecuentes en ambos estudios de
+pacientes venezolanos resultaron ser los mismos, P1NOB(2) y R1NOB(4), a pesar de la diferente
+distribución por género observada. Tomando en cuenta que su estudio se basó en una muestra reducida
+y además en pacientes “armónicos y equilibrados”, se sugiere que se realicen estudios donde se
+aumente el tamaño muestral y se relacionen además los grupos rotacionales con las distintas
+maloclusiones como el realizado por Guercio19, en el cual observan la frecuencia de las maloclusiones
+esqueléticas en los distintos tipos rotacionales observados.
+
+La identificación de los tipos rotacionales y la categoría auxológica asociada no sólo permite establecer
+un pronóstico de respuesta al tratamiento sino también predecir la estabilidad post-tratamiento, como
+lo observaron Moro y de Freitas 26, quienes determinaron que la categoría 4 presentaba una mejor
+estabilidad de corrección de apiñamiento antero inferior en el período postratamiento en pacientes
+Clase II en crecimiento pertenecientes a diversas categorías auxológicas tratados con arco de canto y
+elásticas Clase II. Sería recomendable realizar estudios en pacientes venezolanos en los cuales se
+observe la respuesta al tratamiento de los distintos grupos rotacionales y su estabilidad post-
+tratamiento.
+
+CONCLUSIONES
+De acuerdo con el análisis de los datos obtenidos en el presente estudio se concluye que el tipo
+rotacional más frecuente en la muestra de pacientes estudiados fue el P1N perteneciente a la categoría
+de crecimiento 2, que implica una escasa respuesta al tratamiento. En el género masculino se observan
+los mismos resultados que para la muestra total, sin embargo en el género femenino, también tuvieron
+una frecuencia elevada los tipos P2D(1), R2D(3) y R1N(4) evidenciando una mayor variabilidad de los
+tipos rotacionales y categorías auxológicas en este género.
+
+Con relación a los grupos rotacionales, el más frecuente fue P1NOB(2), seguido por grupo R1NOB(4). En
+el género masculino se observó mayor predominio del grupo P1NOB(2), mientras que en el género
+femenino, ambos grupos, P1NOB(2) y R1NOB(4), presentaron la misma frecuencia, confirmando que
+este género presenta una mayor variabilidad.
+
+
+Estos resultados demuestran que la determinación del tipo rotacional del paciente y su categoría
+auxológica asociada es una herramienta diagnóstica importante para orientar el plan de tratamiento
+más acorde, con resultados predecibles del tratamiento ortopédico-ortodóncico.
+
+
+REFERENCIAS BIBLIOGRÁFICAS
+ 1. Canut B. Ortodoncia Clínica y Terapeútica. 2nd ed. Barcelona: Masson; 2000.
+ 2. Moyers R. Manual de Ortodoncia. 4th ed. Buenos Aires: Editorial Médica Panamericana; 1992.
+ 3. Proffit W. Ortodoncia Contemporánea. Teoría y Práctica Madrid: Edit Mosby; 2001.
+ 4. Méndez Castellano, H. Estudio Nacional de Crecimiento y Desarrolloo Humano de la República de Venezuela. Proyecto Venezuela.
+    FUNDACREDESA Caracas: EscuelaTécnica Editorial Don Bosco; 1996.
+ 5. Petrovic A, Stutzmann J, Lavergne J. Mechanism of cranofacial growth and modus operandi of funstional appliances: a cell-level and
+    cybernetic appoach to orthodontic decision making. Monograph 23. 19th ed. Center of Human Growth and Development, University of
+    Michigan Ann Arbor; 1990.
+ 6. Petrovic A. Auxologic categorization and chronobiologic specification for the choice of appropriate orthodontic treatment. Am.J. Orthod.
+    1994; 105(2).
+ 7. Stutzman J, Petrovic A. Un nuevo parámetro para valorar la dirección del crecimiento condíleo. In Graber T, Rakosi T, Petrovic A. Ortopedia
+    dentofacial con aparatos funcionales. Madrid: Harcour Brace; 1998.
+ 8. Petrovic A, Stutzman J. Metodología experimental y resultados de los estudios aplicados sobre el crecimiento craneofacial. In Graber T,
+    Rakosi T, Petrovic A. Ortopedia dentofacial con aparatos funcionales. 2nd ed. Madrid: Harcourt Brace de España S.A; 1998.
+ 9. Saadia M, Ahlin J. Atlas de Ortopedia Dentofacial Barcelona España: Espaxs Publicaciones Médicas; 2000.
+10. Björk A. Facial growth in man, studied with the aid of metallic implants. Acta Odontl Scand. 1955; 13(1): p. 9-34.
+11. Isaacson R, Erdman A, Hultgren B. Facial an dental effects of mandibular rotation. Ann Arbor: Center for Human Growth an Development,
+    University of Michigan; 1981.
+12. Lavergne J, Gasson N. The influence of jaw rotation on the morphogenesis of maloccusion. Am J. Orthod. 1978; 73.
+13. Hassund A. Clinical Cephalometry for the Bergen Tecnique: Orthodontic Department, Dental Institute, University of Berge; 1977.
+14. Petrovic A, Stutzmann J, Lavergne J. Nuevo Enfoque del Diagnóstico y toma de Decisiones Biologícamente y Cefalométricamente. In J A.
+    Manual de Cefalometría. España: Actualidades Médico Odontológicas Latinoamérica; 1996.
+15. Petrovic A, Stutzmann J. Croissance de la mandibule humaine et efficacité des appareils orthopediques fonctionnels: causes biologiques de
+    la variabilité interindividuelle. Revista de la AAOFM. 1986; 20: p. 23-50.
+16. Petrovic A, Lavergne J. Tissue-level growth and responsiveness potencial, growth rotation, and treatment decision.. In Sciencee and clinical
+    judgment in orthodontics. Monograph 19. Center of Human Growth an development. The University of Michigan. Ann Arbor; 1986.
+17. Lavergne J, Petrovic A. Discontinuities in occlusal realtionship and the regulation of facial growth. A cibernetic view. Eur J Orthd. 1983; 5: p.
+    269-78.
+18. Petrovic A, Stutzmann J. Orthopedically - induced growth- stimulating effect on the human mandible: a new approach to decision making.
+    Craniofacail Growth and Development. The University of Michigan, Ann Arbor. 1998; 34: p. 153-169.
+19. Guercio E, Deli R, D'Avanzo G, Saccomanno S. Individualización del tratamiento ortodóntico. Importancia de los tipos rotacionales y las
+    categorías auxológicas. Acta Odontológica Venezolana. 2009; 47(2).
+20. Celli D, Gasperoni E, Oliva B, Deli R. Assessment of mandibular growth and response to functional appliance treatment in prepuberal
+    patients with different auxologic categories. Progress in Orthodontics. 2010; 11: p. 20-26.
+21. Aguila J. Manual de Cefalometria Madrid: Actualidades Médico Odontológicas Latinoamérica; 1996.
+22. Stutzmann J, Petrovic A. Human Alveolar Bone Turn-over rate: A quantitative study of spontaneous and Therapeutically-induced variations.
+    Center of Human Growth and Development. The University of Michigan. Monograph 15 Ann Arbor; 1983.
+23. Petrovic A. Experimental and Cybernetic approaches to the mecanism of action of funtional appliances on mandibular growth Center for
+    Human Growth and Development. The University of Michigan Ann Arbor: Monograph 15; 1982.
+24. Moro A, Scavini M, Vigorito J. Jhonston analysis evaluation of Class II correction in patients belonging to Petrovic grwth categories 3 and 5.
+    Am J Orthd Dentofacial. 2000; 117: p. 86-97.
+25. Duran Pacheco I. Cefalometría Lavergne Petrovic en venezolanos de 8 - 10 años de edad. Tesis de Especialización en Ortopedia Funcional de
+    los Maxilares. Sao Paulo: Universidad Cruzeiro do Sul; 2010.
+26. Moro A, de Freitas MR, Castanha Enriques JF, Janson G. Estudo da recidiva em pacientes com Maloclusao de Classe II, tratados pela Técnica
+    do Arco de Cantocom Extracoes de Pré.Molares pertencentes as Categorias de V¿Crescimiento de Petrovic. J Bras de Ortodon Ortop Facial.
+   2006; 11(62): p. 128-148.
+27. Enlow D. Rotations of tha mandible during growth Ann Arbor University of Michigan: Craneofafcial growth serirs. Center for Human Growth
+    and Development; 1975.
+28. Lavergne J, Gasson N. Operational definitions of mandibular morphogenetic and positional rotations. Scand J Dent Res. 1977; 85: p. 185-
+    192.
+29. Zamora Montes de Oca CE. Compendio de Cefalometria. Análisis Clínico y Práctico Colombia: Amolca; 2004.
+

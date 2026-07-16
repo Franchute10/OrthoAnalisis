@@ -1,0 +1,262 @@
+ANÁLISE CEFALOMÉTRICA
+
+
+
+
+   LAVERGNE & PETROVIC
+     TRAÇADO CEFALOMÉTRICO
+• “ Não há universalidade de tratamento, se
+  houvesse estaríamos contra as leis da
+  natureza e arte... O objetivo final para a
+  recuperação da oclusão normal deve, antes de
+  tudo, dar a face sua melhor aparência
+  (WERPEL, 1937)" .
+• A cefalometria realça as alterações ósseas e
+  dentárias   promovidas      pela   disfunção
+  neuromuscular. Além disso, mostra a relação
+  das bases ósseas maxilares e a tendência de
+  crescimento da face.
+     O que você faria se estivesse
+avaliando o seu filho? A face é sempre
+prioritária! Entretanto, nós devemos nos
+preocupar com a estabilidade em longo
+prazo (Wick Alexander).
+       Segundo Björk(1953), a base craniana é
+essencialmente desenvolvida do condrocrânio e a
+sua forma pode variar consideravelmente, com
+uma tendência para tornar-se plana, que vai até a
+época do nascimento. Depois, durante os
+primeiros anos da infância, ocorre uma flexão
+gradual, que continua até aproximadamente os 10
+anos de idade, quando normalmente ela já
+alcançou sua forma definitiva e a abóbada
+craniana já atingiu praticamente o seu volume
+total.
+      Stramrud (1959) relatou que, o
+crescimento da base craniana anterior em
+comprimento, na sua porção externa da sela ao
+násio, mostra um aumento relativamente
+marcado até 7 anos de idade e depois um
+aumento quase linear até a idade adulta, com o
+Násio      se    movendo      para    anterior.
+      Individualmente, o násio pode subir ou
+descer durante o crescimento, movendo-se para
+cima quando há deflexão extensiva da base
+craniana interna e para baixo quando ela se
+torna plana.
+LEPTO
+DÓLICO
+          Pontos Anatomorradiológicos
+• S (Sella) – Centro geométrico da Sella Turcica.
+• N (Nasio) – Pt mais anterior da sutura fronto-nasal.
+• A – Pt mais interno da cortical vestibular na região do ápice
+  dos incisivos centrais superiores.
+• B - Pt mais interno da cortical vestibular na região do ápice
+  dos incisivos centrais inferiores.
+• Gn – Pt mais anterior e ao mesmo tempo mais inferior no
+  contorno da Sínfise Mentoniana.
+• Go – Pt em que a tangente ao bordo mandibular inferior
+  toca na mandíbula na região goníaca.
+• ENA – Espinha Nasal Anterior.
+• ENP – Espinha Nasal Posterior.
+ ANÁLISE DE LAVERGNE & PETROVIC
+• LINHAS:
+
+ - N-S (LNS); linha do NÁSIO-SELA.
+
+ - ENA-ENP (LN); linha nasal.
+
+ - Gn-Go (LM); linha mandibular.
+     ANÁLISE DE LAVERGNE & PETROVIC
+•   Ângulos medidos:
+    – SNA (Ângulo formado pelas linhas N-A e N-S).
+
+    – SNB (Ângulo formado pelas linhas N-B e N-S).
+
+    – ANB (Valor do ângulo SNA – ângulo SNB).
+
+    – LN-LNS (Ângulo formado pelas linhas ENA-ENP e NS)
+
+    – LM-LNS (Ângulo formado pelas linhas Gn-Go e NS)
+S
+N
+A     S-N
+B     N-A
+Gn    N-B
+Go    Gn-Go
+ENA   ENA-ENP
+ENP
+    IDENTIFICAÇÃO DO GRUPO DE
+CRESCIMENTO POSICIONAL - FÓRMULAS
+• T1 = LM-LNS (esperado) – LM-LNS (medido)
+
+  LM-LNS(e)=192º - (2 x SNB)
+
+
+• T2 = LN-LNS(e) – LN-LNS(medido)
+
+  LN-LNS(e)=(LM-LNS medido)/2 - 7º
+
+
+• T3 = SNA – SNB = ANB
+Lavergne/Petrovic – Ângulos medidos
+
+                   SNA = 82,4º
+                   SNB = 79,5º
+                    ANB = 2,9º
+                    LN-LNS = 9º
+                    LM-LNS = 27º
+            ÍNDICE T1
+
+            LM-LNS(e)=192º - (2xSNB)
+                     = 192º - 159º
+                     = 33º
+
+
+
+
+                     T1= 33-27= 6º
+
+
+T1 = LM-LNS(esperado) – LM-LNS(medido)
+     ÍNDICE T2
+  LN-LNS(e)=(LM-LNS medido)/2-7
+           =13,5-7
+           =6,5º
+
+
+
+
+             T2=6,5-9= -2,5º
+
+
+
+T2 = LN-LNS(e) – LN-LNS(medido).
+     ÍNDICE T3
+
+
+
+T3 = SNA-SNB=2,9º
+Resultados
+
+
+
+ •T1=6
+•T2=-2,5
+•T3= 2,9
+            T1=6
+            T2=-2,5
+            T3= 2,9
+
+
+
+
+         R1N
+     Corresponde
+à Categoria Auxológica
+           4
+            Fluxograma        T1=6
+                              T2=-2,5
+                              T3= 2,9
+     T1>6
+                      T2>3
+
+T1    0<=T1<=6   T2     0<=T2<=3     T3<=-1
+                       T2<0        -1<T3<=3
+                             T3
+                                   T3>3
+     T1<0          R1N DB
+            Categoria Auxológica 4
+IDENTIFICAÇÃO DO GRUPO DE CRESCIMENTO
+              POSICIONAL
+                       LEGENDA
+•   ROTAÇÕES:
+-   P (POSTERIOR)
+-   A (ANTERIOR)
+-   R (NEUTRA)
+
+• ESTIMATIVA DA DIFERENÇA DO POTENCIAL DE
+  CRESCIMENTO DA MX E Md:
+- 1 (MX E Md COM CRESCIMENTOS IGUAIS)
+- 2 (Md COM CRESCIMENTO DIMINUÍDO)
+- 3 (Md COM CRESCIMENTO AUMENTADO)
+
+•   TIPO ESQUELETAL:
+-   N (NORMO)
+-   D (DISTO)
+-   M (MÉSIO)                 P1N OB
+                  Grupo Rotacional
+• O Grupo Rotacional é identificado quando se acrescenta ao
+  Tipo Rotacional a relação Maxilo-Mandibular no seu aspecto
+                            Vertical:
+      • DB = Deep Bite (Mordida Profunda Esqueletal)
+              – Corresponde ao Braquicefálico (Ricketts)
+              – Corresponde ao Dolicoprosopo (Bimler)
+                        • N = Neutro
+              – Corresponde ao Mesocefálico (Ricketts)
+              – Corresponde ao Mesoprosopo (Bimler)
+       • OB = Open Bite (Mordida Aberta Esqueletal)
+          – Corresponde ao Dolicocefálico (Ricketts)
+          – Corresponde ao Leptoprosopo (Bimler)
+    TIPOS ROTACIONAIS   POTENCIAL DE CRESCIMENTO A
+        (11 TIPOS)            NÍVEL TECIDUAL
+                          (POTENCIAL AUXOLÓGICO)
+•   P2D
+•   A2D
+                        1 (P2D)
+•   P1N
+•   R2D                 2 (A2D; P1N)
+•   R1N
+•   A1N                 3 (R2D)
+•   A1D
+•   R3M                 4 (R1N)
+•   P1M
+                        5 (A1N; A1D; R3M; P1M)
+•   A3M
+•   P3M                 6 (A3M; P3M)
+GRUPOS ROTACIONAIS – 33 TIPOS
+FICHA GNATOSTÁTICA
+      DIAGNÓSTICO:
+
+MORDIDA CRUZADA E MORDIDA
+   ABERTA ESQUELÉTICA.
+
+
+      PROGNÓSTICO:
+
+   MUITO DESFAVORÁVEL.
+          MEDIDAS ANGULARES
+
+-   LM-LNS (medido) = 32°
+-   LN-LNS (medido) = 2°
+-   SNA = 85°
+-   SNB = 83°
+                 FÓRMULA
+
+T1 = LM-LNS (esperado) – LM-LNS (medido)
+
+  LM-LNS(e)=192º - (2 x SNB)
+
+
+T2 = LN-LNS(e) – LN-LNS(medido)
+
+  LN-LNS(e)=(LM-LNS medido)/2 - 7º
+
+
+T3 = SNA – SNB = ANB
+T1 = - 6°
+
+T2 = 7°
+
+T3 = 2°
+       CLASSIFICAÇÃO - PETROVIC
+
+
+                        P1N OB 02
+Crescimento rotacional posterior
+Maxila e mandíbula com crescimentos iguais (relação
+maxilomandibular tende a ser de neutroclusão)
+Open bite
+Mandíbula com baixo potencial de crescimento
+APARATOLOGIA
+
