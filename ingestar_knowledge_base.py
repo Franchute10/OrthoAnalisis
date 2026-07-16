@@ -36,7 +36,7 @@ OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
 RAIZ           = Path("docs")     # todos los archivos están en docs/
 CARPETA_DOCS   = Path("docs")     # todos los archivos están en docs/
-TAMANO         = 400              # palabras por fragmento
+TAMANO         = 250              # palabras por fragmento (reducido para límite de tokens)
 SUPERPOSICION  = 50               # palabras de superposición
 PAUSA          = 0.3              # segundos entre calls a OpenAI
 
@@ -131,11 +131,11 @@ ARCHIVOS = {
     },
 
     # ── PDFs con texto en raíz ────────────────────────────────────────────────
-    "480465385CefalometriaBimler.pdf": {
+    "480465385-Cefalometria-Bimler.pdf": {
         "fuente": "Cefalometría de Bimler — Universidad Antonio Nariño 2020",
         "tema": "bimler", "carpeta": RAIZ
     },
-    "463586775APARATOLOGIADESIMOES.pdf": {
+    "463586775-APARATOLOGIA-DE-SIMOES.pdf": {
         "fuente": "Aparatología de Simões — Ortopedia funcional",
         "tema": "aparatologia", "carpeta": RAIZ
     },
@@ -153,7 +153,7 @@ ARCHIVOS = {
         "fuente": "Aula Petrovic — CEDEFACE (PDF completo)",
         "tema": "tipos_rotacionales", "carpeta": CARPETA_DOCS
     },
-    "400904610-La-utilizacion-de-aparatos-funcionales-y-posturales-en-o.pdf": {
+    "400904610-La-utilizacion-de-aparatos-funcionales-y-postulares-en-ortodoncia-Ayuda-de-la-visualizacion-computerizada-en-tres-dimensiones-pdf": {
         "fuente": "Utilización de aparatos funcionales y posturales en ortopedia",
         "tema": "aparatologia", "carpeta": CARPETA_DOCS
     },
@@ -169,11 +169,11 @@ ARCHIVOS = {
         "fuente": "A study to establish a formula for predicting mandibular growth",
         "tema": "rotacion_mandibular", "carpeta": CARPETA_DOCS
     },
-    "385913751-Cefalometria-I-Bimler-Ccc.doc": {
+    "385913751-Cefalometria-l-Bimler-Ccc.doc": {
         "fuente": "Cefalometría I — Bimler CCC",
         "tema": "bimler", "carpeta": CARPETA_DOCS
     },
-    "532123603-Bimler.pptx": {
+    "532123603-Bimler.ppt": {
         "fuente": "Bimler — Presentación académica completa",
         "tema": "bimler", "carpeta": CARPETA_DOCS
     },
@@ -223,8 +223,10 @@ def extraer_texto(ruta):
         return extraer_pdf(ruta)
     elif ext in ('.docx', '.doc'):
         return extraer_docx_plano(ruta)
-    elif ext == '.pptx':
+    elif ext in ('.pptx', '.ppt'):
         return extraer_pptx(ruta)
+    elif ruta.name.lower().endswith('-pdf'):
+        return extraer_pdf(ruta)  # archivo sin extension .pdf
     return ""
 
 # ── Fragmentación ─────────────────────────────────────────────────────────────
