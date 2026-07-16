@@ -6,4 +6,5 @@ Pillow
 numpy
 pypdf
 openai
+anthropic
 supabase
