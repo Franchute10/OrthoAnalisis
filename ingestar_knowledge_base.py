@@ -233,6 +233,8 @@ def limpiar(texto):
     texto = re.sub(r'\n{3,}', '\n\n', texto)
     texto = re.sub(r' {2,}', ' ', texto)
     texto = re.sub(r'\f', '\n\n', texto)
+    texto = texto.replace('\x00', '')   # eliminar caracteres nulos que Postgres rechaza
+    texto = re.sub(r'[\u0000-\u0008\u000b\u000c\u000e-\u001f]', '', texto)
     return texto.strip()
 
 def trocear(texto, tamano=TAMANO, superposicion=SUPERPOSICION):
