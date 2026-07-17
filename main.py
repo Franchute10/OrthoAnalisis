@@ -1568,7 +1568,10 @@ def _buscar_fragmentos(embedding, limite=5):
     }).encode("utf-8")
     print(f"[consultor] payload preview: {payload[:80]}")
     url = f"{SUPABASE_URL}/rest/v1/rpc/match_knowledge_base"
-    req = urllib.request.Request(url, data=payload, headers=_supabase_headers(), method="POST")
+    # RPC necesita return=representation (no minimal) para devolver filas
+    headers_rpc = _supabase_headers()
+    headers_rpc["Prefer"] = "return=representation"
+    req = urllib.request.Request(url, data=payload, headers=headers_rpc, method="POST")
     try:
         with urllib.request.urlopen(req, timeout=15) as resp:
             raw = resp.read().decode("utf-8")
