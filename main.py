@@ -1558,14 +1558,24 @@ def _buscar_fragmentos(embedding, limite=5):
     """Busca los fragmentos más similares via RPC en Supabase."""
     if not _SUPABASE_OK:
         return []
-    payload = json.dumps({"query_embedding": embedding, "match_count": limite}).encode("utf-8")
+    # Supabase RPC necesita el vector como string "[0.1,0.2,...]"
+    # no como array JSON nativo
+    emb_str = "[" + ",".join(str(x) for x in embedding) + "]"
+    payload = json.dumps({
+        "query_embedding": emb_str,
+        "match_count": limite
+    }).encode("utf-8")
     url = f"{SUPABASE_URL}/rest/v1/rpc/match_knowledge_base"
     req = urllib.request.Request(url, data=payload, headers=_supabase_headers(), method="POST")
     try:
         with urllib.request.urlopen(req, timeout=15) as resp:
-            return json.loads(resp.read().decode("utf-8"))
+            resultado = json.loads(resp.read().decode("utf-8"))
+            print(f"[consultor] RPC devolvio {len(resultado)} fragmentos")
+            return resultado
     except Exception as e:
         print(f"[consultor] Error busqueda vectorial: {e}")
+        import traceback
+        traceback.print_exc()
         return []
 
 
@@ -1641,6 +1651,9 @@ async def consultor(request: Request):
         # 2. Buscar fragmentos relevantes
         fragmentos = _buscar_fragmentos(emb, limite=5)
         print(f"[consultor] Fragmentos encontrados: {len(fragmentos)}")
+        if fragmentos:
+            for i, f in enumerate(fragmentos[:2]):
+                print(f"[consultor] Frag {i+1}: tema={f.get('tema')} sim={f.get('similarity','?'):.3f} fuente={f.get('fuente','?')[:40]}")
 
         # 3. Sin contexto → registrar gap
         if not fragmentos:
