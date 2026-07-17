@@ -1558,8 +1558,10 @@ def _buscar_fragmentos(embedding, limite=5):
     """Busca los fragmentos más similares via RPC en Supabase."""
     if not _SUPABASE_OK:
         return []
-    # Supabase RPC necesita el vector como string "[0.1,0.2,...]"
-    emb_str = "[" + ",".join(str(x) for x in embedding) + "]"
+    # Supabase RPC necesita el vector como string "[0.1,0.2,...]".
+    # Usamos repr() con formato fijo para EVITAR notación científica (1e-05),
+    # que aunque pgvector suele aceptar, es más seguro enviar en decimal plano.
+    emb_str = "[" + ",".join(format(x, ".8f") for x in embedding) + "]"
     print(f"[consultor] emb_str preview: {emb_str[:60]}")
     print(f"[consultor] emb_str len: {len(emb_str)}, dims: {len(embedding)}")
     payload = json.dumps({
@@ -1580,7 +1582,13 @@ def _buscar_fragmentos(embedding, limite=5):
             return resultado
     except urllib.error.HTTPError as e:
         err_body = e.read().decode("utf-8")
-        print(f"[consultor] HTTPError {e.code}: {err_body[:300]}")
+        # PGRST203 = función duplicada (overloading). Es un ERROR DE CONFIGURACIÓN,
+        # no "sin resultados": hay que verlo, no tragarlo como [].
+        if "PGRST203" in err_body:
+            print(f"[consultor] ERROR CRÍTICO PGRST203: hay funciones match_knowledge_base "
+                  f"DUPLICADAS en Supabase. Corre fix_match_knowledge_base.sql. Detalle: {err_body[:200]}")
+        else:
+            print(f"[consultor] HTTPError {e.code}: {err_body[:300]}")
         return []
     except Exception as e:
         print(f"[consultor] Error busqueda vectorial: {e}")
