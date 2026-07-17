@@ -1559,12 +1559,14 @@ def _buscar_fragmentos(embedding, limite=5):
     if not _SUPABASE_OK:
         return []
     # Supabase RPC necesita el vector como string "[0.1,0.2,...]"
-    # no como array JSON nativo
     emb_str = "[" + ",".join(str(x) for x in embedding) + "]"
+    print(f"[consultor] emb_str preview: {emb_str[:60]}")
+    print(f"[consultor] emb_str len: {len(emb_str)}, dims: {len(embedding)}")
     payload = json.dumps({
         "query_embedding": emb_str,
         "match_count": limite
     }).encode("utf-8")
+    print(f"[consultor] payload preview: {payload[:80]}")
     url = f"{SUPABASE_URL}/rest/v1/rpc/match_knowledge_base"
     req = urllib.request.Request(url, data=payload, headers=_supabase_headers(), method="POST")
     try:
