@@ -1569,9 +1569,14 @@ def _buscar_fragmentos(embedding, limite=5):
     req = urllib.request.Request(url, data=payload, headers=_supabase_headers(), method="POST")
     try:
         with urllib.request.urlopen(req, timeout=15) as resp:
-            resultado = json.loads(resp.read().decode("utf-8"))
-            print(f"[consultor] RPC devolvio {len(resultado)} fragmentos")
+            raw = resp.read().decode("utf-8")
+            resultado = json.loads(raw)
+            print(f"[consultor] RPC devolvio {len(resultado)} fragmentos. Raw[:200]: {raw[:200]}")
             return resultado
+    except urllib.error.HTTPError as e:
+        err_body = e.read().decode("utf-8")
+        print(f"[consultor] HTTPError {e.code}: {err_body[:300]}")
+        return []
     except Exception as e:
         print(f"[consultor] Error busqueda vectorial: {e}")
         import traceback
