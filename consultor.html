@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Consultor Clínico — OrthoAnalysis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,300;400;600&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --navy:      #0B1628;
+  --navy-mid:  #131F35;
+  --navy-card: #1A2840;
+  --navy-line: rgba(255,255,255,.08);
+  --orange:    #F4851A;
+  --orange-dim: rgba(244,133,26,.15);
+  --orange-glow: rgba(244,133,26,.25);
+  --text:      #E8EDF5;
+  --text-mid:  #8CA0BC;
+  --text-dim:  #4A6080;
+  --ai-color:  #3CD7FF;
+  --ai-dim:    rgba(60,215,255,.12);
+  --green:     #2ECC71;
+  --r:         12px;
+  font-size: 15px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--navy);
+  color: var(--text);
+  height: 100vh;
+  display: flex;
+  overflow: hidden;
+}
+
+/* ── SIDEBAR ── */
+.sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  background: var(--navy-mid);
+  border-right: 1px solid var(--navy-line);
+  display: flex;
+  flex-direction: column;
+  padding: 20px 0;
+}
+
+.sidebar-logo {
+  padding: 0 20px 24px;
+  border-bottom: 1px solid var(--navy-line);
+  margin-bottom: 16px;
+}
+.sidebar-logo img {
+  height: 32px;
+  width: auto;
+  object-fit: contain;
+}
+
+.sidebar-label {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  padding: 0 20px;
+  margin-bottom: 8px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 20px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-mid);
+  text-decoration: none;
+  border-radius: 0;
+  transition: all .15s;
+  cursor: pointer;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+}
+.nav-item:hover { background: rgba(255,255,255,.04); color: var(--text); }
+.nav-item.active {
+  background: var(--orange-dim);
+  color: var(--orange);
+  border-left: 2px solid var(--orange);
+}
+.nav-icon {
+  width: 16px;
+  height: 16px;
+  opacity: .7;
+  flex-shrink: 0;
+}
+.nav-item.active .nav-icon { opacity: 1; }
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: 16px 20px;
+  border-top: 1px solid var(--navy-line);
+}
+.user-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.user-avatar {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: var(--orange-dim);
+  border: 1px solid var(--orange-glow);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: var(--orange);
+  flex-shrink: 0;
+}
+.user-name { font-size: 12px; font-weight: 600; color: var(--text); }
+.user-role { font-size: 10px; color: var(--text-dim); }
+
+/* ── MAIN ── */
+main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Header */
+.chat-header {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 28px;
+  border-bottom: 1px solid var(--navy-line);
+  flex-shrink: 0;
+}
+.chat-header-left { display: flex; align-items: center; gap: 12px; }
+.chat-title {
+  font-family: 'Fraunces', serif;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text);
+}
+.status-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+@keyframes pulse-dot {
+  0%,100% { opacity: 1; }
+  50% { opacity: .4; }
+}
+.status-label { font-size: 11px; color: var(--text-mid); }
+
+.topic-selector {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.topic-btn {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid var(--navy-line);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all .15s;
+  font-family: 'DM Sans', sans-serif;
+}
+.topic-btn:hover { border-color: var(--orange); color: var(--orange); }
+.topic-btn.active { background: var(--orange-dim); border-color: var(--orange); color: var(--orange); }
+
+/* Chat area */
+.chat-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 28px 28px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  scroll-behavior: smooth;
+}
+.chat-area::-webkit-scrollbar { width: 4px; }
+.chat-area::-webkit-scrollbar-thumb { background: var(--navy-line); border-radius: 2px; }
+
+/* Mensajes */
+.msg { display: flex; gap: 12px; max-width: 820px; animation: fadeUp .3s ease; }
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.msg.user { align-self: flex-end; flex-direction: row-reverse; }
+.msg.ai   { align-self: flex-start; }
+
+.msg-avatar {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700;
+  margin-top: 2px;
+}
+.msg.ai .msg-avatar {
+  background: var(--ai-dim);
+  border: 1px solid rgba(60,215,255,.25);
+  color: var(--ai-color);
+}
+.msg.user .msg-avatar {
+  background: var(--orange-dim);
+  border: 1px solid var(--orange-glow);
+  color: var(--orange);
+}
+
+.msg-bubble {
+  padding: 12px 16px;
+  border-radius: var(--r);
+  font-size: 14px;
+  line-height: 1.65;
+  max-width: 680px;
+}
+.msg.user .msg-bubble {
+  background: var(--orange-dim);
+  border: 1px solid rgba(244,133,26,.2);
+  color: var(--text);
+  border-radius: var(--r) var(--r) 2px var(--r);
+}
+.msg.ai .msg-bubble {
+  background: var(--navy-card);
+  border: 1px solid var(--navy-line);
+  color: var(--text);
+  border-radius: var(--r) var(--r) var(--r) 2px;
+}
+
+/* Markdown dentro del bubble */
+.msg-bubble h2, .msg-bubble h3 {
+  font-family: 'Fraunces', serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ai-color);
+  margin-bottom: 8px;
+  margin-top: 14px;
+}
+.msg-bubble h2:first-child, .msg-bubble h3:first-child { margin-top: 0; }
+.msg-bubble p { margin-bottom: 10px; }
+.msg-bubble p:last-child { margin-bottom: 0; }
+.msg-bubble strong { color: var(--text); font-weight: 600; }
+.msg-bubble em { color: var(--text-mid); font-style: italic; }
+.msg-bubble ul, .msg-bubble ol {
+  padding-left: 18px;
+  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.msg-bubble hr { border: none; border-top: 1px solid var(--navy-line); margin: 12px 0; }
+.msg-bubble code {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  background: rgba(255,255,255,.06);
+  padding: 1px 5px;
+  border-radius: 4px;
+  color: var(--ai-color);
+}
+
+/* Fuentes */
+.msg-fuentes {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.fuente-tag {
+  font-size: 10px;
+  font-family: 'DM Mono', monospace;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: rgba(255,255,255,.04);
+  border: 1px solid var(--navy-line);
+  color: var(--text-dim);
+}
+
+/* Typing indicator */
+.typing-indicator { display: flex; align-items: center; gap: 4px; padding: 4px 0; }
+.typing-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  animation: typing 1.2s ease-in-out infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: .2s; }
+.typing-dot:nth-child(3) { animation-delay: .4s; }
+@keyframes typing {
+  0%,80%,100% { opacity: .3; transform: scale(.8); }
+  40% { opacity: 1; transform: scale(1); }
+}
+
+/* Sugerencias */
+.sugerencias {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+.sug-btn {
+  font-size: 12px;
+  padding: 7px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--navy-line);
+  background: var(--navy-card);
+  color: var(--text-mid);
+  cursor: pointer;
+  transition: all .15s;
+  font-family: 'DM Sans', sans-serif;
+}
+.sug-btn:hover { border-color: var(--orange); color: var(--orange); background: var(--orange-dim); }
+
+/* Input */
+.chat-input-wrap {
+  padding: 16px 28px 24px;
+  flex-shrink: 0;
+  border-top: 1px solid var(--navy-line);
+}
+.input-box {
+  background: var(--navy-card);
+  border: 1px solid var(--navy-line);
+  border-radius: var(--r);
+  transition: border-color .2s, box-shadow .2s;
+  position: relative;
+}
+.input-box:focus-within {
+  border-color: rgba(244,133,26,.4);
+  box-shadow: 0 0 0 3px rgba(244,133,26,.08);
+}
+.input-box textarea {
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  resize: none;
+  padding: 14px 16px 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  color: var(--text);
+  min-height: 52px;
+  max-height: 180px;
+  line-height: 1.5;
+}
+.input-box textarea::placeholder { color: var(--text-dim); }
+.input-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px 10px;
+}
+.input-hint { font-size: 10px; color: var(--text-dim); }
+.send-btn {
+  width: 34px; height: 34px;
+  border-radius: 8px;
+  background: var(--orange);
+  border: none;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .15s;
+  box-shadow: 0 2px 12px var(--orange-glow);
+}
+.send-btn:hover { transform: scale(1.06); box-shadow: 0 4px 20px var(--orange-glow); }
+.send-btn:disabled { opacity: .35; cursor: not-allowed; transform: none; box-shadow: none; }
+.send-btn svg { width: 16px; height: 16px; fill: white; }
+
+.disclaimer {
+  text-align: center;
+  font-size: 10px;
+  color: var(--text-dim);
+  margin-top: 8px;
+}
+
+/* Empty state */
+.empty-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 40px;
+  text-align: center;
+}
+.empty-icon {
+  width: 56px; height: 56px;
+  border-radius: 14px;
+  background: var(--ai-dim);
+  border: 1px solid rgba(60,215,255,.2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px;
+}
+.empty-title {
+  font-family: 'Fraunces', serif;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text);
+}
+.empty-sub { font-size: 13px; color: var(--text-mid); max-width: 360px; line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <img src="/logo" alt="OrthoAnalysis" onerror="this.style.cssText='font-family:Fraunces,serif;font-size:15px;font-weight:600;color:#F4851A;display:block'"/>
+  </div>
+
+  <div class="sidebar-label">Módulos</div>
+
+  <a class="nav-item" href="/">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="11" cy="11" r="8"/><circle cx="11" cy="11" r="3"/>
+    </svg>
+    Cefalometría
+  </a>
+  <a class="nav-item active" href="/consultor">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"/>
+    </svg>
+    Consultor Clínico
+  </a>
+  <a class="nav-item" href="#">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M3 3v18h18"/><path d="m7 16 4-4 4 4 4-4"/>
+    </svg>
+    Analíticas
+  </a>
+  <a class="nav-item" href="#">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+    </svg>
+    Clases
+  </a>
+
+  <div class="sidebar-footer">
+    <div class="user-row">
+      <div class="user-avatar">DR</div>
+      <div>
+        <div class="user-name">Dr. Especialista</div>
+        <div class="user-role">Ortopedia Funcional</div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- Main -->
+<main>
+  <!-- Header -->
+  <div class="chat-header">
+    <div class="chat-header-left">
+      <div class="status-dot"></div>
+      <div class="chat-title">Consultor Clínico</div>
+      <div class="status-label">804 fragmentos · Petrovic · Bimler · Cefalometría</div>
+    </div>
+    <div class="topic-selector">
+      <button class="topic-btn active" data-tema="">General</button>
+      <button class="topic-btn" data-tema="bimler">Bimler</button>
+      <button class="topic-btn" data-tema="tipos_rotacionales">Tipos rotacionales</button>
+      <button class="topic-btn" data-tema="rotacion_mandibular">Rotación mandibular</button>
+      <button class="topic-btn" data-tema="cefalometria">Cefalometría</button>
+    </div>
+  </div>
+
+  <!-- Chat area -->
+  <div class="chat-area" id="chat-area">
+    <!-- Empty state inicial -->
+    <div class="empty-state" id="empty-state">
+      <div class="empty-icon">🧠</div>
+      <div class="empty-title">Consultor Clínico</div>
+      <div class="empty-sub">
+        Haz una pregunta sobre cefalometría, análisis de Bimler, 
+        clasificación de Lavergne-Petrovic, tipos rotacionales o 
+        crecimiento mandibular.
+      </div>
+      <div class="sugerencias">
+        <button class="sug-btn" onclick="usarSugerencia(this)">¿Qué es la categoría auxológica 5?</button>
+        <button class="sug-btn" onclick="usarSugerencia(this)">¿Cuáles son los factores de Bimler?</button>
+        <button class="sug-btn" onclick="usarSugerencia(this)">¿Qué diferencia hay entre rotación anterior y posterior?</button>
+        <button class="sug-btn" onclick="usarSugerencia(this)">¿Cómo se determina el grupo rotacional en Petrovic?</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Input -->
+  <div class="chat-input-wrap">
+    <div class="input-box">
+      <textarea
+        id="pregunta-input"
+        placeholder="Escribe tu pregunta clínica sobre cefalometría, Bimler, Petrovic..."
+        rows="1"
+        onkeydown="handleKey(event)"
+        oninput="autoResize(this)"
+      ></textarea>
+      <div class="input-footer">
+        <span class="input-hint">Enter para enviar · Shift+Enter para nueva línea</span>
+        <button class="send-btn" id="send-btn" onclick="enviarPregunta()" title="Enviar">
+          <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="disclaimer">
+      ⚠️ Herramienta educativa — no aplicar directamente a casos clínicos sin criterio del especialista.
+    </div>
+  </div>
+</main>
+
+<script>
+// ── Configuración ─────────────────────────────────────────────────────────────
+const API_BASE = window.location.origin;  // usa la URL actual del servidor
+let temaActual = '';
+let esperandoRespuesta = false;
+
+// ── Selector de tema ──────────────────────────────────────────────────────────
+document.querySelectorAll('.topic-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.topic-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    temaActual = btn.dataset.tema;
+  });
+});
+
+// ── Auto-resize textarea ──────────────────────────────────────────────────────
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 180) + 'px';
+}
+
+// ── Enter para enviar ─────────────────────────────────────────────────────────
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    enviarPregunta();
+  }
+}
+
+// ── Usar sugerencia ───────────────────────────────────────────────────────────
+function usarSugerencia(btn) {
+  document.getElementById('pregunta-input').value = btn.textContent;
+  enviarPregunta();
+}
+
+// ── Renderizar markdown simple ────────────────────────────────────────────────
+function renderMd(texto) {
+  return texto
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/`(.+?)`/g, '<code>$1</code>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>\n?)+/g, m => `<ul>${m}</ul>`)
+    .replace(/^---$/gm, '<hr>')
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/^(?!<[hul])(.+)/gm, (m) => m.trim() ? m : '')
+    .replace(/^<\/p><p>/, '')
+    .replace(/<\/ul><\/p>/g, '</ul>')
+    .replace(/<p><ul>/g, '<ul>');
+}
+
+// ── Agregar mensaje al chat ───────────────────────────────────────────────────
+function agregarMensaje(tipo, contenido, fuentes = []) {
+  // Ocultar empty state
+  const empty = document.getElementById('empty-state');
+  if (empty) empty.remove();
+
+  const area  = document.getElementById('chat-area');
+  const msg   = document.createElement('div');
+  msg.className = `msg ${tipo}`;
+
+  const avatarTxt = tipo === 'ai' ? '🧠' : 'DR';
+  const bubbleHtml = tipo === 'ai' ? `<p>${renderMd(contenido)}</p>` : contenido;
+
+  let fuentesHtml = '';
+  if (fuentes && fuentes.length > 0) {
+    // Deduplicar fuentes por texto
+    const unicas = [...new Set(fuentes.map(f => f.fuente))];
+    fuentesHtml = `<div class="msg-fuentes">
+      ${unicas.map(f => `<span class="fuente-tag">📄 ${f}</span>`).join('')}
+    </div>`;
+  }
+
+  msg.innerHTML = `
+    <div class="msg-avatar">${avatarTxt}</div>
+    <div class="msg-bubble">${bubbleHtml}${fuentesHtml}</div>
+  `;
+
+  area.appendChild(msg);
+  area.scrollTop = area.scrollHeight;
+  return msg;
+}
+
+// ── Indicador de escritura ────────────────────────────────────────────────────
+function mostrarTyping() {
+  const empty = document.getElementById('empty-state');
+  if (empty) empty.remove();
+
+  const area = document.getElementById('chat-area');
+  const msg  = document.createElement('div');
+  msg.className = 'msg ai';
+  msg.id = 'typing-msg';
+  msg.innerHTML = `
+    <div class="msg-avatar">🧠</div>
+    <div class="msg-bubble">
+      <div class="typing-indicator">
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+      </div>
+    </div>
+  `;
+  area.appendChild(msg);
+  area.scrollTop = area.scrollHeight;
+}
+
+function quitarTyping() {
+  const t = document.getElementById('typing-msg');
+  if (t) t.remove();
+}
+
+// ── Enviar pregunta ───────────────────────────────────────────────────────────
+async function enviarPregunta() {
+  if (esperandoRespuesta) return;
+
+  const input    = document.getElementById('pregunta-input');
+  const sendBtn  = document.getElementById('send-btn');
+  const pregunta = input.value.trim();
+  if (!pregunta) return;
+
+  // UI: limpiar input, deshabilitar botón
+  input.value = '';
+  input.style.height = 'auto';
+  esperandoRespuesta = true;
+  sendBtn.disabled = true;
+
+  // Mostrar mensaje del usuario
+  agregarMensaje('user', pregunta);
+
+  // Mostrar typing
+  mostrarTyping();
+
+  try {
+    const resp = await fetch(`${API_BASE}/api/consultor`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ pregunta, tema: temaActual || 'general' })
+    });
+
+    const data = await resp.json();
+    quitarTyping();
+
+    if (!data.success) {
+      agregarMensaje('ai', `❌ Error: ${data.detail || 'No se pudo conectar al servidor.'}`);
+    } else if (!data.fue_respondida) {
+      agregarMensaje('ai', data.respuesta);
+    } else {
+      agregarMensaje('ai', data.respuesta, data.fuentes);
+    }
+
+  } catch (err) {
+    quitarTyping();
+    agregarMensaje('ai', '❌ Error de conexión. Verifica que el servidor esté activo.');
+    console.error(err);
+  } finally {
+    esperandoRespuesta = false;
+    sendBtn.disabled = false;
+    input.focus();
+  }
+}
+</script>
+</body>
+</html>

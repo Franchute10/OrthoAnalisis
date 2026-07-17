@@ -1703,6 +1703,16 @@ async def consultor(request: Request):
         print(f"[consultor] Error general: {e}")
         return {"success": False, "detail": str(e)}
 
+@app.get("/consultor", response_class=HTMLResponse)
+async def consultor_ui():
+    """Sirve la UI del Consultor Clínico."""
+    import pathlib
+    html_path = pathlib.Path(__file__).parent / "consultor.html"
+    if html_path.exists():
+        return HTMLResponse(content=html_path.read_text(encoding="utf-8"))
+    return HTMLResponse(content="<h1>consultor.html no encontrado</h1>", status_code=404)
+
+
 @app.get("/api/health")
 async def health():
     return {"status": "ok", "version": "3.1",
