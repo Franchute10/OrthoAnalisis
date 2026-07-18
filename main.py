@@ -1558,9 +1558,7 @@ def _buscar_fragmentos(embedding, limite=5):
     """Busca los fragmentos más similares via RPC en Supabase."""
     if not _SUPABASE_OK:
         return []
-    # Supabase RPC necesita el vector como string "[0.1,0.2,...]".
-    # Usamos repr() con formato fijo para EVITAR notación científica (1e-05),
-    # que aunque pgvector suele aceptar, es más seguro enviar en decimal plano.
+    # Supabase RPC necesita el vector como string "[0.1,0.2,...]"
     emb_str = "[" + ",".join(format(x, ".8f") for x in embedding) + "]"
     print(f"[consultor] emb_str preview: {emb_str[:60]}")
     print(f"[consultor] emb_str len: {len(emb_str)}, dims: {len(embedding)}")
@@ -1582,13 +1580,7 @@ def _buscar_fragmentos(embedding, limite=5):
             return resultado
     except urllib.error.HTTPError as e:
         err_body = e.read().decode("utf-8")
-        # PGRST203 = función duplicada (overloading). Es un ERROR DE CONFIGURACIÓN,
-        # no "sin resultados": hay que verlo, no tragarlo como [].
-        if "PGRST203" in err_body:
-            print(f"[consultor] ERROR CRÍTICO PGRST203: hay funciones match_knowledge_base "
-                  f"DUPLICADAS en Supabase. Corre fix_match_knowledge_base.sql. Detalle: {err_body[:200]}")
-        else:
-            print(f"[consultor] HTTPError {e.code}: {err_body[:300]}")
+        print(f"[consultor] HTTPError {e.code}: {err_body[:300]}")
         return []
     except Exception as e:
         print(f"[consultor] Error busqueda vectorial: {e}")
@@ -1636,6 +1628,54 @@ def _guardar_gap(pregunta, tema, razon):
         urllib.request.urlopen(req, timeout=10)
     except Exception as e:
         print(f"[consultor] Error guardando gap: {e}")
+
+
+@app.get("/api/debug-kb")
+async def debug_kb():
+    """TEMPORAL: diagnostica qué ve el rol de la API en knowledge_base.
+    Borrar este endpoint una vez resuelto el bug de la búsqueda vectorial."""
+    out = {"supabase_ok": _SUPABASE_OK, "url_configurada": bool(SUPABASE_URL)}
+    # Pista sobre qué key está usando Railway (sin exponer la key)
+    try:
+        import base64 as _b
+        partes = SUPABASE_KEY.split(".")
+        if len(partes) == 3:
+            pad = partes[1] + "=" * (-len(partes[1]) % 4)
+            claims = json.loads(_b.urlsafe_b64decode(pad).decode())
+            out["rol_de_la_key"] = claims.get("role")   # debe decir "service_role"
+    except Exception as e:
+        out["rol_de_la_key"] = f"no pude decodificar: {e}"
+
+    # Llamar debug_kb() por el MISMO camino HTTP que usa el consultor
+    try:
+        req = urllib.request.Request(
+            f"{SUPABASE_URL}/rest/v1/rpc/debug_kb",
+            data=json.dumps({}).encode("utf-8"),
+            headers=_supabase_headers(), method="POST")
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            out["debug_kb"] = json.loads(resp.read().decode("utf-8"))
+            out["http_status"] = resp.status
+    except urllib.error.HTTPError as e:
+        out["debug_kb_error"] = f"HTTP {e.code}: {e.read().decode()[:300]}"
+    except Exception as e:
+        out["debug_kb_error"] = f"{type(e).__name__}: {e}"
+
+    # Probar la RPC real con un vector de ceros (solo para ver cuántas filas devuelve)
+    try:
+        cero = "[" + ",".join(["0.00000000"] * 1536) + "]"
+        req2 = urllib.request.Request(
+            f"{SUPABASE_URL}/rest/v1/rpc/match_knowledge_base",
+            data=json.dumps({"query_embedding": cero, "match_count": 3}).encode("utf-8"),
+            headers=_supabase_headers(), method="POST")
+        with urllib.request.urlopen(req2, timeout=15) as resp2:
+            r2 = json.loads(resp2.read().decode("utf-8"))
+            out["rpc_con_vector_cero"] = f"{len(r2)} filas"
+    except urllib.error.HTTPError as e:
+        out["rpc_con_vector_cero"] = f"HTTP {e.code}: {e.read().decode()[:300]}"
+    except Exception as e:
+        out["rpc_con_vector_cero"] = f"{type(e).__name__}: {e}"
+
+    return out
 
 
 @app.post("/api/consultor")
