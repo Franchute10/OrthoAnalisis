@@ -1630,54 +1630,6 @@ def _guardar_gap(pregunta, tema, razon):
         print(f"[consultor] Error guardando gap: {e}")
 
 
-@app.get("/api/debug-kb")
-async def debug_kb():
-    """TEMPORAL: diagnostica qué ve el rol de la API en knowledge_base.
-    Borrar este endpoint una vez resuelto el bug de la búsqueda vectorial."""
-    out = {"supabase_ok": _SUPABASE_OK, "url_configurada": bool(SUPABASE_URL)}
-    # Pista sobre qué key está usando Railway (sin exponer la key)
-    try:
-        import base64 as _b
-        partes = SUPABASE_KEY.split(".")
-        if len(partes) == 3:
-            pad = partes[1] + "=" * (-len(partes[1]) % 4)
-            claims = json.loads(_b.urlsafe_b64decode(pad).decode())
-            out["rol_de_la_key"] = claims.get("role")   # debe decir "service_role"
-    except Exception as e:
-        out["rol_de_la_key"] = f"no pude decodificar: {e}"
-
-    # Llamar debug_kb() por el MISMO camino HTTP que usa el consultor
-    try:
-        req = urllib.request.Request(
-            f"{SUPABASE_URL}/rest/v1/rpc/debug_kb",
-            data=json.dumps({}).encode("utf-8"),
-            headers=_supabase_headers(), method="POST")
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            out["debug_kb"] = json.loads(resp.read().decode("utf-8"))
-            out["http_status"] = resp.status
-    except urllib.error.HTTPError as e:
-        out["debug_kb_error"] = f"HTTP {e.code}: {e.read().decode()[:300]}"
-    except Exception as e:
-        out["debug_kb_error"] = f"{type(e).__name__}: {e}"
-
-    # Probar la RPC real con un vector de ceros (solo para ver cuántas filas devuelve)
-    try:
-        cero = "[" + ",".join(["0.00000000"] * 1536) + "]"
-        req2 = urllib.request.Request(
-            f"{SUPABASE_URL}/rest/v1/rpc/match_knowledge_base",
-            data=json.dumps({"query_embedding": cero, "match_count": 3}).encode("utf-8"),
-            headers=_supabase_headers(), method="POST")
-        with urllib.request.urlopen(req2, timeout=15) as resp2:
-            r2 = json.loads(resp2.read().decode("utf-8"))
-            out["rpc_con_vector_cero"] = f"{len(r2)} filas"
-    except urllib.error.HTTPError as e:
-        out["rpc_con_vector_cero"] = f"HTTP {e.code}: {e.read().decode()[:300]}"
-    except Exception as e:
-        out["rpc_con_vector_cero"] = f"{type(e).__name__}: {e}"
-
-    return out
-
-
 @app.post("/api/consultor")
 async def consultor(request: Request):
     """
