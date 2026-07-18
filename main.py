@@ -1774,6 +1774,144 @@ def _procesar_consulta(pregunta, tema, api_key, t0):
     }
 
 
+# ══════════════════════════════════════════════════════════════════
+#  INGESTA DE MATERIAL AL KNOWLEDGE BASE  (panel de administración)
+#  Permite cargar texto sin entorno local: se pega o se sube un .txt
+#  desde /admin y el backend trocea, genera embeddings e inserta.
+# ══════════════════════════════════════════════════════════════════
+ADMIN_TOKEN = os.environ.get("ADMIN_TOKEN", "")
+
+
+def _trocear_texto(texto, objetivo=1000, solape=150):
+    """Divide el texto en fragmentos respetando los límites de párrafo.
+
+    Objetivo ~1000 caracteres: suficiente para que un fragmento tenga sentido
+    por sí solo, y lo bastante corto para que el embedding sea específico.
+    El solape evita perder ideas que quedan justo en el corte.
+    """
+    import re
+    texto = re.sub(r"\r\n", "\n", texto or "")
+    texto = re.sub(r"[ \t]+", " ", texto)
+    parrafos = [p.strip() for p in re.split(r"\n\s*\n", texto) if p.strip()]
+    trozos, actual = [], ""
+    for p in parrafos:
+        if len(actual) + len(p) + 1 <= objetivo:
+            actual = (actual + "\n" + p).strip()
+        else:
+            if actual:
+                trozos.append(actual)
+                cola = actual[-solape:]
+                corte = cola.find(" ")
+                actual = ((cola[corte + 1:] if corte > 0 else "") + "\n" + p).strip()
+            else:
+                actual = p
+            while len(actual) > objetivo * 1.6:
+                frases = re.split(r"(?<=[.!?])\s+", actual)
+                buf = ""
+                for f in frases:
+                    if len(buf) + len(f) <= objetivo:
+                        buf = (buf + " " + f).strip()
+                    else:
+                        break
+                if not buf:
+                    buf = actual[:objetivo]
+                trozos.append(buf)
+                actual = actual[len(buf):].strip()
+    if actual.strip():
+        trozos.append(actual.strip())
+    return [t for t in trozos if len(t) > 80]
+
+
+def _embeddings_lote(textos):
+    """Genera embeddings de varios textos en una sola llamada (más rápido y barato)."""
+    payload = json.dumps({"model": "text-embedding-3-small", "input": textos}).encode("utf-8")
+    req = urllib.request.Request(
+        "https://api.openai.com/v1/embeddings",
+        data=payload,
+        headers={"Authorization": f"Bearer {OPENAI_KEY}", "Content-Type": "application/json"},
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=60) as resp:
+        data = json.loads(resp.read().decode("utf-8"))
+    return [d["embedding"] for d in sorted(data["data"], key=lambda x: x["index"])]
+
+
+def _insertar_fragmentos(filas):
+    """Inserta un lote de fragmentos en knowledge_base vía PostgREST."""
+    req = urllib.request.Request(
+        f"{SUPABASE_URL}/rest/v1/knowledge_base",
+        data=json.dumps(filas).encode("utf-8"),
+        headers=_supabase_headers(),
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=60) as resp:
+        return resp.status
+
+
+def _procesar_ingesta(texto, fuente, tema, documento):
+    """Trocea, filtra basura, genera embeddings e inserta. Devuelve estadísticas."""
+    trozos = _trocear_texto(texto)
+    utiles = [t for t in trozos if not _es_texto_basura(t)]
+    descartados = len(trozos) - len(utiles)
+    if not utiles:
+        return {"success": False,
+                "detail": "No se obtuvo texto utilizable. ¿El archivo es texto plano legible?"}
+
+    insertados, errores = 0, []
+    LOTE = 50
+    for i in range(0, len(utiles), LOTE):
+        bloque = utiles[i:i + LOTE]
+        try:
+            embs = _embeddings_lote(bloque)
+            filas = [{
+                "texto": t, "fuente": fuente, "tema": tema,
+                "documento": documento or fuente,
+                "embedding": "[" + ",".join(format(x, ".8f") for x in e) + "]",
+            } for t, e in zip(bloque, embs)]
+            _insertar_fragmentos(filas)
+            insertados += len(filas)
+            print(f"[ingesta] {insertados}/{len(utiles)} fragmentos insertados")
+        except urllib.error.HTTPError as e:
+            errores.append(f"HTTP {e.code}: {e.read().decode()[:200]}")
+        except Exception as e:
+            errores.append(f"{type(e).__name__}: {e}")
+
+    return {"success": insertados > 0, "fuente": fuente,
+            "fragmentos_generados": len(trozos), "descartados_basura": descartados,
+            "insertados": insertados, "errores": errores[:3]}
+
+
+@app.post("/api/admin/ingesta")
+async def admin_ingesta(request: Request):
+    """Carga material al knowledge base. Requiere ADMIN_TOKEN."""
+    import asyncio
+    if not ADMIN_TOKEN:
+        return {"success": False, "detail": "ADMIN_TOKEN no configurado en el servidor."}
+    if not _SUPABASE_OK or not OPENAI_KEY:
+        return {"success": False, "detail": "Faltan SUPABASE_* u OPENAI_API_KEY."}
+    try:
+        body = await request.json()
+        if body.get("token", "") != ADMIN_TOKEN:
+            return {"success": False, "detail": "Token invalido."}
+        texto  = (body.get("texto") or "").strip()
+        fuente = (body.get("fuente") or "").strip()
+        tema   = (body.get("tema") or "general").strip()
+        documento = (body.get("documento") or "").strip()
+        if not texto or not fuente:
+            return {"success": False, "detail": "Faltan 'texto' o 'fuente'."}
+        if len(texto) > 2_000_000:
+            return {"success": False, "detail": "Texto demasiado grande (max 2 MB). Divide el archivo."}
+
+        print(f"[ingesta] iniciando: fuente='{fuente}' tema='{tema}' ({len(texto)} chars)")
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(
+            None, _procesar_ingesta, texto, fuente, tema, documento
+        )
+    except Exception as e:
+        print(f"[ingesta] error: {e}")
+        return {"success": False, "detail": str(e)}
+
+
 @app.post("/api/consultor")
 async def consultor(request: Request):
     """
@@ -1817,6 +1955,126 @@ async def consultor(request: Request):
     except Exception as e:
         print(f"[consultor] Error general: {e}")
         return {"success": False, "detail": str(e)}
+
+@app.get("/admin", response_class=HTMLResponse)
+async def admin_page():
+    """Panel de ingesta: pega o sube un .txt y se carga al knowledge base."""
+    return HTMLResponse(_ADMIN_HTML)
+
+
+_ADMIN_HTML = r"""<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OrthoAnalysis - Ingesta de material</title>
+<style>
+*{box-sizing:border-box} body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+ margin:0;background:#f4f6fa;color:#1e2634}
+.wrap{max-width:820px;margin:0 auto;padding:28px 20px 60px}
+h1{font-size:20px;margin:0 0 4px} .sub{color:#6b7688;font-size:13px;margin-bottom:22px}
+.card{background:#fff;border:1px solid #e3e8f0;border-radius:10px;padding:20px;margin-bottom:16px}
+label{display:block;font-size:12px;font-weight:600;color:#485263;margin:12px 0 5px;letter-spacing:.02em}
+input,select,textarea{width:100%;padding:9px 11px;border:1px solid #d7deea;border-radius:7px;
+ font-size:14px;font-family:inherit;background:#fff}
+textarea{min-height:190px;resize:vertical;font-family:ui-monospace,Menlo,monospace;font-size:12.5px}
+input:focus,select:focus,textarea:focus{outline:2px solid #ff6b35;outline-offset:-1px;border-color:transparent}
+button{margin-top:18px;background:#ff6b35;color:#fff;border:0;border-radius:7px;padding:11px 22px;
+ font-size:14px;font-weight:600;cursor:pointer}
+button:disabled{background:#c3cad6;cursor:not-allowed}
+.row{display:flex;gap:12px}.row>div{flex:1}
+#log{margin-top:16px;font-size:13px;line-height:1.6;white-space:pre-wrap}
+.ok{color:#1a7f4b}.err{color:#c0392b}.muted{color:#6b7688}
+.hint{font-size:12px;color:#6b7688;margin-top:5px}
+</style></head><body><div class="wrap">
+<h1>Ingesta de material academico</h1>
+<div class="sub">Carga texto al knowledge base del Consultor. Solo texto plano legible.</div>
+
+<div class="card">
+  <label>Token de administrador</label>
+  <input id="token" type="password" placeholder="ADMIN_TOKEN">
+
+  <div class="row">
+    <div>
+      <label>Fuente (aparece citada en las respuestas)</label>
+      <input id="fuente" placeholder="Ej: Cefalometria de Bimler - Universidad Antonio Narino 2020">
+    </div>
+    <div>
+      <label>Tema</label>
+      <select id="tema">
+        <option value="bimler">Bimler</option>
+        <option value="tipos_rotacionales">Tipos rotacionales</option>
+        <option value="petrovic">Petrovic / Lavergne</option>
+        <option value="cefalometria">Cefalometria general</option>
+        <option value="aparatologia">Aparatologia</option>
+        <option value="crecimiento">Crecimiento craneofacial</option>
+        <option value="general" selected>General</option>
+      </select>
+    </div>
+  </div>
+
+  <label>Archivo .txt (o pega el texto abajo)</label>
+  <input id="archivo" type="file" accept=".txt,.md,text/plain">
+  <div class="hint">Se lee en tu navegador y se envia como texto. No subas .doc ni .pdf: conviertelos antes.</div>
+
+  <label>Texto</label>
+  <textarea id="texto" placeholder="Pega aqui el contenido..."></textarea>
+  <div class="hint" id="contador">0 caracteres</div>
+
+  <button id="btn">Ingerir al knowledge base</button>
+  <div id="log"></div>
+</div>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+const log = (msg, cls) => { $('log').innerHTML += `<div class="${cls||''}">${msg}</div>`; };
+
+$('archivo').addEventListener('change', e => {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    $('texto').value = r.result;
+    actualizarContador();
+    if (!$('fuente').value) $('fuente').value = f.name.replace(/\.[^.]+$/, '');
+  };
+  r.readAsText(f, 'utf-8');
+});
+
+function actualizarContador(){
+  const n = $('texto').value.length;
+  $('contador').textContent = n.toLocaleString('es') + ' caracteres  (~' +
+     Math.max(1, Math.round(n/1000)) + ' fragmentos estimados)';
+}
+$('texto').addEventListener('input', actualizarContador);
+
+$('btn').addEventListener('click', async () => {
+  const token = $('token').value.trim();
+  const fuente = $('fuente').value.trim();
+  const texto = $('texto').value.trim();
+  if (!token)  { log('Falta el token.', 'err'); return; }
+  if (!fuente) { log('Falta la fuente.', 'err'); return; }
+  if (!texto)  { log('Falta el texto.', 'err'); return; }
+
+  $('btn').disabled = true;
+  $('log').innerHTML = '';
+  log('Procesando... (puede tardar segun el tamano)', 'muted');
+  try {
+    const r = await fetch('/api/admin/ingesta', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ token, fuente, tema: $('tema').value, texto })
+    });
+    const d = await r.json();
+    if (d.success) {
+      log(`OK - ${d.insertados} fragmentos insertados de "${d.fuente}"`, 'ok');
+      if (d.descartados_basura) log(`${d.descartados_basura} descartados por ilegibles`, 'muted');
+      if (d.errores && d.errores.length) log('Avisos: ' + d.errores.join(' | '), 'err');
+      $('texto').value = ''; actualizarContador();
+    } else {
+      log('Error: ' + (d.detail || JSON.stringify(d)), 'err');
+    }
+  } catch (e) { log('Error de red: ' + e.message, 'err'); }
+  $('btn').disabled = false;
+});
+</script></body></html>"""
+
 
 @app.get("/consultor", response_class=HTMLResponse)
 async def consultor_ui():
