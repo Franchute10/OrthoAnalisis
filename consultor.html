@@ -410,6 +410,23 @@ main {
   color: var(--text);
 }
 .empty-sub { font-size: 13px; color: var(--text-mid); max-width: 360px; line-height: 1.6; }
+
+/* ── Botón copiar en las respuestas ── */
+.copiar-btn{position:absolute;top:8px;right:10px;background:transparent;border:1px solid #d7deea;
+ color:#6b7688;font-size:11px;padding:3px 9px;border-radius:5px;cursor:pointer;opacity:0;
+ transition:opacity .15s,background .15s}
+.msg-bubble{position:relative}
+.msg.ai .msg-bubble:hover .copiar-btn{opacity:1}
+.copiar-btn:hover{background:#f1f4f9;color:#1e2634}
+.copiar-btn.copiado{opacity:1;color:#1a7f4b;border-color:#1a7f4b}
+
+/* ── Etapa de progreso durante la espera ── */
+.typing-etapa{font-size:12px;color:#6b7688;margin-top:8px;font-style:italic}
+
+/* ── Selector de temas: permitir scroll horizontal en móvil ── */
+.topic-selector{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.topic-selector::-webkit-scrollbar{display:none}
+.topic-btn{white-space:nowrap;flex-shrink:0}
 </style>
 </head>
 <body>
@@ -465,13 +482,15 @@ main {
     <div class="chat-header-left">
       <div class="status-dot"></div>
       <div class="chat-title">Consultor Clínico</div>
-      <div class="status-label">804 fragmentos · Petrovic · Bimler · Cefalometría</div>
+      <div class="status-label" id="status-label">Cargando bibliografía…</div>
     </div>
     <div class="topic-selector">
-      <button class="topic-btn active" data-tema="">General</button>
-      <button class="topic-btn" data-tema="bimler">Bimler</button>
+      <button class="topic-btn active" data-tema="">Todos</button>
       <button class="topic-btn" data-tema="tipos_rotacionales">Tipos rotacionales</button>
-      <button class="topic-btn" data-tema="rotacion_mandibular">Rotación mandibular</button>
+      <button class="topic-btn" data-tema="petrovic">Petrovic</button>
+      <button class="topic-btn" data-tema="bimler">Bimler</button>
+      <button class="topic-btn" data-tema="aparatologia">Aparatología</button>
+      <button class="topic-btn" data-tema="crecimiento">Crecimiento</button>
       <button class="topic-btn" data-tema="cefalometria">Cefalometría</button>
     </div>
   </div>
@@ -572,6 +591,39 @@ function renderMd(texto) {
     .replace(/<p><ul>/g, '<ul>');
 }
 
+// ── Utilidades ────────────────────────────────────────────────────────────────
+function escaparHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function copiarRespuesta(btn) {
+  const bubble = btn.closest('.msg-bubble');
+  const clon = bubble.cloneNode(true);
+  const b = clon.querySelector('.copiar-btn'); if (b) b.remove();
+  navigator.clipboard.writeText(clon.innerText.trim()).then(() => {
+    btn.textContent = 'Copiado'; btn.classList.add('copiado');
+    setTimeout(() => { btn.textContent = 'Copiar'; btn.classList.remove('copiado'); }, 1600);
+  });
+}
+
+let _timersEspera = [];
+function mostrarProgreso() {
+  // La respuesta tarda ~15 s. Sin señales de avance el alumno cree que se colgo.
+  const etapas = [[1500,'Buscando en la bibliografia...'],
+                  [5000,'Revisando fragmentos relevantes...'],
+                  [9000,'Redactando la respuesta...']];
+  _timersEspera = etapas.map(([ms, txt]) => setTimeout(() => {
+    const t = document.getElementById('typing-msg');
+    if (!t) return;
+    let et = t.querySelector('.typing-etapa');
+    if (!et) { et = document.createElement('div'); et.className = 'typing-etapa';
+               t.querySelector('.msg-bubble').appendChild(et); }
+    et.textContent = txt;
+  }, ms));
+}
+
 // ── Agregar mensaje al chat ───────────────────────────────────────────────────
 function agregarMensaje(tipo, contenido, fuentes = []) {
   // Ocultar empty state
@@ -583,7 +635,11 @@ function agregarMensaje(tipo, contenido, fuentes = []) {
   msg.className = `msg ${tipo}`;
 
   const avatarTxt = tipo === 'ai' ? '🧠' : 'DR';
-  const bubbleHtml = tipo === 'ai' ? `<p>${renderMd(contenido)}</p>` : contenido;
+  // El texto del USUARIO se escapa: si escribe HTML (<img onerror=...>) debe
+  // verse como texto, nunca ejecutarse. Solo la respuesta de la IA se renderiza.
+  const bubbleHtml = tipo === 'ai'
+      ? `<p>${renderMd(contenido)}</p>`
+      : escaparHtml(contenido);
 
   let fuentesHtml = '';
   if (fuentes && fuentes.length > 0) {
@@ -594,9 +650,12 @@ function agregarMensaje(tipo, contenido, fuentes = []) {
     </div>`;
   }
 
+  const copiarBtn = tipo === 'ai'
+    ? `<button class="copiar-btn" onclick="copiarRespuesta(this)">Copiar</button>` : '';
+
   msg.innerHTML = `
     <div class="msg-avatar">${avatarTxt}</div>
-    <div class="msg-bubble">${bubbleHtml}${fuentesHtml}</div>
+    <div class="msg-bubble">${bubbleHtml}${fuentesHtml}${copiarBtn}</div>
   `;
 
   area.appendChild(msg);
@@ -628,9 +687,26 @@ function mostrarTyping() {
 }
 
 function quitarTyping() {
+  _timersEspera.forEach(clearTimeout); _timersEspera = [];
   const t = document.getElementById('typing-msg');
   if (t) t.remove();
 }
+
+// ── Conteo real de fragmentos en la cabecera ──────────────────────────────────
+(async function cargarStats(){
+  try {
+    const r = await fetch(`${API_BASE}/api/consultor/stats`);
+    const d = await r.json();
+    const el = document.getElementById('status-label');
+    if (!el) return;
+    el.textContent = d.fragmentos
+      ? `${d.fragmentos.toLocaleString('es')} fragmentos · Petrovic · Bimler · Cefalometría`
+      : 'Petrovic · Bimler · Cefalometría';
+  } catch (e) {
+    const el = document.getElementById('status-label');
+    if (el) el.textContent = 'Petrovic · Bimler · Cefalometría';
+  }
+})();
 
 // ── Enviar pregunta ───────────────────────────────────────────────────────────
 async function enviarPregunta() {
@@ -650,8 +726,9 @@ async function enviarPregunta() {
   // Mostrar mensaje del usuario
   agregarMensaje('user', pregunta);
 
-  // Mostrar typing
+  // Mostrar typing + etapas de progreso
   mostrarTyping();
+  mostrarProgreso();
 
   try {
     const resp = await fetch(`${API_BASE}/api/consultor`, {

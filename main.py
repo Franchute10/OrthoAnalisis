@@ -1698,6 +1698,16 @@ def _procesar_consulta(pregunta, tema, api_key, t0):
         if float(f.get("similarity") or 0) < SIMILITUD_MINIMA:
             continue
         limpios.append(f)
+    # Filtro por tema: si el alumno eligió uno, se priorizan sus fragmentos.
+    # Es un filtro SUAVE: si no hay suficientes de ese tema, se completa con
+    # el resto, para no dejar sin respuesta una pregunta legítima.
+    if tema and tema not in ("general", "", None):
+        del_tema = [f for f in limpios if f.get("tema") == tema]
+        otros    = [f for f in limpios if f.get("tema") != tema]
+        limpios  = del_tema + otros
+        if del_tema:
+            print(f"[consultor] filtro tema='{tema}': {len(del_tema)} coinciden")
+
     fragmentos = limpios[:5]
     if descartados:
         print(f"[consultor] {descartados} fragmento(s) binarios descartados (revisar ingesta)")
@@ -1990,6 +2000,45 @@ async def admin_ingesta(request: Request):
     except Exception as e:
         print(f"[ingesta] error: {e}")
         return {"success": False, "detail": str(e)}
+
+
+@app.get("/logo")
+async def logo():
+    """Sirve el logo desde la raiz del repo (usado por consultor.html)."""
+    from fastapi.responses import FileResponse, Response
+    # Se busca junto a main.py para que funcione sea cual sea el cwd de Railway.
+    base = os.path.dirname(os.path.abspath(__file__))
+    for nombre in ("OrthoAnalysis_Logo01.png", "OrthoanalysisLogo01.png"):
+        ruta = os.path.join(base, nombre)
+        if os.path.exists(ruta):
+            return FileResponse(ruta, media_type="image/png",
+                                headers={"Cache-Control": "public, max-age=86400"})
+    print("[logo] no se encontro el archivo del logo en", base)
+    return Response(status_code=404)
+
+
+@app.get("/api/consultor/stats")
+async def consultor_stats():
+    """Conteo de fragmentos activos, para mostrarlo en la cabecera del chat."""
+    import asyncio
+
+    def _consultar():
+        try:
+            url = (f"{SUPABASE_URL}/rest/v1/knowledge_base"
+                   "?select=id&eliminado_en=is.null&limit=1")
+            h = _supabase_headers()
+            h["Prefer"] = "count=exact"
+            req = urllib.request.Request(url, headers=h, method="GET")
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                rango = resp.headers.get("content-range", "")   # "0-0/2297"
+                total = int(rango.split("/")[-1]) if "/" in rango else 0
+            return {"fragmentos": total}
+        except Exception as e:
+            print(f"[consultor] stats fallo: {e}")
+            return {"fragmentos": None}
+
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(None, _consultar)
 
 
 @app.post("/api/consultor")
