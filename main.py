@@ -2091,12 +2091,21 @@ $('archivo').addEventListener('change', e => {
     r.readAsText(archivos[0], 'utf-8');
   } else {
     $('texto').value = '';
-    $('contador').textContent = archivos.length + ' archivos en cola (la fuente se toma del nombre de cada uno)';
+    $('contador').textContent = archivos.length + ' archivos en cola. Se citaran asi:';
+    $('log').innerHTML = '<div class="muted">Fuentes que se guardaran (revisa antes de ingerir):</div>' +
+      archivos.map(f => '<div class="muted">  - ' + limpiarNombre(f.name) + '</div>').join('');
   }
 });
 
 function limpiarNombre(n){
-  return n.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
+  return n
+    .replace(/\.[^.]+$/, '')                            // extension
+    .replace(/^[0-9]{4,}[-_\s]*/, '')                    // ID numerico inicial
+    .replace(/[-_]+/g, ' ')                              // guiones -> espacios
+    .replace(/\s*\b(docx?|pdf|pptx?|txt)\b\s*/gi, ' ')    // restos de extension
+    .replace(/\s+[0-9]{1,2}$/, '')                       // numeral suelto final
+    .replace(/\s+/g, ' ').trim()
+    .replace(/^./, c => c.toUpperCase());
 }
 function leerArchivo(f){
   return new Promise((res, rej) => {
