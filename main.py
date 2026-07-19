@@ -1780,6 +1780,9 @@ def _procesar_consulta(pregunta, tema, api_key, t0):
 #  desde /admin y el backend trocea, genera embeddings e inserta.
 # ══════════════════════════════════════════════════════════════════
 ADMIN_TOKEN = os.environ.get("ADMIN_TOKEN", "")
+# Clave de OpenAI a nivel de módulo: _embedding_openai() la lee dentro de la
+# función, pero la ingesta por lotes también la necesita.
+OPENAI_KEY = os.environ.get("OPENAI_API_KEY", "")
 
 
 def _trocear_texto(texto, objetivo=1000, solape=150):
@@ -1820,6 +1823,42 @@ def _trocear_texto(texto, objetivo=1000, solape=150):
     if actual.strip():
         trozos.append(actual.strip())
     return [t for t in trozos if len(t) > 80]
+
+
+# Palabras clave por tema. Clasificación local: sin coste de API y determinista.
+_TEMAS_CLAVE = {
+    "bimler": ["bimler", "correlometro", "correlómetro", "factor 1", "factor 2",
+               "f1", "f2", "f3", "f4", "stress axis", "eje de tension", "sassouni"],
+    "tipos_rotacionales": ["rotacional", "rotacion mandibular", "rotación mandibular",
+               "t1", "t2", "t3", "auxologic", "auxológic", "grupo rotacional",
+               "lavergne", "anterior", "posterior", "neutral"],
+    "petrovic": ["petrovic", "servosistema", "servosystem", "cibernetic", "cibernétic",
+               "comparador", "stutzmann", "cartilago condilar", "cartílago condilar"],
+    "aparatologia": ["aparato", "activador", "bionator", "frankel", "fränkel", "simoes",
+               "simões", "placa", "tratamiento ortopedico", "tratamiento ortopédico",
+               "aparatologia", "aparatología", "elastico", "elástico"],
+    "crecimiento": ["crecimiento", "enlow", "moss", "matriz funcional", "sutura",
+               "aposicion", "aposición", "reabsorcion", "reabsorción", "bjork",
+               "björk", "maduracion osea", "maduración ósea", "pico de crecimiento"],
+    "cefalometria": ["cefalometr", "trazado", "punto nasion", "silla turca", "sna", "snb",
+               "anb", "plano mandibular", "radiografia lateral", "radiografía lateral",
+               "telerradiograf"],
+}
+
+
+def _clasificar_tema(texto):
+    """Asigna un tema por coincidencia de palabras clave.
+
+    Se hace por FRAGMENTO, no por archivo: un documento de Bimler puede tener
+    secciones de crecimiento, y así cada trozo queda etiquetado por su contenido.
+    """
+    t = (texto or "").lower()
+    mejor, puntaje_max = "general", 0
+    for tema, claves in _TEMAS_CLAVE.items():
+        p = sum(t.count(k) for k in claves)
+        if p > puntaje_max:
+            mejor, puntaje_max = tema, p
+    return mejor if puntaje_max >= 1 else "general"
 
 
 def _embeddings_lote(textos):
@@ -1864,7 +1903,8 @@ def _procesar_ingesta(texto, fuente, tema, documento):
         try:
             embs = _embeddings_lote(bloque)
             filas = [{
-                "texto": t, "fuente": fuente, "tema": tema,
+                "texto": t, "fuente": fuente,
+                "tema": (_clasificar_tema(t) if tema == "auto" else tema),
                 "documento": documento or fuente,
                 "embedding": "[" + ",".join(format(x, ".8f") for x in e) + "]",
             } for t, e in zip(bloque, embs)]
@@ -1876,9 +1916,15 @@ def _procesar_ingesta(texto, fuente, tema, documento):
         except Exception as e:
             errores.append(f"{type(e).__name__}: {e}")
 
+    resumen_temas = {}
+    if tema == "auto":
+        for t in utiles:
+            k = _clasificar_tema(t)
+            resumen_temas[k] = resumen_temas.get(k, 0) + 1
+
     return {"success": insertados > 0, "fuente": fuente,
             "fragmentos_generados": len(trozos), "descartados_basura": descartados,
-            "insertados": insertados, "errores": errores[:3]}
+            "insertados": insertados, "temas": resumen_temas, "errores": errores[:3]}
 
 
 @app.post("/api/admin/ingesta")
@@ -1887,9 +1933,11 @@ async def admin_ingesta(request: Request):
     import asyncio
     if not ADMIN_TOKEN:
         return {"success": False, "detail": "ADMIN_TOKEN no configurado en el servidor."}
-    if not _SUPABASE_OK or not OPENAI_KEY:
-        return {"success": False, "detail": "Faltan SUPABASE_* u OPENAI_API_KEY."}
     try:
+        if not _SUPABASE_OK:
+            return {"success": False, "detail": "SUPABASE_URL / SUPABASE_SERVICE_KEY no configuradas."}
+        if not OPENAI_KEY:
+            return {"success": False, "detail": "OPENAI_API_KEY no configurada en Railway."}
         body = await request.json()
         if body.get("token", "") != ADMIN_TOKEN:
             return {"success": False, "detail": "Token invalido."}
@@ -2000,20 +2048,21 @@ button:disabled{background:#c3cad6;cursor:not-allowed}
     <div>
       <label>Tema</label>
       <select id="tema">
+        <option value="auto" selected>Detectar automaticamente</option>
         <option value="bimler">Bimler</option>
         <option value="tipos_rotacionales">Tipos rotacionales</option>
         <option value="petrovic">Petrovic / Lavergne</option>
         <option value="cefalometria">Cefalometria general</option>
         <option value="aparatologia">Aparatologia</option>
         <option value="crecimiento">Crecimiento craneofacial</option>
-        <option value="general" selected>General</option>
+        <option value="general">General</option>
       </select>
     </div>
   </div>
 
   <label>Archivo .txt (o pega el texto abajo)</label>
-  <input id="archivo" type="file" accept=".txt,.md,text/plain">
-  <div class="hint">Se lee en tu navegador y se envia como texto. No subas .doc ni .pdf: conviertelos antes.</div>
+  <input id="archivo" type="file" accept=".txt,.md,text/plain" multiple>
+  <div class="hint">Puedes seleccionar VARIOS .txt a la vez: se ingieren uno por uno y la fuente se toma del nombre de cada archivo. No subas .doc ni .pdf: conviertelos antes.</div>
 
   <label>Texto</label>
   <textarea id="texto" placeholder="Pega aqui el contenido..."></textarea>
@@ -2025,19 +2074,38 @@ button:disabled{background:#c3cad6;cursor:not-allowed}
 </div>
 <script>
 const $ = id => document.getElementById(id);
-const log = (msg, cls) => { $('log').innerHTML += `<div class="${cls||''}">${msg}</div>`; };
+const log = (msg, cls) => { $('log').innerHTML += `<div class="${cls||''}">${msg}</div>`;
+                            $('log').scrollTop = $('log').scrollHeight; };
+
+let archivos = [];   // cola de archivos seleccionados
 
 $('archivo').addEventListener('change', e => {
-  const f = e.target.files[0]; if (!f) return;
-  const r = new FileReader();
-  r.onload = () => {
-    $('texto').value = r.result;
-    actualizarContador();
-    if (!$('fuente').value) $('fuente').value = f.name.replace(/\.[^.]+$/, '');
-  };
-  r.readAsText(f, 'utf-8');
+  archivos = Array.from(e.target.files || []);
+  if (!archivos.length) return;
+  if (archivos.length === 1) {
+    const r = new FileReader();
+    r.onload = () => {
+      $('texto').value = r.result; actualizarContador();
+      if (!$('fuente').value) $('fuente').value = limpiarNombre(archivos[0].name);
+    };
+    r.readAsText(archivos[0], 'utf-8');
+  } else {
+    $('texto').value = '';
+    $('contador').textContent = archivos.length + ' archivos en cola (la fuente se toma del nombre de cada uno)';
+  }
 });
 
+function limpiarNombre(n){
+  return n.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
+}
+function leerArchivo(f){
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result);
+    r.onerror = () => rej(new Error('No se pudo leer ' + f.name));
+    r.readAsText(f, 'utf-8');
+  });
+}
 function actualizarContador(){
   const n = $('texto').value.length;
   $('contador').textContent = n.toLocaleString('es') + ' caracteres  (~' +
@@ -2045,32 +2113,72 @@ function actualizarContador(){
 }
 $('texto').addEventListener('input', actualizarContador);
 
+async function ingerir(token, fuente, tema, texto){
+  const r = await fetch('/api/admin/ingesta', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ token, fuente, tema, texto })
+  });
+  const ct = r.headers.get('content-type') || '';
+  if (!ct.includes('application/json')) {
+    const cuerpo = await r.text();
+    throw new Error('El servidor respondio ' + r.status + ': ' + cuerpo.slice(0,120));
+  }
+  return r.json();
+}
+
+function resumenTemas(t){
+  if (!t || !Object.keys(t).length) return '';
+  return ' [' + Object.entries(t).sort((a,b)=>b[1]-a[1])
+                 .map(([k,v]) => k + ':' + v).join(', ') + ']';
+}
+
 $('btn').addEventListener('click', async () => {
   const token = $('token').value.trim();
-  const fuente = $('fuente').value.trim();
-  const texto = $('texto').value.trim();
-  if (!token)  { log('Falta el token.', 'err'); return; }
-  if (!fuente) { log('Falta la fuente.', 'err'); return; }
-  if (!texto)  { log('Falta el texto.', 'err'); return; }
+  const tema  = $('tema').value;
+  if (!token) { log('Falta el token.', 'err'); return; }
 
   $('btn').disabled = true;
   $('log').innerHTML = '';
-  log('Procesando... (puede tardar segun el tamano)', 'muted');
+  let totalOK = 0, totalFrag = 0;
+
   try {
-    const r = await fetch('/api/admin/ingesta', {
-      method: 'POST', headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ token, fuente, tema: $('tema').value, texto })
-    });
-    const d = await r.json();
-    if (d.success) {
-      log(`OK - ${d.insertados} fragmentos insertados de "${d.fuente}"`, 'ok');
-      if (d.descartados_basura) log(`${d.descartados_basura} descartados por ilegibles`, 'muted');
-      if (d.errores && d.errores.length) log('Avisos: ' + d.errores.join(' | '), 'err');
-      $('texto').value = ''; actualizarContador();
+    if (archivos.length > 1) {
+      log(`Procesando ${archivos.length} archivos...`, 'muted');
+      for (let i = 0; i < archivos.length; i++) {
+        const f = archivos[i];
+        const fuente = limpiarNombre(f.name);
+        log(`(${i+1}/${archivos.length}) ${fuente} ...`, 'muted');
+        try {
+          const texto = await leerArchivo(f);
+          if (!texto.trim()) { log('   vacio, omitido', 'err'); continue; }
+          const d = await ingerir(token, fuente, tema, texto);
+          if (d.success) {
+            totalOK++; totalFrag += d.insertados;
+            log(`   OK ${d.insertados} fragmentos${resumenTemas(d.temas)}`, 'ok');
+            if (d.descartados_basura) log(`   ${d.descartados_basura} descartados por ilegibles`, 'muted');
+          } else {
+            log('   Error: ' + (d.detail || 'desconocido'), 'err');
+          }
+        } catch (e) { log('   Error: ' + e.message, 'err'); }
+      }
+      log(`\nTerminado: ${totalOK}/${archivos.length} archivos, ${totalFrag} fragmentos.`, 'ok');
+      archivos = []; $('archivo').value = '';
     } else {
-      log('Error: ' + (d.detail || JSON.stringify(d)), 'err');
+      const fuente = $('fuente').value.trim();
+      const texto  = $('texto').value.trim();
+      if (!fuente) { log('Falta la fuente.', 'err'); $('btn').disabled = false; return; }
+      if (!texto)  { log('Falta el texto.', 'err');  $('btn').disabled = false; return; }
+      log('Procesando...', 'muted');
+      const d = await ingerir(token, fuente, tema, texto);
+      if (d.success) {
+        log(`OK - ${d.insertados} fragmentos de "${d.fuente}"${resumenTemas(d.temas)}`, 'ok');
+        if (d.descartados_basura) log(`${d.descartados_basura} descartados por ilegibles`, 'muted');
+        $('texto').value = ''; actualizarContador();
+      } else {
+        log('Error: ' + (d.detail || JSON.stringify(d)), 'err');
+      }
     }
-  } catch (e) { log('Error de red: ' + e.message, 'err'); }
+  } catch (e) { log('Error: ' + e.message, 'err'); }
   $('btn').disabled = false;
 });
 </script></body></html>"""
