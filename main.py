@@ -1827,22 +1827,36 @@ def _trocear_texto(texto, objetivo=1000, solape=150):
 
 # Palabras clave por tema. Clasificación local: sin coste de API y determinista.
 _TEMAS_CLAVE = {
-    "bimler": ["bimler", "correlometro", "correlómetro", "factor 1", "factor 2",
-               "f1", "f2", "f3", "f4", "stress axis", "eje de tension", "sassouni"],
-    "tipos_rotacionales": ["rotacional", "rotacion mandibular", "rotación mandibular",
-               "t1", "t2", "t3", "auxologic", "auxológic", "grupo rotacional",
-               "lavergne", "anterior", "posterior", "neutral"],
+    # Términos ESPECÍFICOS de cada tema. Se evitan a propósito palabras
+    # genéricas del dominio ("anterior", "posterior", "crecimiento") que
+    # aparecen en cualquier texto y desvirtúan la clasificación.
+    "bimler": ["bimler", "correlometro", "correlómetro", "sassouni",
+               "factor 1", "factor 2", "factor 3", "factor 4", "factor 5",
+               "eje de tension", "eje de tensión", "stress axis",
+               "perfil superior", "perfil inferior", "clivus"],
+    "tipos_rotacionales": ["tipo rotacional", "tipos rotacionales", "grupo rotacional",
+               "rotacion mandibular", "rotación mandibular", "rotacion maxilar",
+               "rotación maxilar", "auxologic", "auxológic", "lavergne",
+               "categoria auxologica", "categoría auxológica", "arborizacion",
+               "arborización", "np db", "ndb", "grupo r1", "grupo a1"],
     "petrovic": ["petrovic", "servosistema", "servosystem", "cibernetic", "cibernétic",
-               "comparador", "stutzmann", "cartilago condilar", "cartílago condilar"],
-    "aparatologia": ["aparato", "activador", "bionator", "frankel", "fränkel", "simoes",
-               "simões", "placa", "tratamiento ortopedico", "tratamiento ortopédico",
-               "aparatologia", "aparatología", "elastico", "elástico"],
-    "crecimiento": ["crecimiento", "enlow", "moss", "matriz funcional", "sutura",
-               "aposicion", "aposición", "reabsorcion", "reabsorción", "bjork",
-               "björk", "maduracion osea", "maduración ósea", "pico de crecimiento"],
-    "cefalometria": ["cefalometr", "trazado", "punto nasion", "silla turca", "sna", "snb",
-               "anb", "plano mandibular", "radiografia lateral", "radiografía lateral",
-               "telerradiograf"],
+               "comparador oclusal", "stutzmann", "cartilago condilar",
+               "cartílago condilar", "precondroblast"],
+    "aparatologia": ["activador", "bionator", "frankel", "fränkel", "simoes", "simões",
+               "aparatologia", "aparatología", "placa de", "pistas indirectas",
+               "tornillo de expansion", "tornillo de expansión", "aparato funcional",
+               "andresen", "twin block", "arco lingual"],
+    "crecimiento": ["crecimiento mandibular", "crecimiento craneofacial",
+               "crecimiento facial", "prediccion del crecimiento", "predicción del crecimiento",
+               "desarrollo craneofacial", "potencial de crecimiento",
+               "enlow", "matriz funcional", "sutural", "aposicion osea",
+               "aposición ósea", "reabsorcion osea", "reabsorción ósea", "bjork",
+               "björk", "maduracion osea", "maduración ósea", "pico de crecimiento",
+               "vertebras cervicales", "vértebras cervicales", "carpal",
+               "brote puberal", "somatomedina"],
+    "cefalometria": ["cefalometr", "telerradiograf", "punto nasion", "silla turca",
+               "trazado cefalometrico", "trazado cefalométrico", "plano de frankfort",
+               "sna", "snb", "anb", "gonion", "mentoniano", "espina nasal"],
 }
 
 
@@ -1859,6 +1873,12 @@ def _clasificar_tema(texto):
         if p > puntaje_max:
             mejor, puntaje_max = tema, p
     return mejor if puntaje_max >= 1 else "general"
+
+
+def _tema_con_respaldo(texto, tema_dominante):
+    """Tema propio del fragmento; si no tiene señales, hereda el del documento."""
+    t = _clasificar_tema(texto)
+    return tema_dominante if t == "general" else t
 
 
 def _embeddings_lote(textos):
@@ -1896,6 +1916,18 @@ def _procesar_ingesta(texto, fuente, tema, documento):
         return {"success": False,
                 "detail": "No se obtuvo texto utilizable. ¿El archivo es texto plano legible?"}
 
+    # Tema dominante del documento: sirve de respaldo para los fragmentos
+    # que no tienen palabras clave propias (evita que caigan todos en "general").
+    tema_dominante = "general"
+    if tema == "auto":
+        conteo = {}
+        for t in utiles:
+            k = _clasificar_tema(t)
+            if k != "general":
+                conteo[k] = conteo.get(k, 0) + 1
+        if conteo:
+            tema_dominante = max(conteo, key=conteo.get)
+
     insertados, errores = 0, []
     LOTE = 50
     for i in range(0, len(utiles), LOTE):
@@ -1904,7 +1936,7 @@ def _procesar_ingesta(texto, fuente, tema, documento):
             embs = _embeddings_lote(bloque)
             filas = [{
                 "texto": t, "fuente": fuente,
-                "tema": (_clasificar_tema(t) if tema == "auto" else tema),
+                "tema": (_tema_con_respaldo(t, tema_dominante) if tema == "auto" else tema),
                 "documento": documento or fuente,
                 "embedding": "[" + ",".join(format(x, ".8f") for x in e) + "]",
             } for t, e in zip(bloque, embs)]
@@ -1919,7 +1951,7 @@ def _procesar_ingesta(texto, fuente, tema, documento):
     resumen_temas = {}
     if tema == "auto":
         for t in utiles:
-            k = _clasificar_tema(t)
+            k = _tema_con_respaldo(t, tema_dominante)
             resumen_temas[k] = resumen_temas.get(k, 0) + 1
 
     return {"success": insertados > 0, "fuente": fuente,
