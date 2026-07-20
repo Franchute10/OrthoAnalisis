@@ -86,6 +86,21 @@ header {
   border: 1px solid var(--border);
   padding: 3px 10px; border-radius: 20px;
 }
+.hdr-consultor {
+  display: flex; align-items: center; gap: 6px; padding: 6px 12px;
+  border-radius: 20px; background: rgba(255,255,255,.14); color: #fff;
+  text-decoration: none; font-family: var(--sans); font-size: 11.5px;
+  font-weight: 600; letter-spacing: .2px; transition: all .15s;
+  border: 1px solid rgba(255,255,255,.18); white-space: nowrap;
+}
+.hdr-consultor:hover {
+  background: var(--orange); border-color: var(--orange);
+  box-shadow: 0 2px 8px var(--orange-glow);
+}
+@media (max-width: 700px) {
+  .hdr-consultor span { display: none; }
+  .hdr-consultor { padding: 6px 9px; }
+}
 .hdr-right {
   margin-left: auto;
   display: flex; align-items: center; gap: 12px;
@@ -769,6 +784,12 @@ input[type=range]::-webkit-slider-thumb {
   <span class="hdr-title">Diagnóstico Cefalométrico</span>
   <span class="hdr-badge">Bimler · Lavergne-Petrovic</span>
   <div class="hdr-right">
+    <a href="/consultor" class="hdr-consultor" title="Abrir el Consultor Clinico">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+      <span>Consultor</span>
+    </a>
     <div class="hdr-doc">
       <span class="hdr-doc-name" id="hdr-orto-name">Dr. Especialista</span>
       <span class="hdr-doc-clinic">OrthoAnalysis v3.0</span>
