@@ -1948,27 +1948,24 @@ function actualizarBotonIA() {
     btn.textContent = '✦ Marca S, N, Me y Go primero';
   } else {
     btn.disabled = false;
-    btn.textContent = '✦ Sugerir 9 puntos restantes (IA)';
+    const nRestantes = PUNTOS_CONFIG.length - ANCLAS.length;
+    btn.textContent = `✦ Sugerir ${nRestantes} puntos restantes (IA)`;
   }
 }
 
-// Puntos OPCIONALES: no bloquean el análisis si faltan (coincide con el backend).
-//   C  (Capitulare) → mejora F8; si falta, F8 usa Co como aproximación con aviso.
-//   Cls/Cli         → habilitan F5; si faltan, F5 no se calcula.
-const PUNTOS_OPCIONALES = ["C", "Cls", "Cli"];
+// Todos los puntos son obligatorios: sin el set completo, F5 (clivus) y F8
+// (flexión con Capitulare) no se calculan y el diagnóstico sería parcial.
 function actualizarBotonesUX() {
   if (typeof actualizarBotonIA === 'function') actualizarBotonIA();
-  const requeridos = PUNTOS_CONFIG.filter(p => !PUNTOS_OPCIONALES.includes(p.key)).length;
-  const marcadosReq = PUNTOS_CONFIG
-    .filter(p => !PUNTOS_OPCIONALES.includes(p.key))
-    .filter(p => state.puntos[p.key]).length;
+  const total    = PUNTOS_CONFIG.length;
+  const marcados = PUNTOS_CONFIG.filter(p => state.puntos[p.key]).length;
   const btnUndo        = document.getElementById('btn-undo');
   const btnFit         = document.getElementById('btn-fit');
   const undoDis = (state.ordenMarcado.length === 0) || state.modoSugerido;
   if (btnUndo) btnUndo.disabled = undoDis;
   if (btnFit)  btnFit.disabled  = !state.imagen;
   const btnA = document.getElementById('btn-analizar');
-  if (btnA) btnA.disabled = (marcadosReq < requeridos) || state.modoSugerido;
+  if (btnA) btnA.disabled = (marcados < total) || state.modoSugerido;
 }
 
 function deshacerUltimoPunto() {

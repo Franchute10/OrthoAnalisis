@@ -385,9 +385,22 @@ def calcular_factores_bimler(pts, escala_mm_px=None):
     # F3: plano mandibular con FH (sin signo)
     F3 = _ang_FH(pts["Me"], pts["Go"])
 
-    # F4: plano palatino con FH — firmado: + si ENA más bajo que ENP
-    F4 = round(_ang_FH(pts["ENA"],pts["ENP"]) *
-               (1 if pts["ENA"][1] > pts["ENP"][1] else -1), 2)
+    # F4: plano palatino con FH — firmado: + si ENA más bajo que ENP.
+    # Fix (test de invariancia): el signo se mide RESPECTO A FRANKFURT, no con la
+    # Y cruda de la imagen. Comparar pts[..][1] directo rompía el signo cuando la
+    # Rx estaba inclinada (F4 pasaba de -1.91 a +1.91 al rotar). Proyectamos ENA y
+    # ENP sobre la perpendicular a FH para saber cuál queda "más abajo" en el
+    # marco de Frankfurt.
+    _fhx = pts["Or"][0] - pts["Po"][0]
+    _fhy = pts["Or"][1] - pts["Po"][1]
+    _fhl = (_fhx**2 + _fhy**2) ** 0.5 or 1.0
+    # Perpendicular a FH que apunta "hacia abajo" en el marco de la imagen
+    # (rotar FH +90°): (nx, ny) = (-fhy, fhx)/|FH|
+    _nx, _ny = -_fhy / _fhl, _fhx / _fhl
+    _proj_ena = pts["ENA"][0]*_nx + pts["ENA"][1]*_ny
+    _proj_enp = pts["ENP"][0]*_nx + pts["ENP"][1]*_ny
+    _signo_f4 = 1 if _proj_ena > _proj_enp else -1
+    F4 = round(_ang_FH(pts["ENA"], pts["ENP"]) * _signo_f4, 2)
 
     # F7: base craneal anterior con FH (sin signo)
     F7 = _ang_FH(pts["N"], pts["S"])
@@ -1410,7 +1423,10 @@ async def analizar(request: Request):
             elif isinstance(coords, list): pts[nombre] = (coords[0], coords[1])
             else:                          pts[nombre] = tuple(coords)
 
-        requeridos = ["S","N","A","B","Me","Go","ENA","ENP","Po","Or","Co"]
+        # Todos los puntos son obligatorios (coincide con el frontend): sin el set
+        # completo, F5 (Cls/Cli) y F8 (Capitulare) no se calculan y el diagnóstico
+        # sería parcial. C se acepta como punto marcado de pleno derecho.
+        requeridos = ["S","N","A","B","Me","Go","ENA","ENP","Po","Or","Co","C","Cls","Cli"]
         for p in requeridos:
             if p not in pts:
                 return {"success": False, "detail": f"Falta el punto: {p}"}
