@@ -351,12 +351,16 @@ def generar_resumen_narrativo(f, indicadores_T, medidas_lineales, grupo, categor
             c = _clasif(nme, 120, 5, ("Pequeño","Medio","Grande"))
             frases.append(f"Altura anterior de la cara (N-Me) – {c} ({nme} mm)")
 
-        ab = medidas_lineales.get("AB")
+        # Fix Rubén: resalte esquelético = A'-B' (proyección sobre Frankfurt),
+        # con norma de la fuente Bimler: 0/6mm Clase I, >6 Clase II, <0 Clase III.
+        ab = f.get("resalte_esqueletico_mm")
+        if ab is None:
+            ab = medidas_lineales.get("resalte_esqueletico_mm")
         if ab is not None:
-            if   ab > 5:   c = "Clase II"
+            if   ab > 6:   c = "Clase II"
             elif ab < 0:   c = "Clase III"
             else:          c = "Clase I"
-            frases.append(f"Resalte esquelético (A-B) – {c} ({ab} mm)")
+            frases.append(f"Resalte esquelético (A'-B') – {c} ({ab} mm)")
 
     return frases
 
@@ -381,9 +385,22 @@ def calcular_factores_bimler(pts, escala_mm_px=None):
     # F3: plano mandibular con FH (sin signo)
     F3 = _ang_FH(pts["Me"], pts["Go"])
 
-    # F4: plano palatino con FH — firmado: + si ENA más bajo que ENP
-    F4 = round(_ang_FH(pts["ENA"],pts["ENP"]) *
-               (1 if pts["ENA"][1] > pts["ENP"][1] else -1), 2)
+    # F4: plano palatino con FH — firmado: + si ENA más bajo que ENP.
+    # Fix (test de invariancia): el signo se mide RESPECTO A FRANKFURT, no con la
+    # Y cruda de la imagen. Comparar pts[..][1] directo rompía el signo cuando la
+    # Rx estaba inclinada (F4 pasaba de -1.91 a +1.91 al rotar). Proyectamos ENA y
+    # ENP sobre la perpendicular a FH para saber cuál queda "más abajo" en el
+    # marco de Frankfurt.
+    _fhx = pts["Or"][0] - pts["Po"][0]
+    _fhy = pts["Or"][1] - pts["Po"][1]
+    _fhl = (_fhx**2 + _fhy**2) ** 0.5 or 1.0
+    # Perpendicular a FH que apunta "hacia abajo" en el marco de la imagen
+    # (rotar FH +90°): (nx, ny) = (-fhy, fhx)/|FH|
+    _nx, _ny = -_fhy / _fhl, _fhx / _fhl
+    _proj_ena = pts["ENA"][0]*_nx + pts["ENA"][1]*_ny
+    _proj_enp = pts["ENP"][0]*_nx + pts["ENP"][1]*_ny
+    _signo_f4 = 1 if _proj_ena > _proj_enp else -1
+    F4 = round(_ang_FH(pts["ENA"], pts["ENP"]) * _signo_f4, 2)
 
     # F7: base craneal anterior con FH (sin signo)
     F7 = _ang_FH(pts["N"], pts["S"])
@@ -392,10 +409,19 @@ def calcular_factores_bimler(pts, escala_mm_px=None):
     # Convención OrthoTP validada en 3 casos (Mia/Nicolás/Piero):
     #   F1 = -signed(N,A)  (+ = maxilar prognático)
     #   F2 = +signed(A,B)  (+ = retrogenia / Clase II)
-    #   F8 = -signed(Co,Go)(+ = ortoflexión; hiperflexión = negativa, igual que OrthoTP)
     F1 = round(-calcular_angulo_signed(pts["N"],  pts["A"],  Po, Or), 2)
     F2 = round( calcular_angulo_signed(pts["A"],  pts["B"],  Po, Or), 2)
-    F8 = round(-calcular_angulo_signed(pts["Co"], pts["Go"], Po, Or), 2)
+
+    # ── Fix Rubén: F8 = FLEXIÓN MANDIBULAR con CAPITULARE (C-Go), no Condylion ──
+    # Fuente primaria Bimler: F8 mide C-Go, donde C = Capitulare (CENTRO del cóndilo),
+    # distinto de Cd/Condylion (póstero-superior). Valor normal 0°/8°:
+    #   Hiperflexión → Go por delante de C → signo (-)
+    #   Hipoflexión  → Go por detrás de C  → signo (+)
+    # Retrocompatibilidad: si el análisis no trae C (marcados viejos), se usa Co
+    # como APROXIMACIÓN y se avisa. El signo se mantiene consistente con OrthoTP.
+    _pf = pts.get("C") or pts.get("Co")   # Capitulare preferente; Co como fallback
+    F8 = round(-calcular_angulo_signed(_pf, pts["Go"], Po, Or), 2)
+    F8_fuente = "Capitulare (C)" if pts.get("C") else "Condylion (Co) — aproximado"
 
     # F5: clivus con FH — solo si están marcados Cls y Cli
     F5 = None
@@ -438,10 +464,29 @@ def calcular_factores_bimler(pts, escala_mm_px=None):
     #    Usamos Po como aproximación → A'-T NO es profundidad maxilar fiable.
     T = Po  # aproximación: T ≈ Po proyectado sobre FH
 
+    # ── Fix Rubén: RESALTE ESQUELÉTICO A'-B' CON SIGNO, en mm ──
+    # Fuente Bimler: A'-B' = distancia entre las proyecciones de A y B sobre
+    # Frankfurt (NO la distancia directa A-B). Signo según dirección sobre FH:
+    #   A por delante de B → (+)   |   B por delante de A → (-)
+    # Valor normal 0/6mm (Clase I); >6 Clase II; <0 Clase III.
+    # Se proyecta el vector (A'-B') sobre el eje de Frankfurt (Po→Or) para el signo.
+    fh_dx, fh_dy = (Or[0] - Po[0]), (Or[1] - Po[1])
+    fh_len = (fh_dx**2 + fh_dy**2) ** 0.5 or 1.0
+    ux, uy = fh_dx / fh_len, fh_dy / fh_len           # vector unitario Frankfurt
+    resalte_px = (A_prima[0] - B_prima[0]) * ux + (A_prima[1] - B_prima[1]) * uy
+    # Convención OrthoTP: A adelante de B (Clase II esquelética) = positivo.
+    # El eje FH apunta Po→Or (posterior→anterior); un valor + significa A' más
+    # anterior que B'. Se normaliza el signo para que coincida con la fuente.
+    resalte_ab_px = round(abs(resalte_px), 1)
+    resalte_ab_mm = (round((resalte_px / escala_mm_px), 1)
+                     if escala_mm_px else None)
+
     # ── Medidas lineales (en píxeles, convertibles a mm) ──────
     lin = {
         "A_prima_T":   round(distancia(A_prima, T),    1),
         "A_prima_B_prima": round(distancia(A_prima, B_prima), 1),
+        "resalte_esqueletico_px": resalte_ab_px,       # magnitud proyectada (px)
+        "resalte_esqueletico_mm": resalte_ab_mm,       # CON SIGNO, en mm (norma 0/6)
         "A_prima_TM":  round(distancia(A_prima, TM),   1),
         "B_prima_TM":  round(distancia(B_prima, TM),   1),
         "T_TM":        round(distancia(T, TM),          1),
@@ -454,9 +499,11 @@ def calcular_factores_bimler(pts, escala_mm_px=None):
         "SNA": SNA, "SNB": SNB, "ANB": ANB,
         "F1": F1, "F2": F2, "F3": F3, "F4": F4,
         "F5": F5, "F7": F7, "F8": F8,
+        "F8_fuente": F8_fuente,
         "ML_NSL": ML_NSL, "NL_NSL": NL_NSL,
         "perfil": perfil, "ABS": ABS, "ABI": ABI, "ABT": ABT,
         "AG": AG, "APNI_estimado": APNI_estimado, "ODI": ODI,
+        "resalte_esqueletico_mm": resalte_ab_mm,
         "lineales": lin,
     }
     return result
@@ -1022,7 +1069,8 @@ PROPORCIONES CEFALOMÉTRICAS NORMATIVAS (dentro del bbox del cráneo):
  Go:  x_skull≈18%, y_skull≈76%   (ángulo mandibular)
  ENA: x_skull≈76%, y_skull≈52%   (espina nasal ant)
  ENP: x_skull≈48%, y_skull≈52%   (espina nasal post)
- Co:  x_skull≈22%, y_skull≈34%   (cóndilo)
+ Co:  x_skull≈22%, y_skull≈34%   (Condylion — polo póstero-superior del cóndilo)
+ C:   x_skull≈23%, y_skull≈36%   (Capitulare — CENTRO del cóndilo; ~2% por debajo y ligeramente por delante de Co)
  Cls: x_skull≈28%, y_skull≈30%   (clivus sup)
  Cli: x_skull≈24%, y_skull≈42%   (clivus inf)
 
@@ -1218,14 +1266,16 @@ R7  x_skull(N)  > x_skull(S) y S bajo la bóveda
 R8  Ningún punto sobre el rulero/escala metálica
 R9  y_skull(Co) < y_skull(Go)                    (cóndilo sobre el ángulo)
 R10 y_skull(Cls) > y_skull(S)                    (Cls bajo S)
+R11 y_skull(C) > y_skull(Co) y |C−Co| pequeño    (Capitulare = centro del cóndilo,
+                                                  levemente bajo/adelante de Condylion; NO el mismo punto)
 
-CONFIANZA esperada: ALTA 0.85-1.0: N,Me,S,ENA,ENP,Or,Go · MEDIA 0.65-0.84: A,B,Po,Co · BAJA 0.35-0.64: Cls,Cli
+CONFIANZA esperada: ALTA 0.85-1.0: N,Me,S,ENA,ENP,Or,Go · MEDIA 0.65-0.84: A,B,Po,Co,C · BAJA 0.35-0.64: Cls,Cli
 Prioriza SIEMPRE lo que ves en la imagen sobre las cifras de referencia.
 
 PROPORCIONES NORMATIVAS (media±DE, % del bbox; úsalas si la estructura no es nítida):
   S x32±4/y22±3 · N x60±4/y12±3 · Po x28±4/y36±4 · Or x58±4/y34±3 · A x78±5/y50±4
   B x74±5/y63±5 · Me x68±4/y94±3 · Go x18±5/y76±5 · ENA x76±4/y52±3 · ENP x48±4/y52±3
-  Co x22±4/y34±4 · Cls x28±4/y30±4 · Cli x24±5/y42±5
+  Co x22±4/y34±4 · C x23±4/y36±4 · Cls x28±4/y30±4 · Cli x24±5/y42±5
 
 ────────────────────────────────────────────────────
 RESPUESTA — SOLO JSON válido (sin texto antes ni después)
@@ -1248,6 +1298,7 @@ No incluyas las estructuras de la Fase 0 en el JSON. Devuelve exactamente:
     "Po":  {{"x_skull": 0.0, "y_skull": 0.0, "confianza": 0.0}},
     "Or":  {{"x_skull": 0.0, "y_skull": 0.0, "confianza": 0.0}},
     "Co":  {{"x_skull": 0.0, "y_skull": 0.0, "confianza": 0.0}},
+    "C":   {{"x_skull": 0.0, "y_skull": 0.0, "confianza": 0.0}},
     "Cls": {{"x_skull": 0.0, "y_skull": 0.0, "confianza": 0.0}},
     "Cli": {{"x_skull": 0.0, "y_skull": 0.0, "confianza": 0.0}}
   }}
@@ -1372,12 +1423,15 @@ async def analizar(request: Request):
             elif isinstance(coords, list): pts[nombre] = (coords[0], coords[1])
             else:                          pts[nombre] = tuple(coords)
 
-        requeridos = ["S","N","A","B","Me","Go","ENA","ENP","Po","Or","Co"]
+        # Todos los puntos son obligatorios (coincide con el frontend): sin el set
+        # completo, F5 (Cls/Cli) y F8 (Capitulare) no se calculan y el diagnóstico
+        # sería parcial. C se acepta como punto marcado de pleno derecho.
+        requeridos = ["S","N","A","B","Me","Go","ENA","ENP","Po","Or","Co","C","Cls","Cli"]
         for p in requeridos:
             if p not in pts:
                 return {"success": False, "detail": f"Falta el punto: {p}"}
 
-        factores            = calcular_factores_bimler(pts)
+        factores            = calcular_factores_bimler(pts, px_per_mm)
         T1, T2, T3, ML_NSLc, NL_NSLc = calcular_indicadores_T(factores)
         grupo               = arbol_decision(T1, T2, T3, poblacion)
         categoria, advertencia = determinar_categoria(grupo)   # Fix E
@@ -1455,6 +1509,8 @@ async def analizar(request: Request):
                 "F1": factores["F1"],   "F2": factores["F2"],
                 "F3": factores["F3"],   "F4": factores["F4"],
                 "F5": factores["F5"],   "F7": factores["F7"],   "F8": factores["F8"],
+                "F8_fuente": factores.get("F8_fuente"),
+                "resalte_esqueletico_mm": factores.get("resalte_esqueletico_mm"),
                 "ML_NSL": factores["ML_NSL"], "NL_NSL": factores["NL_NSL"],
                 "clasif_F3": clasif_F3(factores["F3"]),
                 "clasif_F4": clasif_F4(factores["F4"]),

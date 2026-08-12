@@ -1004,10 +1004,15 @@ const NORMAS = {
   SNA: { v: 82,  tol: 3 },
   SNB: { v: 79,  tol: 3 },
   ANB: { v: 2,   tol: 2 },
+  F1:  { v: 0,   tol: 1 },
+  F2:  { v: 5,   tol: 5 },
   F3:  { v: 25,  tol: 5 },
   F4:  { v: 0,   tol: 2 },
+  F5:  { v: 22.5, tol: 7.5 },
   F7:  { v: 7.5, tol: 2 },
   F8:  { v: 4,   tol: 4 },
+  perfil: { v: 0, tol: 14 },
+  resalte: { v: 3, tol: 3 },
   AG:  { v: 113, tol: 7 },
   ABS: { v: 65,  tol: 5 },
 };
@@ -1029,6 +1034,7 @@ const PUNTOS_CONFIG = [
   { key:"Po",  nombre:"Porion",    desc:"Borde SUPERIOR del CAE óseo",       color:"#f72585" },
   { key:"Or",  nombre:"Orbitario", desc:"Borde MÁS INFERIOR de la órbita",  color:"#7209b7" },
   { key:"Co",  nombre:"Condylion", desc:"Polo postero-superior del cóndilo", color:"#3a0ca3" },
+  { key:"C",   nombre:"Capitulare", desc:"CENTRO del cóndilo (para F8 — flexión mandibular)", color:"#6930c3" },
   { key:"Cls", nombre:"Clivus Sup", desc:"Clivus superior — 10mm bajo Sella",    color:"#0ea5e9" },
   { key:"Cli", nombre:"Clivus Inf", desc:"Clivus inferior — sobre el Basion",    color:"#0284c7" },
 ];
@@ -1532,7 +1538,8 @@ function redraw() {
 function dibujarConstelacion() {
   const conexiones = [
     ["S","N"], ["N","A"], ["N","B"], ["A","B"],
-    ["Me","Go"], ["ENA","ENP"], ["Po","Or"], ["S","Co"],["Cls","Cli"],["S","Cls"]
+    ["Me","Go"], ["ENA","ENP"], ["Po","Or"], ["S","Co"],["Cls","Cli"],["S","Cls"],
+    ["C","Go"]
   ];
   conexiones.forEach(([k1, k2]) => {
     const p1 = state.sugeridos[k1] || state.puntos[k1];
@@ -1941,14 +1948,17 @@ function actualizarBotonIA() {
     btn.textContent = '✦ Marca S, N, Me y Go primero';
   } else {
     btn.disabled = false;
-    btn.textContent = '✦ Sugerir 9 puntos restantes (IA)';
+    const nRestantes = PUNTOS_CONFIG.length - ANCLAS.length;
+    btn.textContent = `✦ Sugerir ${nRestantes} puntos restantes (IA)`;
   }
 }
 
+// Todos los puntos son obligatorios: sin el set completo, F5 (clivus) y F8
+// (flexión con Capitulare) no se calculan y el diagnóstico sería parcial.
 function actualizarBotonesUX() {
   if (typeof actualizarBotonIA === 'function') actualizarBotonIA();
   const total    = PUNTOS_CONFIG.length;
-  const marcados = Object.keys(state.puntos).length;
+  const marcados = PUNTOS_CONFIG.filter(p => state.puntos[p.key]).length;
   const btnUndo        = document.getElementById('btn-undo');
   const btnFit         = document.getElementById('btn-fit');
   const undoDis = (state.ordenMarcado.length === 0) || state.modoSugerido;
@@ -2302,7 +2312,7 @@ function mostrarResultados(data) {
       <div class="result-row"><div class="result-key">F1 — Posición Maxilar (NA)</div><div class="result-val">${f.F1??'—'}°</div></div>
       <div class="result-row"><div class="result-key">F2 — Posición Mandibular (AB)</div><div class="result-val">${f.F2??'—'}°</div></div>
       <div class="result-row"><div class="result-key">F5 — Inclinación Clivus</div><div class="result-val ${f.F5&&(f.F5<60||f.F5>70)?'warn':''}">${f.F5??'(marcar Cls/Cli)'}${f.F5?'°':''}</div></div>
-      <div class="result-row"><div class="result-key">F8 — Flexión Rama (Co-Go)</div><div class="result-val ${clasificarNorma('F8',f.F8)||''}">${f.F8??'—'}°</div></div>
+      <div class="result-row"><div class="result-key">F8 — Flexión Rama (C-Go)${f.F8_fuente&&f.F8_fuente.includes('aprox')?' <span style="font-size:8px;color:var(--orange)">⚠ marcar Capitulare</span>':''}</div><div class="result-val ${clasificarNorma('F8',f.F8)||''}">${f.F8??'—'}°</div></div>
       <div class="result-row" style="border-top:1px solid var(--border);margin-top:4px;padding-top:4px">
         <div class="result-key">Ángulo de Perfil (F1+F2)</div>
         <div class="result-val ${Math.abs(ang.perfil||0)>14?'warn':'info'}">${ang.perfil??'—'}°</div></div>
@@ -2317,7 +2327,7 @@ function mostrarResultados(data) {
     <div class="result-group">
       <div class="result-group-title">Medidas Lineales (px)</div>
       <div class="result-row"><div class="result-key">A'-T — Long. maxilar</div><div class="result-val">${lin.A_prima_T??'—'}</div></div>
-      <div class="result-row"><div class="result-key">A'-B' — Overjet esquelético</div><div class="result-val">${lin.A_prima_B_prima??'—'}</div></div>
+      <div class="result-row"><div class="result-key">A'-B' — Resalte esquelético${f.resalte_esqueletico_mm!=null?` <span style="font-size:8px;color:var(--text-dim)">${f.resalte_esqueletico_mm>6?'Clase II':(f.resalte_esqueletico_mm<0?'Clase III':'Clase I')} · norma 0/6mm</span>`:''}</div><div class="result-val">${f.resalte_esqueletico_mm!=null?f.resalte_esqueletico_mm+' mm':(lin.A_prima_B_prima??'—')+' px'}</div></div>
       <div class="result-row"><div class="result-key">Co-Me — Diagonal mandibular</div><div class="result-val">${lin.Co_Me??'—'}</div></div>
       <div class="result-row"><div class="result-key">Co-Go — Altura de rama</div><div class="result-val">${lin.Co_Go??'—'}</div></div>
       <div class="result-row"><div class="result-key">N-S — Base craneal</div><div class="result-val">${lin.N_S??'—'}</div></div>
@@ -2717,16 +2727,22 @@ function exportarPDF() {
   doc.setDrawColor(225); doc.line(M, y, PW - M, y); y += 5;
 
   // filas: [etiqueta, clave, valor, sufijo]
+  // Secuencia diagnóstica Bimler (Rubén): perfil → F1 → F2 → factores restantes.
   const filas = [
     ['SNA', 'SNA', f.SNA, '°'],
     ['SNB', 'SNB', f.SNB, '°'],
     ['ANB', 'ANB', f.ANB, '°'],
+    ['Ángulo de Perfil (F1+F2)', 'perfil', ang.perfil, '°'],
+    ['F1 — Posición maxilar (NA)', 'F1', f.F1, '°'],
+    ['F2 — Posición mandibular (AB)', 'F2', f.F2, '°'],
     ['F3 — Plano mandibular', 'F3', f.F3, '°'],
     ['F4 — Plano palatino', 'F4', f.F4, '°'],
+    ['F5 — Inclinación clivus', 'F5', f.F5, '°'],
     ['F7 — Base craneal ant.', 'F7', f.F7, '°'],
-    ['F8 — Flexión rama', 'F8', f.F8, '°'],
+    ['F8 — Flexión rama (C-Go)', 'F8', f.F8, '°'],
     ['AG — Ángulo gonial', 'AG', ang.AG, '°'],
     ['ABS — Basal superior', 'ABS', ang.ABS, '°'],
+    ['A\'-B\' — Resalte esquelético', 'resalte', f.resalte_esqueletico_mm, ' mm'],
   ];
   const estadoTxt = { 'in-norma': 'En norma', 'leve': 'Leve', 'fuera': 'Fuera', null: '—' };
 
