@@ -1589,9 +1589,244 @@ async def mi_poblacion(request: Request):
 
 @app.get("/api/health")
 async def health():
-    return {"status": "ok", "version": "3.1",
+    return {"status": "ok", "version": "3.2",
             "grupos_rotacionales": 33,
             "factores_bimler": 8}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# MÓDULO ACADÉMICO — Consultor Clínico (RAG)
+# Busca en knowledge_base los fragmentos más relevantes y responde con Claude.
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _embedding_openai(texto: str) -> list:
+    """Genera embedding con OpenAI text-embedding-3-small (1536 dims)."""
+    OPENAI_KEY = os.environ.get("OPENAI_API_KEY", "")
+    if not OPENAI_KEY:
+        raise ValueError("OPENAI_API_KEY no configurada")
+    payload = json.dumps({
+        "input": texto,
+        "model": "text-embedding-3-small"
+    }).encode("utf-8")
+    req = urllib.request.Request(
+        "https://api.openai.com/v1/embeddings",
+        data=payload,
+        headers={"Authorization": f"Bearer {OPENAI_KEY}",
+                 "Content-Type": "application/json"},
+        method="POST"
+    )
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        data = json.loads(resp.read().decode("utf-8"))
+    return data["data"][0]["embedding"]
+
+
+def _buscar_fragmentos(embedding: list, limite: int = 5) -> list:
+    """Busca los fragmentos más similares via RPC match_knowledge_base en Supabase."""
+    if not _SUPABASE_OK:
+        return []
+    payload = json.dumps({
+        "query_embedding": embedding,
+        "match_count": limite
+    }).encode("utf-8")
+    url = f"{SUPABASE_URL}/rest/v1/rpc/match_knowledge_base"
+    req = urllib.request.Request(
+        url, data=payload,
+        headers=_supabase_headers(),
+        method="POST"
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+    except Exception as e:
+        print(f"[consultor] Error busqueda vectorial: {e}")
+        return []
+
+
+def _guardar_consulta(pregunta: str, tema: str, fragmentos: list,
+                      respuesta: str, estado: str, latencia_ms: int):
+    """Guarda la consulta en Supabase para analytics."""
+    if not _SUPABASE_OK:
+        return
+    ids_fragmentos = [f.get("id") for f in fragmentos if f.get("id")]
+    registro = {
+        "pregunta":           pregunta,
+        "tema_detectado":     tema,
+        "fragmentos_usados":  json.dumps(ids_fragmentos),
+        "respuesta_generada": respuesta,
+        "estado":             estado,
+        "latencia_ms":        latencia_ms,
+        "formato_ft":         json.dumps({
+            "prompt": pregunta, "respuesta": respuesta,
+            "tema": tema, "estado": estado
+        })
+    }
+    try:
+        req = urllib.request.Request(
+            f"{SUPABASE_URL}/rest/v1/consultas",
+            data=json.dumps(registro).encode("utf-8"),
+            headers=_supabase_headers(),
+            method="POST"
+        )
+        urllib.request.urlopen(req, timeout=10)
+    except Exception as e:
+        print(f"[consultor] Error guardando consulta: {e}")
+
+
+def _guardar_gap(pregunta: str, tema: str, razon: str):
+    """Registra cuando el sistema no puede responder."""
+    if not _SUPABASE_OK:
+        return
+    try:
+        payload = json.dumps({
+            "p_pregunta": pregunta,
+            "p_tema":     tema,
+            "p_razon":    razon
+        }).encode("utf-8")
+        req = urllib.request.Request(
+            f"{SUPABASE_URL}/rest/v1/rpc/registrar_gap",
+            data=payload,
+            headers=_supabase_headers(),
+            method="POST"
+        )
+        urllib.request.urlopen(req, timeout=10)
+    except Exception as e:
+        print(f"[consultor] Error guardando gap: {e}")
+
+
+@app.get("/consultor", response_class=HTMLResponse)
+async def consultor_page():
+    """Sirve consultor.html directamente desde el backend."""
+    try:
+        with open("consultor.html", "r", encoding="utf-8") as f:
+            return HTMLResponse(content=f.read())
+    except FileNotFoundError:
+        return HTMLResponse(content="<h2>consultor.html no encontrado</h2>", status_code=404)
+
+
+@app.post("/api/consultor")
+async def consultor(request: Request):
+    """
+    Consultor Clínico RAG.
+    Body: {"pregunta": "...", "tema": "bimler|tipos_rotacionales|..."}
+    """
+    import time
+    t0 = time.time()
+    try:
+        body     = await request.json()
+        pregunta = body.get("pregunta", "").strip()
+        tema     = body.get("tema", "general")
+
+        if not pregunta:
+            return {"success": False, "detail": "No se recibio pregunta"}
+
+        api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+        if not api_key:
+            return {"success": False, "detail": "ANTHROPIC_API_KEY no configurada"}
+
+        print(f"[consultor] Pregunta: {pregunta[:80]}")
+
+        # 1. Embedding de la pregunta
+        try:
+            emb = _embedding_openai(pregunta)
+        except Exception as e:
+            return {"success": False, "detail": f"Error embedding: {e}"}
+
+        # 2. Buscar fragmentos relevantes
+        fragmentos = _buscar_fragmentos(emb, limite=5)
+        print(f"[consultor] Fragmentos encontrados: {len(fragmentos)}")
+
+        # 3. Sin contexto → registrar gap
+        if not fragmentos:
+            _guardar_gap(pregunta, tema, "sin_fragmentos_relevantes")
+            _guardar_consulta(pregunta, tema, [], "", "sin_contexto",
+                              int((time.time() - t0) * 1000))
+            return {
+                "success": True, "fue_respondida": False,
+                "respuesta": (
+                    "Esta consulta está fuera del alcance disponible en la base de conocimiento. "
+                    "Te sugiero consultar con tu docente o revisar el material del módulo correspondiente."
+                ),
+                "fuentes": [], "tema_detectado": tema
+            }
+
+        # 4. Construir contexto
+        contexto = ""
+        fuentes_usadas = []
+        for i, frag in enumerate(fragmentos, 1):
+            contexto += (f"\n[Fragmento {i} — {frag.get('fuente','Sin fuente')}]\n"
+                         f"{frag.get('texto','')}\n")
+            fuentes_usadas.append({"numero": i, "fuente": frag.get("fuente", "Sin fuente")})
+
+        # 5. Llamar a Claude
+        sistema = (
+            "Eres un consultor clínico de ortopedia funcional de los maxilares y cefalometría. "
+            "Responde ÚNICAMENTE con la información de los fragmentos que se te proporcionan. "
+            "NO inventes información. Máximo 3 párrafos en español con lenguaje clínico accesible. "
+            "NO reproduzcas más de 2 líneas literales de los fragmentos — parafrasea. "
+            "Indica al final qué fuente(s) usaste. "
+            "IMPORTANTE: herramienta educativa — no des recomendaciones para casos clínicos reales."
+        )
+        prompt = f"Fragmentos disponibles:\n{contexto}\nPregunta del alumno:\n{pregunta}"
+
+        payload = json.dumps({
+            "model":      "claude-sonnet-4-6",
+            "max_tokens": 800,
+            "system":     sistema,
+            "messages":   [{"role": "user", "content": prompt}]
+        }).encode("utf-8")
+
+        req = urllib.request.Request(
+            "https://api.anthropic.com/v1/messages",
+            data=payload,
+            headers={
+                "x-api-key":         api_key,
+                "anthropic-version": "2023-06-01",
+                "content-type":      "application/json"
+            },
+            method="POST"
+        )
+        with urllib.request.urlopen(req, timeout=45) as resp:
+            data_resp = json.loads(resp.read().decode("utf-8"))
+
+        respuesta = data_resp["content"][0]["text"].strip()
+        latencia  = int((time.time() - t0) * 1000)
+        print(f"[consultor] OK en {latencia}ms")
+
+        _guardar_consulta(pregunta, tema, fragmentos, respuesta, "respondida", latencia)
+
+        return {
+            "success": True, "fue_respondida": True,
+            "respuesta": respuesta, "fuentes": fuentes_usadas,
+            "tema_detectado": tema, "latencia_ms": latencia
+        }
+
+    except Exception as e:
+        print(f"[consultor] Error general: {e}")
+        return {"success": False, "detail": str(e)}
+
+
+@app.get("/api/consultor/stats")
+async def consultor_stats():
+    """Estadísticas del consultor para el dashboard."""
+    if not _SUPABASE_OK:
+        return {"error": "Supabase no disponible"}
+    try:
+        url = (f"{SUPABASE_URL}/rest/v1/consultas"
+               f"?select=estado&order=creado_en.desc&limit=200")
+        req = urllib.request.Request(url, headers=_supabase_headers())
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            rows = json.loads(resp.read().decode("utf-8"))
+        total = len(rows)
+        respondidas = sum(1 for r in rows if r.get("estado") == "respondida")
+        return {
+            "total": total,
+            "respondidas": respondidas,
+            "sin_contexto": total - respondidas,
+            "tasa_respuesta": round(respondidas / total * 100, 1) if total else 0
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
