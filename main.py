@@ -405,11 +405,24 @@ def calcular_factores_bimler(pts, escala_mm_px=None):
     # F7: base craneal anterior con FH (sin signo)
     F7 = _ang_FH(pts["N"], pts["S"])
 
-    # ── Fix F: F1, F2, F8 firmados con calcular_angulo_signed() ──
-    # Convención OrthoTP validada en 3 casos (Mia/Nicolás/Piero):
-    #   F1 = -signed(N,A)  (+ = maxilar prognático)
-    #   F2 = +signed(A,B)  (+ = retrogenia / Clase II)
+    # ── F1 = N-A, ángulo superior del perfil. Norma -1/+1. ──
+    # Convención OrthoTP validada en 3 casos (Mia/Nicolás/Piero): F1 = -signed(N,A).
+    #
+    # ⚠ DISCREPANCIA ABIERTA CON EL DR. RUBÉN (caso Benjamín):
+    #   El especialista obtiene F1=+0.5; el motor da -1.54. El signo depende del EJE
+    #   contra el que se mide "A por delante de N": Rubén lo juzga en la horizontal
+    #   del trazado (A 14px a la derecha de N → +); el motor lo proyecta sobre
+    #   Frankfurt, que en esta Rx está inclinado ~4°, y con N muy por encima de A la
+    #   proyección invierte el signo (A queda 8.8px "detrás" → -).
+    #   La ficha de Bimler NO especifica el eje de referencia, así que NO se cambia
+    #   la fórmula sin una fuente que lo defina. Queda documentado para resolver con
+    #   Rubén cuál eje usa su escuela. La MAGNITUD (~1-1.5°) coincide; solo el signo
+    #   está en disputa, y solo cuando A y N están casi alineados verticalmente.
     F1 = round(-calcular_angulo_signed(pts["N"],  pts["A"],  Po, Or), 2)
+
+    # F2 = A-B (ángulo inferior del perfil). Norma 0/+10. Convención validada
+    # (+ = retrogenia/Clase II). Caso Benjamín: Rubén +14, motor +16.98 → mismo
+    # signo, diferencia por marcación de puntos.
     F2 = round( calcular_angulo_signed(pts["A"],  pts["B"],  Po, Or), 2)
 
     # ── Fix Rubén: F8 = FLEXIÓN MANDIBULAR con CAPITULARE (C-Go), no Condylion ──
@@ -1489,6 +1502,7 @@ async def analizar(request: Request):
                         "radiografia_url": radiografia_url,
                         "puntos_finales": json.dumps(pts),
                         "puntos_sugeridos_ia": json.dumps(puntos_ia_orig) if puntos_ia_orig else None,
+                        "px_per_mm": px_per_mm,
                         "sna": factores["SNA"], "snb": factores["SNB"], "anb": factores["ANB"],
                         "ml_nsl": factores["ML_NSL"], "nl_nsl": factores["NL_NSL"],
                         "t1": T1, "t2": T2, "t3": T3,
@@ -1589,9 +1603,10 @@ async def mi_poblacion(request: Request):
 
 @app.get("/api/health")
 async def health():
-    return {"status": "ok", "version": "3.1",
+    return {"status": "ok", "version": "3.2",
             "grupos_rotacionales": 33,
             "factores_bimler": 8}
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -2359,9 +2359,9 @@ function buildNarrativo(frases) {
 
 function buildLinearTable(ml) {
   const items = [
-    ['NS','Base craneal (N-S)',70],['CoGo','Rama ascendente (Co-Go)',55],
-    ['NMe','Altura ant. cara (N-Me)',120],['AB','Resalte esquel. (A-B)',5],
-    ['MeCo','Diagonal mand. (Me-Co)',110],['NFH','Altura nasion (N-FH)',28],
+    ['NS','Base craneal (N-S)',70],['CoGo','Rama ascendente (Cd-Go)',55],
+    ['NMe','Altura ant. cara (N-Me)',120],
+    ['MeCo','Diagonal mand. (Cd-Gn)',110],['NFH','Altura nasion (N-FH)',28],
     ['SFH','Altura sella (S-FH)',20],['FHMe','Altura suborbital (FH-Me)',80],
   ];
   const rows = items.filter(([k]) => ml[k] != null).map(([k,label,norma]) => {
@@ -2817,10 +2817,9 @@ function exportarPDF() {
     if (y + 40 > 280) { doc.addPage(); y = M; }
     const linItems = [
       ['NS','Base craneal anterior (N-S)',70,'mm'],
-      ['CoGo','Longitud rama ascendente (Co-Go)',55,'mm'],
+      ['CoGo','Longitud rama ascendente (Cd-Go)',55,'mm'],
       ['NMe','Altura ant. de la cara (N-Me)',120,'mm'],
-      ['AB','Resalte esquelético (A-B)',5,'mm'],
-      ['MeCo','Diagonal mandibular (Me-Co)',110,'mm'],
+      ['MeCo','Diagonal mandibular (Cd-Gn)',110,'mm'],
       ['NFH','Altura del nasion (N-FH)',28,'mm'],
       ['SFH','Altura de la sella (S-FH)',20,'mm'],
       ['FHMe','Altura suborbital (FH-Me)',80,'mm'],
