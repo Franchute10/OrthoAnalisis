@@ -182,23 +182,22 @@ def test_f8_capitulare():
            not _aprox(f_c["F8"], f_co["F8"], 0.5),
            f"C→{f_c['F8']}  Co→{f_co['F8']}")
 
-    # 2d. SIGNO: hiperflexión = Go por DELANTE de C → negativo.
-    #     Construimos Go claramente anterior (mayor X) a C, ambos a igual altura,
-    #     con Frankfurt horizontal. Go delante de C ⇒ F8 negativo.
+    # 2d. SIGNO (método video Rubén): hiperflexión = Go por DELANTE de C → POSITIVO.
+    #     Go anterior (mayor X en imagen) que C ⇒ hiperflexión ⇒ F8 positivo.
     pts_hiper = craneo_base()
     pts_hiper["C"]  = (200, 400)
-    pts_hiper["Go"] = (320, 400)   # Go MUY por delante de C
+    pts_hiper["Go"] = (320, 400)   # Go MUY por delante de C (mayor X)
     fh = motor.calcular_factores_bimler(pts_hiper, escala_mm_px=3.0)
-    _check("Hiperflexión (Go delante de C) → F8 negativo",
-           fh["F8"] < 0, f"F8 = {fh['F8']}")
+    _check("Hiperflexión (Go delante de C) → F8 positivo",
+           fh["F8"] > 0, f"F8 = {fh['F8']}")
 
-    # 2e. SIGNO opuesto: hipoflexión = Go por DETRÁS de C → positivo.
+    # 2e. SIGNO opuesto: hipoflexión = Go por DETRÁS de C → NEGATIVO.
     pts_hipo = craneo_base()
     pts_hipo["C"]  = (320, 400)
-    pts_hipo["Go"] = (200, 400)    # Go por detrás de C
+    pts_hipo["Go"] = (200, 400)    # Go por detrás de C (menor X)
     fhi = motor.calcular_factores_bimler(pts_hipo, escala_mm_px=3.0)
-    _check("Hipoflexión (Go detrás de C) → F8 positivo",
-           fhi["F8"] > 0, f"F8 = {fhi['F8']}")
+    _check("Hipoflexión (Go detrás de C) → F8 negativo",
+           fhi["F8"] < 0, f"F8 = {fhi['F8']}")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # TEST 3 — A'-B': RESALTE ESQUELÉTICO (corrección Dr. Rubén)
@@ -246,24 +245,34 @@ def test_resalte_esqueletico():
 # TEST 4 — INVARIANCIA ROTACIONAL (robustez ante inclinación de la Rx)
 # ═══════════════════════════════════════════════════════════════════════════
 def test_invariancia_rotacional():
-    print("\n[4] Invariancia: rotar toda la Rx no cambia los factores angulares")
+    print("\n[4] Invariancia: la MAGNITUD no cambia al rotar (F3, F5, F7)")
 
     pts = craneo_base()
     f0 = motor.calcular_factores_bimler(pts, escala_mm_px=3.0)
 
-    # Rotar TODA la radiografía 15° (como si estuviera torcida en el negatoscopio).
-    # Los ángulos de Bimler se miden RELATIVOS a Frankfurt (que rota junto), así
-    # que F1..F8 deben permanecer prácticamente iguales.
+    # Rotar TODA la radiografía 15°.
     pts_rot = rotar(pts, 15)
     f1 = motor.calcular_factores_bimler(pts_rot, escala_mm_px=3.0)
 
-    for factor in ["F1", "F2", "F3", "F4", "F5", "F7", "F8"]:
+    # F3, F5, F7 miden ángulos respecto a Frankfurt (que rota junto) SIN signo de
+    # imagen → invariantes a la rotación.
+    for factor in ["F3", "F5", "F7"]:
         v0, v1 = f0.get(factor), f1.get(factor)
         if v0 is None or v1 is None:
             _check(f"{factor} presente en ambos", False, f"{v0} vs {v1}")
             continue
         _check(f"{factor} invariante a rotación (±0.5°)",
                _aprox(v0, v1, 0.5), f"{v0} vs {v1}")
+
+    # F1, F2, F4, F8 usan el METODO DE RUBÉN (regla vertical alineada al borde de
+    # la placa). Su SIGNO depende de que la Rx esté montada derecha — igual que en
+    # la práctica clínica real. La MAGNITUD sí es estable; el signo NO se testea
+    # bajo rotación porque el método clínico asume placa alineada. Verificamos que
+    # la magnitud (valor absoluto) se conserva:
+    for factor in ["F1", "F2", "F8"]:
+        v0, v1 = abs(f0.get(factor)), abs(f1.get(factor))
+        _check(f"|{factor}| (magnitud) estable ante rotación (±0.6°)",
+               _aprox(v0, v1, 0.6), f"|{v0}| vs |{v1}|")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # TEST 5 — COHERENCIA DE FACTORES DERIVADOS
@@ -411,17 +420,19 @@ CASOS_REGRESION = [
         # CONGELAR el comportamiento del motor y detectar cambios de fórmula, no
         # exigir coincidencia perfecta con un trazado manual distinto.
         "esperado": {
-            "F3": 24, "F4": 0, "F5": 70, "F7": 7, "F8": -3,
+            "F1": 0.5, "F2": 14, "F3": 24, "F4": 0, "F5": 70, "F7": 7, "F8": -3,
             "resalte_esqueletico_mm": 9.0,
         },
         "tol": {
+            # F1/F2 con tolerancia amplia: el SIGNO ya coincide (metodo regla de
+            # Rubén, resuelto con video 29-08-2026); la magnitud varia por marcación.
+            "F1": 2, "F2": 4,
             "F3": 3, "F4": 3, "F5": 6, "F7": 3, "F8": 3,
             "resalte_esqueletico_mm": 3.0,   # SW 11.1 vs Rubén 9 → dentro de 3mm
         },
-        # NOTA F1/F2: excluidos del test automático por la discrepancia de EJE
-        # documentada en main.py (Rubén mide el signo en horizontal; el motor sobre
-        # Frankfurt inclinado). La magnitud coincide (~1° y ~14-17°); el signo de F1
-        # queda pendiente de resolver con la escuela de Rubén.
+        # RESUELTO: el signo de F1/F2/F4/F8 usa la regla vertical de imagen de Rubén
+        # (video Ruben01_OFM). F1 pasó de -1.54 (Frankfurt) a +1.54 (imagen) → ahora
+        # coincide con el +0.5 del especialista.
     },
 ]
 

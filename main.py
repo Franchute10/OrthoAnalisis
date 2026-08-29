@@ -394,36 +394,40 @@ def calcular_factores_bimler(pts, escala_mm_px=None):
     _fhx = pts["Or"][0] - pts["Po"][0]
     _fhy = pts["Or"][1] - pts["Po"][1]
     _fhl = (_fhx**2 + _fhy**2) ** 0.5 or 1.0
-    # Perpendicular a FH que apunta "hacia abajo" en el marco de la imagen
-    # (rotar FH +90°): (nx, ny) = (-fhy, fhx)/|FH|
-    _nx, _ny = -_fhy / _fhl, _fhx / _fhl
-    _proj_ena = pts["ENA"][0]*_nx + pts["ENA"][1]*_ny
-    _proj_enp = pts["ENP"][0]*_nx + pts["ENP"][1]*_ny
-    _signo_f4 = 1 if _proj_ena > _proj_enp else -1
+    # F4 = plano palatino (ENA-ENP) vs Frankfurt. Signo según video Rubén:
+    #   ENA por DEBAJO de ENP (mayor Y de imagen) → maxila PROINCLINADA → (+)
+    #   planos paralelos                          → ortoinclinada → 0
+    #   ENA por ENCIMA de ENP (menor Y de imagen) → maxila RETROINCLINADA → (-)
+    # La magnitud es el ángulo ENA-ENP con FH; el signo lo fija la Y de imagen
+    # (método de la regla de Rubén). Coincide con proyección cuando la placa está
+    # alineada, y evita el bug de signo que aparecía al proyectar sobre FH inclinado.
+    _signo_f4 = 1 if pts["ENA"][1] > pts["ENP"][1] else (-1 if pts["ENA"][1] < pts["ENP"][1] else 0)
     F4 = round(_ang_FH(pts["ENA"], pts["ENP"]) * _signo_f4, 2)
 
     # F7: base craneal anterior con FH (sin signo)
     F7 = _ang_FH(pts["N"], pts["S"])
 
     # ── F1 = N-A, ángulo superior del perfil. Norma -1/+1. ──
-    # Convención OrthoTP validada en 3 casos (Mia/Nicolás/Piero): F1 = -signed(N,A).
-    #
-    # ⚠ DISCREPANCIA ABIERTA CON EL DR. RUBÉN (caso Benjamín):
-    #   El especialista obtiene F1=+0.5; el motor da -1.54. El signo depende del EJE
-    #   contra el que se mide "A por delante de N": Rubén lo juzga en la horizontal
-    #   del trazado (A 14px a la derecha de N → +); el motor lo proyecta sobre
-    #   Frankfurt, que en esta Rx está inclinado ~4°, y con N muy por encima de A la
-    #   proyección invierte el signo (A queda 8.8px "detrás" → -).
-    #   La ficha de Bimler NO especifica el eje de referencia, así que NO se cambia
-    #   la fórmula sin una fuente que lo defina. Queda documentado para resolver con
-    #   Rubén cuál eje usa su escuela. La MAGNITUD (~1-1.5°) coincide; solo el signo
-    #   está en disputa, y solo cuando A y N están casi alineados verticalmente.
-    F1 = round(-calcular_angulo_signed(pts["N"],  pts["A"],  Po, Or), 2)
+    # RESUELTO con el video de Rubén (Ruben01_OFM, 29-08-2026): el signo se decide
+    # con una REGLA VERTICAL alineada al borde de la radiografía (la vertical de la
+    # imagen), que se desplaza de anterior a posterior para ver "quién aparece
+    # primero". NO se proyecta sobre Frankfurt. Regla clara:
+    #   A por delante de N (A más a la derecha en X) → PROGNATA → signo (+)
+    #   A y N alineados verticalmente               → ORTOGNATA → 0
+    #   A por detrás de N (A más a la izquierda)     → RETROGNATA → signo (-)
+    # La magnitud es el angulo N-A; el signo lo fija la comparacion en X de imagen.
+    _mag_f1 = abs(calcular_angulo_signed(pts["N"], pts["A"], Po, Or))
+    _signo_f1 = 1 if pts["A"][0] > pts["N"][0] else (-1 if pts["A"][0] < pts["N"][0] else 0)
+    F1 = round(_mag_f1 * _signo_f1, 2)
 
-    # F2 = A-B (ángulo inferior del perfil). Norma 0/+10. Convención validada
-    # (+ = retrogenia/Clase II). Caso Benjamín: Rubén +14, motor +16.98 → mismo
-    # signo, diferencia por marcación de puntos.
-    F2 = round( calcular_angulo_signed(pts["A"],  pts["B"],  Po, Or), 2)
+    # F2 = A-B. Mismo método de regla vertical (video Rubén):
+    #   B por detrás de A (B más a la izquierda) → RETROGNATA / Clase II → (+)
+    #   B y A alineados                          → Clase I → 0
+    #   B por delante de A (B más a la derecha)  → Clase III → (-)
+    # Norma 0/+10. Caso Benjamín: Rubén +14, motor concuerda en signo.
+    _mag_f2 = abs(calcular_angulo_signed(pts["A"], pts["B"], Po, Or))
+    _signo_f2 = 1 if pts["B"][0] < pts["A"][0] else (-1 if pts["B"][0] > pts["A"][0] else 0)
+    F2 = round(_mag_f2 * _signo_f2, 2)
 
     # ── Fix Rubén: F8 = FLEXIÓN MANDIBULAR con CAPITULARE (C-Go), no Condylion ──
     # Fuente primaria Bimler: F8 mide C-Go, donde C = Capitulare (CENTRO del cóndilo),
@@ -431,9 +435,15 @@ def calcular_factores_bimler(pts, escala_mm_px=None):
     #   Hiperflexión → Go por delante de C → signo (-)
     #   Hipoflexión  → Go por detrás de C  → signo (+)
     # Retrocompatibilidad: si el análisis no trae C (marcados viejos), se usa Co
-    # como APROXIMACIÓN y se avisa. El signo se mantiene consistente con OrthoTP.
+    # como APROXIMACIÓN y se avisa.
+    # Signo según video Rubén (regla vertical, comparación en X de imagen):
+    #   Go por DELANTE de C (Go más a la derecha) → HIPERFLEXIÓN → (+)
+    #   Go y C alineados verticalmente            → ortoflexión → 0
+    #   Go por DETRÁS de C (Go más a la izquierda) → HIPOFLEXIÓN → (-)
     _pf = pts.get("C") or pts.get("Co")   # Capitulare preferente; Co como fallback
-    F8 = round(-calcular_angulo_signed(_pf, pts["Go"], Po, Or), 2)
+    _mag_f8 = abs(calcular_angulo_signed(_pf, pts["Go"], Po, Or))
+    _signo_f8 = 1 if pts["Go"][0] > _pf[0] else (-1 if pts["Go"][0] < _pf[0] else 0)
+    F8 = round(_mag_f8 * _signo_f8, 2)
     F8_fuente = "Capitulare (C)" if pts.get("C") else "Condylion (Co) — aproximado"
 
     # F5: clivus con FH — solo si están marcados Cls y Cli
