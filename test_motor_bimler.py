@@ -187,7 +187,7 @@ def test_f8_capitulare():
     pts_hiper = craneo_base()
     pts_hiper["C"]  = (200, 400)
     pts_hiper["Go"] = (320, 400)   # Go MUY por delante de C (mayor X)
-    fh = motor.calcular_factores_bimler(pts_hiper, escala_mm_px=3.0)
+    fh = motor.calcular_factores_bimler(pts_hiper, escala_mm_px=3.0, convencion="ruben")
     _check("Hiperflexión (Go delante de C) → F8 positivo",
            fh["F8"] > 0, f"F8 = {fh['F8']}")
 
@@ -195,7 +195,7 @@ def test_f8_capitulare():
     pts_hipo = craneo_base()
     pts_hipo["C"]  = (320, 400)
     pts_hipo["Go"] = (200, 400)    # Go por detrás de C (menor X)
-    fhi = motor.calcular_factores_bimler(pts_hipo, escala_mm_px=3.0)
+    fhi = motor.calcular_factores_bimler(pts_hipo, escala_mm_px=3.0, convencion="ruben")
     _check("Hipoflexión (Go detrás de C) → F8 negativo",
            fhi["F8"] < 0, f"F8 = {fhi['F8']}")
 
@@ -406,6 +406,7 @@ def test_normas_fuente():
 CASOS_REGRESION = [
     {
         "nombre": "Benjamín Perales (Rubén, 21-08-2026)",
+        "convencion": "ruben",   # valores gold-standard con signos de Rubén
         # Escala derivada de N-S=68mm reportado por Rubén (6.05 px/mm).
         "escala_mm_px": 6.05,
         "puntos": {
@@ -434,6 +435,33 @@ CASOS_REGRESION = [
         # (video Ruben01_OFM). F1 pasó de -1.54 (Frankfurt) a +1.54 (imagen) → ahora
         # coincide con el +0.5 del especialista.
     },
+    {
+        # Caso Dr. Darío (APOFI) contra OrthoTP — 03-09-2026. Convención OrthoTP.
+        # NOTA: la marcación de puntos difiere de OrthoTP (SNA 76.9 vs 73.3), así
+        # que solo se testean factores donde la MAGNITUD debe coincidir pese a la
+        # marcación: F8 (magnitud), ABS, ABI, ABT, F7 (casi idénticos en la prueba).
+        "nombre": "Darío/OrthoTP (03-09-2026)",
+        "convencion": "orthotp",
+        "escala_mm_px": 11.017124574847617,
+        "puntos": {
+            "S":(1510.54,1020.56),"N":(2226.87,800.68),"Me":(2222.12,1927.79),
+            "Go":(1525.14,1705.28),"A":(2265.69,1363.85),"B":(2251.56,1728.82),
+            "ENA":(2276.11,1318.36),"ENP":(1769.77,1348.93),"Po":(1237.71,1127.54),
+            "Or":(2100.01,1066.63),"Co":(1367.46,1222.58),"C":(1417.54,1242.61),
+            "Cls":(1411.81,1062.34),"Cli":(1303.07,1291.26),
+        },
+        "esperado": {
+            "F8": -9.12,   # OrthoTP -9.12, ahora coincide en signo y magnitud
+            "ABS": 60.89,  # basal superior — casi idéntico
+            "ABI": 21.63,  # basal inferior — casi idéntico
+            "ABT": 82.52,  # basal total — casi idéntico
+            "F7": 13.47,   # inclinación NSL — casi idéntico
+        },
+        "tol": {
+            "F8": 1.0,   # -9.05 vs -9.12 → Δ0.07
+            "ABS": 1.0, "ABI": 1.0, "ABT": 1.0, "F7": 1.0,
+        },
+    },
 ]
 
 def test_regresion_clinica():
@@ -445,7 +473,8 @@ def test_regresion_clinica():
     for caso in CASOS_REGRESION:
         nombre = caso["nombre"]
         f = motor.calcular_factores_bimler(caso["puntos"],
-                                           escala_mm_px=caso.get("escala_mm_px"))
+                                           escala_mm_px=caso.get("escala_mm_px"),
+                                           convencion=caso.get("convencion", "orthotp"))
         for clave, esperado in caso["esperado"].items():
             tol = caso.get("tol", {}).get(clave, 1.0)
             obtenido = f.get(clave)

@@ -365,10 +365,13 @@ def generar_resumen_narrativo(f, indicadores_T, medidas_lineales, grupo, categor
     return frases
 
 
-def calcular_factores_bimler(pts, escala_mm_px=None):
+def calcular_factores_bimler(pts, escala_mm_px=None, convencion="orthotp"):
     """
     Calcula todos los factores de Bimler y medidas derivadas.
     escala_mm_px: mm por píxel (para medidas lineales). Si None, en píxeles.
+    convencion: "orthotp" (hiperflexión F8 = negativa, como OrthoTP/APOFI) o
+                "ruben" (hiperflexión F8 = positiva, como el video de Rubén).
+                Solo afecta el SIGNO de F8; la magnitud es idéntica.
     """
     Po, Or = pts["Po"], pts["Or"]
 
@@ -429,20 +432,23 @@ def calcular_factores_bimler(pts, escala_mm_px=None):
     _signo_f2 = 1 if pts["B"][0] < pts["A"][0] else (-1 if pts["B"][0] > pts["A"][0] else 0)
     F2 = round(_mag_f2 * _signo_f2, 2)
 
-    # ── Fix Rubén: F8 = FLEXIÓN MANDIBULAR con CAPITULARE (C-Go), no Condylion ──
-    # Fuente primaria Bimler: F8 mide C-Go, donde C = Capitulare (CENTRO del cóndilo),
-    # distinto de Cd/Condylion (póstero-superior). Valor normal 0°/8°:
-    #   Hiperflexión → Go por delante de C → signo (-)
-    #   Hipoflexión  → Go por detrás de C  → signo (+)
-    # Retrocompatibilidad: si el análisis no trae C (marcados viejos), se usa Co
-    # como APROXIMACIÓN y se avisa.
-    # Signo según video Rubén (regla vertical, comparación en X de imagen):
-    #   Go por DELANTE de C (Go más a la derecha) → HIPERFLEXIÓN → (+)
-    #   Go y C alineados verticalmente            → ortoflexión → 0
-    #   Go por DETRÁS de C (Go más a la izquierda) → HIPOFLEXIÓN → (-)
+    # ── F8 = FLEXIÓN MANDIBULAR con CAPITULARE (C-Go), no Condylion ──
+    # Fuente primaria Bimler: F8 mide C-Go, donde C = Capitulare (CENTRO del cóndilo).
+    # Magnitud: ángulo C-Go. Retrocompatibilidad: si no hay C, usa Co con aviso.
+    #
+    # CONVENCIÓN DE SIGNO (configurable — Rubén y OrthoTP usan signos OPUESTOS):
+    #   Ambas escuelas coinciden en la magnitud; difieren solo en qué signo lleva
+    #   la hiperflexión (Go por delante de C):
+    #     · "orthotp" (APOFI/Darío): hiperflexión = NEGATIVA. OrthoTP rotula
+    #        literal "Hiperflexion (señal positivo -)". Go delante de C → (-).
+    #     · "ruben" (video Ruben01_OFM): hiperflexión = POSITIVA. Go delante → (+).
+    #   Verificado: caso Darío F8=-9.05 (orthotp) vs OrthoTP -9.12 → Δ0.07, coincide.
     _pf = pts.get("C") or pts.get("Co")   # Capitulare preferente; Co como fallback
     _mag_f8 = abs(calcular_angulo_signed(_pf, pts["Go"], Po, Or))
-    _signo_f8 = 1 if pts["Go"][0] > _pf[0] else (-1 if pts["Go"][0] < _pf[0] else 0)
+    # Base: Go delante de C (mayor X) = +1 (convención Rubén)
+    _signo_f8_ruben = 1 if pts["Go"][0] > _pf[0] else (-1 if pts["Go"][0] < _pf[0] else 0)
+    # OrthoTP invierte: hiperflexión negativa
+    _signo_f8 = _signo_f8_ruben if convencion == "ruben" else -_signo_f8_ruben
     F8 = round(_mag_f8 * _signo_f8, 2)
     F8_fuente = "Capitulare (C)" if pts.get("C") else "Condylion (Co) — aproximado"
 
@@ -468,12 +474,45 @@ def calcular_factores_bimler(pts, escala_mm_px=None):
     # Antes: F3 + |F8| + 90 (Mia daba 128.83 vs 118.07 real).
     AG     = round(F3 - F8 + 90, 2)                # Ángulo Gonial
 
-    # ── Fix D: APNI_estimado (NO es el APDI real de OrthoTP) ───
-    # El APDI verdadero de OrthoTP = (N-Pg) - F2 + F4 y requiere el punto Pg.
-    # Esto es una aproximación interna, NO comparable con APDI ni clase esquelética.
-    APNI_estimado = round(F2 + abs(F4), 2)
-
     ODI    = round(90 - ABI + F2, 2)               # ODI
+
+    # ═══════════════════════════════════════════════════════════════════
+    # MEDIDAS DEL TRIÁNGULO INCISAL (pedidas por Dr. Darío / OrthoTP)
+    # Requieren puntos incisales NUEVOS (opcionales, retrocompatibles):
+    #   Is  = borde incisal superior (11)     Isa = ápice incisal superior
+    #   Ii  = borde incisal inferior (41)     Iia = ápice incisal inferior
+    #   Pg  = Pogonion (para APDI real)
+    # ═══════════════════════════════════════════════════════════════════
+    FH_11 = None   # ángulo del incisivo superior con FH (norma 115±5)
+    FH_41 = None   # ángulo del incisivo inferior con FH (norma 115±5)
+    II    = None   # ángulo interincisal (norma 130±10)
+    if "Is" in pts and "Isa" in pts:
+        # Ángulo entre el eje del incisivo sup (Isa→Is) y el plano FH (Po→Or)
+        FH_11 = round(calcular_angulo_entre_lineas(pts["Isa"], pts["Is"], Po, Or), 2)
+        # Convención OrthoTP: se reporta el ángulo posteroinferior (~110-120)
+        if FH_11 < 90:
+            FH_11 = round(180 - FH_11, 2)
+    if "Ii" in pts and "Iia" in pts:
+        FH_41 = round(calcular_angulo_entre_lineas(pts["Iia"], pts["Ii"], Po, Or), 2)
+        if FH_41 < 90:
+            FH_41 = round(180 - FH_41, 2)
+    if all(k in pts for k in ("Is", "Isa", "Ii", "Iia")):
+        # Ángulo interincisal = ángulo entre los dos ejes incisales
+        II = round(calcular_angulo_entre_lineas(pts["Isa"], pts["Is"],
+                                                 pts["Iia"], pts["Ii"]), 2)
+        if II < 90:
+            II = round(180 - II, 2)
+
+    # ── APDI real de OrthoTP = (N-Pg vs FH) - F2 + F4, requiere Pogonion ──
+    APDI = None
+    if "Pg" in pts:
+        # Ángulo del plano facial (N-Pg) con FH
+        ang_facial = round(calcular_angulo_entre_lineas(pts["N"], pts["Pg"], Po, Or), 2)
+        # APDI = ángulo facial - F2 + F4 (fórmula de Kim/OrthoTP)
+        APDI = round(ang_facial - F2 + F4, 2)
+
+    # ── Fix D: APNI_estimado (fallback si NO hay Pogonion) ─────
+    APNI_estimado = round(F2 + abs(F4), 2)
 
     # ── TM = proyección de Co sobre FH ────────────────────────
     TM = proyectar_punto_en_linea(pts["Co"], Po, Or)
@@ -526,6 +565,8 @@ def calcular_factores_bimler(pts, escala_mm_px=None):
         "ML_NSL": ML_NSL, "NL_NSL": NL_NSL,
         "perfil": perfil, "ABS": ABS, "ABI": ABI, "ABT": ABT,
         "AG": AG, "APNI_estimado": APNI_estimado, "ODI": ODI,
+        "FH_11": FH_11, "FH_41": FH_41, "II": II, "APDI": APDI,
+        "convencion": convencion,
         "resalte_esqueletico_mm": resalte_ab_mm,
         "lineales": lin,
     }
@@ -1096,6 +1137,11 @@ PROPORCIONES CEFALOMÉTRICAS NORMATIVAS (dentro del bbox del cráneo):
  C:   x_skull≈23%, y_skull≈36%   (Capitulare — CENTRO del cóndilo; ~2% por debajo y ligeramente por delante de Co)
  Cls: x_skull≈28%, y_skull≈30%   (clivus sup)
  Cli: x_skull≈24%, y_skull≈42%   (clivus inf)
+ Pg:  x_skull≈72%, y_skull≈88%   (Pogonion — punto más anterior del mentón óseo)
+ Is:  x_skull≈70%, y_skull≈62%   (borde incisal del incisivo superior)
+ Isa: x_skull≈66%, y_skull≈52%   (ápice radicular del incisivo superior)
+ Ii:  x_skull≈68%, y_skull≈64%   (borde incisal del incisivo inferior)
+ Iia: x_skull≈64%, y_skull≈74%   (ápice radicular del incisivo inferior)
 
  Úsalas como REFERENCIA cuando un punto no es claramente visible.
  Prioriza siempre lo que ves en la imagen sobre estas proporciones.
@@ -1323,7 +1369,12 @@ No incluyas las estructuras de la Fase 0 en el JSON. Devuelve exactamente:
     "Co":  {{"x_skull": 0.0, "y_skull": 0.0, "confianza": 0.0}},
     "C":   {{"x_skull": 0.0, "y_skull": 0.0, "confianza": 0.0}},
     "Cls": {{"x_skull": 0.0, "y_skull": 0.0, "confianza": 0.0}},
-    "Cli": {{"x_skull": 0.0, "y_skull": 0.0, "confianza": 0.0}}
+    "Cli": {{"x_skull": 0.0, "y_skull": 0.0, "confianza": 0.0}},
+    "Pg":  {{"x_skull": 0.0, "y_skull": 0.0, "confianza": 0.0}},
+    "Is":  {{"x_skull": 0.0, "y_skull": 0.0, "confianza": 0.0}},
+    "Isa": {{"x_skull": 0.0, "y_skull": 0.0, "confianza": 0.0}},
+    "Ii":  {{"x_skull": 0.0, "y_skull": 0.0, "confianza": 0.0}},
+    "Iia": {{"x_skull": 0.0, "y_skull": 0.0, "confianza": 0.0}}
   }}
 }}"""
 
@@ -1552,6 +1603,11 @@ async def analizar(request: Request):
                              "que es (N-Pg)-F2+F4 y requiere el punto Pg. No usar para clase esquelética.",
                 "ODI":  factores["ODI"],
                 "clasif_ABS": clasif_ABS(factores["ABS"]),
+                # Triángulo incisal + APDI real (formato OrthoTP) — None si faltan puntos
+                "FH_11": factores.get("FH_11"),
+                "FH_41": factores.get("FH_41"),
+                "II":    factores.get("II"),
+                "APDI":  factores.get("APDI"),
             },
             "indicadores_petrovic": {
                 "T1": T1, "T2": T2, "T3": T3,
