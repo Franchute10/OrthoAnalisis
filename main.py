@@ -236,6 +236,21 @@ def proyectar_punto_en_linea(P, L1, L2):
 def distancia(p1, p2):
     return math.sqrt((p2[0]-p1[0])**2 + (p2[1]-p1[1])**2)
 
+def centro_circulo_3puntos(p1, p2, p3):
+    """
+    Centro del círculo que pasa por 3 puntos (intersección de mediatrices).
+    Usado para el Centro Masticatorio (CM) de Bimler: círculo por las caras
+    oclusales de molares superior/inferior y el centro del cóndilo (Capitulare).
+    Devuelve None si los 3 puntos son colineales.
+    """
+    ax, ay = p1; bx, by = p2; cx, cy = p3
+    d = 2 * (ax*(by-cy) + bx*(cy-ay) + cx*(ay-by))
+    if abs(d) < 1e-9:
+        return None  # colineales
+    ux = ((ax*ax+ay*ay)*(by-cy) + (bx*bx+by*by)*(cy-ay) + (cx*cx+cy*cy)*(ay-by)) / d
+    uy = ((ax*ax+ay*ay)*(cx-bx) + (bx*bx+by*by)*(ax-cx) + (cx*cx+cy*cy)*(bx-ax)) / d
+    return (ux, uy)
+
 # -----------------------------------------------------------------
 # MOTOR PRINCIPAL
 # -----------------------------------------------------------------
@@ -511,20 +526,59 @@ def calcular_factores_bimler(pts, escala_mm_px=None, convencion="orthotp"):
         # APDI = ángulo facial - F2 + F4 (fórmula de Kim/OrthoTP)
         APDI = round(ang_facial - F2 + F4, 2)
 
+    # ═══════════════════════════════════════════════════════════════════
+    # FACTOR 6 — EJE DE ESTRÉS (CM-Me), Factor 10 (nasal), Índice Facial
+    # Definiciones de fuentes académicas (Bimler, UNAM, Eneida López):
+    # ═══════════════════════════════════════════════════════════════════
+    # FACTOR 6: eje CM→Me. CM = Centro Masticatorio = centro del círculo de
+    # Spee que pasa por las caras oclusales de molares (M6s, M6i) y el centro
+    # del cóndilo (C). Se mide el ángulo del eje CM-Me respecto a la vertical
+    # ortogonal (perpendicular a Frankfurt). Signo: eje hacia atrás-abajo (+).
+    F6 = None
+    CM = None
+    if all(k in pts for k in ("M6s", "M6i")) and (pts.get("C") or pts.get("Co")):
+        _c_spee = pts.get("C") or pts.get("Co")
+        CM = centro_circulo_3puntos(pts["M6s"], pts["M6i"], _c_spee)
+        if CM is not None:
+            # Ángulo del eje CM-Me respecto a la perpendicular a Frankfurt
+            # (la "ortogonal del correlómetro"). Perpendicular a FH = vertical T.
+            perp_x, perp_y = -(Or[1]-Po[1]), (Or[0]-Po[0])   # perpendicular a FH
+            F6 = round(calcular_angulo_entre_lineas(CM, pts["Me"],
+                       (0,0), (perp_x, perp_y)), 2)
+            # Signo: si CM está por detrás de Me (menor X) → mandíbula atrás → (+)
+            if CM[0] < pts["Me"][0]:
+                F6 = abs(F6)
+            else:
+                F6 = -abs(F6)
+
+    # FACTOR 10: inclinación nasal = ángulo del eje del hueso nasal propio
+    # (Na1 superior → Na2 inferior) respecto a la línea N-S. Sin valor clínico
+    # relevante (según la propia fuente Bimler), pero se incluye por completitud.
+    F10 = None
+    if all(k in pts for k in ("Na1", "Na2")):
+        F10 = round(calcular_angulo_entre_lineas(pts["Na1"], pts["Na2"],
+                    pts["N"], pts["S"]), 2)
+
     # ── Fix D: APNI_estimado (fallback si NO hay Pogonion) ─────
     APNI_estimado = round(F2 + abs(F4), 2)
 
-    # ── TM = proyección de Co sobre FH ────────────────────────
-    TM = proyectar_punto_en_linea(pts["Co"], Po, Or)
+    # ── TM = proyección del punto C (Capitulare) sobre FH ──────
+    # Definición exacta (fuente Bimler/UNAM): "TM = Proyección del punto C
+    # sobre la horizontal de Frankfort". C = Capitulare (centro del cóndilo).
+    # Si no hay C (marcados viejos), cae a Co como aproximación.
+    _pf_tm = pts.get("C") or pts.get("Co")
+    TM = proyectar_punto_en_linea(_pf_tm, Po, Or)
 
     # Proyecciones A' y B' sobre FH
     A_prima = proyectar_punto_en_linea(pts["A"], Po, Or)
     B_prima = proyectar_punto_en_linea(pts["B"], Po, Or)
 
-    # Punto T = intersección de vertical desde tuber con FH
-    # ⚠ PENDIENTE: T real = fisura pterigomaxilar proyectada en FH.
-    #    Usamos Po como aproximación → A'-T NO es profundidad maxilar fiable.
-    T = Po  # aproximación: T ≈ Po proyectado sobre FH
+    # ── Punto T = vertical pterigoidea proyectada sobre FH ─────
+    # T real = fisura pterigomaxilar. Si el usuario marca el punto "T",
+    # se proyecta sobre FH. Si no, se usa ENP como referencia posterior
+    # (la fisura pterigomaxilar está inmediatamente detrás de ENP).
+    _t_src = pts.get("T") or pts.get("ENP")
+    T = proyectar_punto_en_linea(_t_src, Po, Or)
 
     # ── Fix Rubén: RESALTE ESQUELÉTICO A'-B' CON SIGNO, en mm ──
     # Fuente Bimler: A'-B' = distancia entre las proyecciones de A y B sobre
@@ -557,6 +611,17 @@ def calcular_factores_bimler(pts, escala_mm_px=None, convencion="orthotp"):
         "Co_Go":       round(distancia(pts["Co"], pts["Go"]), 1),  # altura rama
     }
 
+    # ── ÍNDICE FACIAL de Bimler ────────────────────────────────
+    # IF = altura facial suborbital (FH→Me) / profundidad facial (A'→TM).
+    # Bimler clasifica el somatotipo: dólico/meso/lepto. IFAC = IF en escala.
+    # Altura suborbital = distancia perpendicular de Me a FH.
+    altura_suborbital = _dist_perp(pts["Me"], Po, Or)
+    profundidad_facial = distancia(A_prima, TM)
+    IF = round(altura_suborbital / profundidad_facial, 2) if profundidad_facial else None
+    IFAC = round(IF * 100, 1) if IF is not None else None
+    lin["FH_Me"]  = round(altura_suborbital, 1)
+    lin["indice_facial"] = IF
+
     result = {
         "SNA": SNA, "SNB": SNB, "ANB": ANB,
         "F1": F1, "F2": F2, "F3": F3, "F4": F4,
@@ -566,6 +631,7 @@ def calcular_factores_bimler(pts, escala_mm_px=None, convencion="orthotp"):
         "perfil": perfil, "ABS": ABS, "ABI": ABI, "ABT": ABT,
         "AG": AG, "APNI_estimado": APNI_estimado, "ODI": ODI,
         "FH_11": FH_11, "FH_41": FH_41, "II": II, "APDI": APDI,
+        "F6": F6, "F10": F10, "IF": IF, "IFAC": IFAC,
         "convencion": convencion,
         "resalte_esqueletico_mm": resalte_ab_mm,
         "lineales": lin,
@@ -1142,6 +1208,10 @@ PROPORCIONES CEFALOMÉTRICAS NORMATIVAS (dentro del bbox del cráneo):
  Isa: x_skull≈66%, y_skull≈52%   (ápice radicular del incisivo superior)
  Ii:  x_skull≈68%, y_skull≈64%   (borde incisal del incisivo inferior)
  Iia: x_skull≈64%, y_skull≈74%   (ápice radicular del incisivo inferior)
+ M6s: x_skull≈56%, y_skull≈62%   (cara oclusal 1er molar superior)
+ M6i: x_skull≈56%, y_skull≈66%   (cara oclusal 1er molar inferior)
+ Na1: x_skull≈62%, y_skull≈16%   (extremo superior hueso nasal, cerca de N)
+ Na2: x_skull≈72%, y_skull≈28%   (extremo inferior hueso nasal propio)
 
  Úsalas como REFERENCIA cuando un punto no es claramente visible.
  Prioriza siempre lo que ves en la imagen sobre estas proporciones.
@@ -1374,7 +1444,11 @@ No incluyas las estructuras de la Fase 0 en el JSON. Devuelve exactamente:
     "Is":  {{"x_skull": 0.0, "y_skull": 0.0, "confianza": 0.0}},
     "Isa": {{"x_skull": 0.0, "y_skull": 0.0, "confianza": 0.0}},
     "Ii":  {{"x_skull": 0.0, "y_skull": 0.0, "confianza": 0.0}},
-    "Iia": {{"x_skull": 0.0, "y_skull": 0.0, "confianza": 0.0}}
+    "Iia": {{"x_skull": 0.0, "y_skull": 0.0, "confianza": 0.0}},
+    "M6s": {{"x_skull": 0.0, "y_skull": 0.0, "confianza": 0.0}},
+    "M6i": {{"x_skull": 0.0, "y_skull": 0.0, "confianza": 0.0}},
+    "Na1": {{"x_skull": 0.0, "y_skull": 0.0, "confianza": 0.0}},
+    "Na2": {{"x_skull": 0.0, "y_skull": 0.0, "confianza": 0.0}}
   }}
 }}"""
 
@@ -1608,6 +1682,10 @@ async def analizar(request: Request):
                 "FH_41": factores.get("FH_41"),
                 "II":    factores.get("II"),
                 "APDI":  factores.get("APDI"),
+                "F6":    factores.get("F6"),
+                "F10":   factores.get("F10"),
+                "IF":    factores.get("IF"),
+                "IFAC":  factores.get("IFAC"),
             },
             "indicadores_petrovic": {
                 "T1": T1, "T2": T2, "T3": T3,

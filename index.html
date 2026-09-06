@@ -1043,6 +1043,11 @@ const PUNTOS_CONFIG = [
   { key:"Isa", nombre:"Inc.Sup ápice", desc:"Ápice radicular del incisivo superior (11)", color:"#e9c46a" },
   { key:"Ii",  nombre:"Inc.Inf borde", desc:"Borde incisal del incisivo inferior (41)", color:"#2a9d8f" },
   { key:"Iia", nombre:"Inc.Inf ápice", desc:"Ápice radicular del incisivo inferior (41)", color:"#264653" },
+  // ── Molares (Factor 6 / Centro Masticatorio) y hueso nasal (Factor 10) ──
+  { key:"M6s", nombre:"Molar sup", desc:"Cara oclusal del 1er molar superior (curva de Spee)", color:"#c1121f" },
+  { key:"M6i", nombre:"Molar inf", desc:"Cara oclusal del 1er molar inferior (curva de Spee)", color:"#780000" },
+  { key:"Na1", nombre:"Nasal sup", desc:"Extremo superior del hueso nasal propio (Factor 10)", color:"#8ecae6" },
+  { key:"Na2", nombre:"Nasal inf", desc:"Extremo inferior del hueso nasal propio (Factor 10)", color:"#219ebc" },
 ];
 
 // Claves de las 4 anclas (orden fijo)
@@ -1965,7 +1970,7 @@ function actualizarBotonIA() {
 // Los 5 puntos incisales + Pogonion son OPCIONALES: habilitan las medidas del
 // triángulo incisal (FH-11, FH-41, interincisal) y el APDI real (formato OrthoTP),
 // pero su ausencia no bloquea el diagnóstico Petrovic/Bimler base.
-const PUNTOS_OPCIONALES = ["Pg", "Is", "Isa", "Ii", "Iia"];
+const PUNTOS_OPCIONALES = ["Pg", "Is", "Isa", "Ii", "Iia", "M6s", "M6i", "Na1", "Na2"];
 function actualizarBotonesUX() {
   if (typeof actualizarBotonIA === 'function') actualizarBotonIA();
   const requeridos = PUNTOS_CONFIG.filter(p => !PUNTOS_OPCIONALES.includes(p.key));
@@ -2778,8 +2783,12 @@ function exportarPDF() {
   fila('F3', 'Inclinación del Plano Mandibular', g(f.F3,'°'), '25.00', '±10', sintF3(f.F3));
   fila('F4', 'Inclinación del Maxilar Superior', g(f.F4,'°'), '0.00', '±2', sintF4(f.F4));
   fila('F5/IC', 'Inclinación del Clivus', g(f.F5,'°'), '65.00', '±5', sintF5(f.F5));
+  if (ang.F6 !== null && ang.F6 !== undefined)
+    fila('F6', 'Eje de Estrés (CM-Me)', g(ang.F6,'°'), '0.00', '±2', '');
   fila('F7/ISN', 'Inclinación de la Línea NS', g(f.F7,'°'), '7.00', '±1', '');
   fila('F8', 'Flexión Mandibular (C-Go)', g(f.F8,'°'), '4.00', '±4', sintF8(f.F8), true);
+  if (ang.F10 !== null && ang.F10 !== undefined)
+    fila('F10/IN', 'Inclinación Nasal', g(ang.F10,'°'), '31.00', '±20', '');
   fila('AG', 'Ángulo Gonial (F3-F8+90°)', g(ang.AG,'°'), '113.00', '±8', '');
 
   // ─ Indicadores (índice facial, T) ─
@@ -2791,6 +2800,14 @@ function exportarPDF() {
   if (ang.APDI !== null && ang.APDI !== undefined)
     fila('APDI', 'APDI ((N-Pg)−F2+F4)', g(ang.APDI,'°'), '81.00', '±4', sintClase(ang.APDI-80));
 
+  // ─ Índice Facial ─
+  if (ang.IF !== null && ang.IF !== undefined) {
+    y = headerFila(y, 'ÍNDICE FACIAL');
+    fila('IF', 'Índice Facial Suborbital', g(ang.IF), '0.87', '—', '');
+    if (ang.IFAC !== null && ang.IFAC !== undefined)
+      fila('IFAC', 'Índice Facial (escala)', g(ang.IFAC), '—', '—', '');
+  }
+
   // ─ Triángulo incisal (solo si hay puntos) ─
   if (ang.FH_11 != null || ang.FH_41 != null || ang.II != null) {
     y = headerFila(y, 'TRIÁNGULO INCISAL DE BIMLER');
@@ -2799,9 +2816,13 @@ function exportarPDF() {
     if (ang.II != null)    fila('II', 'Ángulo Interincisal', g(ang.II,'°'), '130.00', '±10', '');
   }
 
-  // ─ Medidas Lineales ─
+  // ─ Medidas Lineales (orden OrthoTP completo) ─
   y = headerFila(y, 'MEDIDAS LINEALES (mm)');
-  fila('A\'-B\'', 'Resalte Esquelético', gm(f.resalte_esqueletico_mm), '5.00', '±5', clasifResalte(f.resalte_esqueletico_mm));
+  if (ml.A_prima_T != null)  fila('A1-T', 'Profundidad del Maxilar (A\'-T)', gm(ml.A_prima_T), '50.00', '±2', '');
+  fila('A1-B1', 'Resalte Esquelético', gm(f.resalte_esqueletico_mm), '5.00', '±5', clasifResalte(f.resalte_esqueletico_mm));
+  if (ml.A_prima_TM != null) fila('A1-TM', 'Profundidad de la Cara (A\'-TM)', gm(ml.A_prima_TM), '80.00', '±3', '');
+  if (ml.B_prima_TM != null) fila('B1-TM', 'Proyección Mandíbula sobre FH', gm(ml.B_prima_TM), '78.00', '±2', '');
+  if (ml.T_TM != null)       fila('T-TM', 'Posición Articulaciones (T-TM)', gm(ml.T_TM), '30.00', '±2', '');
   fila('N-S', 'Base Craneal Anterior', gm(ml.NS), '70.00', '±4', '');
   fila('Cd-Go', 'Longitud Rama Ascendente', gm(ml.CoGo), '55.00', '±5', '');
   fila('N-Me', 'Altura Anterior de la Cara', gm(ml.NMe), '120.00', '±5', '');
